@@ -1,0 +1,12 @@
+node_modules/
+.env
+.env.*
+!.env.example
+target/
+.snfoundry_cache/
+dist/
+.next/
+out/
+.agents/
+.DS_Store
+*.log
