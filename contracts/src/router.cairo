@@ -75,7 +75,12 @@ pub mod JalinRouter {
             let params = governor.params();
             assert(!params.paused, errors::PAUSED);
             assert(steps.len() <= params.max_steps, errors::TOO_MANY_STEPS); // I6
-            assert(outputs.len().is_non_zero(), errors::NO_OUTPUTS);
+            // Outputs may be empty. The pool accepts an empty Span, and that is
+            // what makes a plan that sends value away for good - a bridge leg, an
+            // escrow funding, a ballot - expressible at all. The residue rule is
+            // what keeps it honest: everything a step could move must still end
+            // at zero, so "it all left" is checked rather than assumed.
+            assert(steps.len().is_non_zero(), errors::NO_STEPS);
 
             self.locked.write(true);
             let self_addr = get_contract_address();

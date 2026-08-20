@@ -65,7 +65,7 @@ pub mod errors {
     pub const CALLDATA_TOO_LONG: felt252 = 'JALIN_CALLDATA_TOO_LONG';
     // General
     pub const PAUSED: felt252 = 'JALIN_PAUSED';
-    pub const NO_OUTPUTS: felt252 = 'JALIN_NO_OUTPUTS';
+    pub const NO_STEPS: felt252 = 'JALIN_NO_STEPS';
     pub const DUPLICATE_OUTPUT: felt252 = 'JALIN_DUPLICATE_OUTPUT';
     pub const ZERO_OUTPUT_TOKEN: felt252 = 'JALIN_ZERO_OUTPUT_TOKEN';
     pub const AMOUNT_OVERFLOW: felt252 = 'JALIN_AMOUNT_OVERFLOW';

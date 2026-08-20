@@ -1,0 +1,17 @@
+{
+  "name": "@jalin/sdk",
+  "version": "0.1.0",
+  "description": "Plan encoding and sub-account portfolio helpers for the Jalin router on STRK20",
+  "license": "MIT",
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": { ".": "./src/index.ts" },
+  "files": ["src"],
+  "scripts": {
+    "test": "node --test --experimental-strip-types test/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.2"
+  }
+}

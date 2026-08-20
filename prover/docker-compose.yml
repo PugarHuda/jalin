@@ -1,0 +1,42 @@
+# Self-hosted STRK20 infrastructure for Jalin.
+#
+# Both services publish on loopback only. Neither has application-level
+# authentication, so the host binding is the security boundary - do not move
+# these to 0.0.0.0 without putting a proxy in front. See README.md.
+
+services:
+  # Note discovery. This is the service that matters most for privacy: a hosted
+  # discovery endpoint receives your decryption key on every request. Running it
+  # yourself means the key never leaves your infrastructure.
+  discovery:
+    image: ghcr.io/starkware-libs/starknet-privacy/discovery-service:${DISCOVERY_TAG:-latest}
+    command: ["--config", "/etc/jalin/discovery.toml"]
+    volumes:
+      - ./discovery.toml:/etc/jalin/discovery.toml:ro
+    environment:
+      RUST_LOG: ${RUST_LOG:-info}
+      API_HOST: 0.0.0.0:8080
+      STARKNET_RPC_URL: ${STARKNET_RPC_URL:?set STARKNET_RPC_URL in .env}
+      STARKNET_WS_URL: ${STARKNET_WS_URL:-}
+    ports:
+      - "127.0.0.1:${DISCOVERY_PORT:-8081}:8080"
+    restart: unless-stopped
+
+  # Deposit screening sidecar. The prover calls this, not clients. Included so a
+  # self-hosted proving route meets the same screening requirement as the hosted
+  # one - the pool verifies the FPI signature on chain either way.
+  proof-interceptor:
+    image: ghcr.io/starkware-libs/starknet-privacy/proof-interceptor:${INTERCEPTOR_TAG:-latest}
+    environment:
+      NODE_ENV: production
+      # Reachable from the prover container, never from outside the host.
+      HOST: 0.0.0.0
+      PORT: 8080
+      SCREENING_URL: ${SCREENING_URL:?set SCREENING_URL in .env}
+      SCREENING_POOL_ADDRESS: ${POOL_ADDRESS:?set POOL_ADDRESS in .env}
+      # Production posture from the upstream checklist, not the shipped defaults.
+      SCREENING_BLOCK_NON_POOL_TX: "true"
+      SCREENING_FAIL_OPEN: "false"
+    ports:
+      - "127.0.0.1:${INTERCEPTOR_PORT:-8082}:8080"
+    restart: unless-stopped

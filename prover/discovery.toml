@@ -1,0 +1,20 @@
+# Discovery service configuration.
+# Resolution order upstream is: env var > this file (with ${VAR} expansion) > default.
+
+[rpc]
+url = "${STARKNET_RPC_URL}"
+max_concurrent_requests = 10
+max_batch_size = 100
+event_page_size = 1024
+
+[indexer]
+ws_url = "${STARKNET_WS_URL:-}"
+
+[api]
+# Overridden by API_HOST in the compose file; kept here so the file runs alone too.
+host = "0.0.0.0:8080"
+health_max_lag_secs = 60
+
+[logging]
+level = "info"
+format = "json"

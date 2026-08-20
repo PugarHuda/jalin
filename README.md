@@ -77,11 +77,32 @@ to find.
 | Path | What it holds |
 |---|---|
 | `contracts/` | Cairo: the router, the governor, the private ballot |
-| `sdk/` | TypeScript: plan encoding, sub-account portfolio, discovery |
+| `sdk/` | TypeScript: plan encoding, recipes, sub-account portfolio |
 | `app/` | The demo anyone can open |
-| `prover/` | Self-hosted proving service |
-| `bridge/` | Cross-chain plans and their adapters |
-| `docs/` | Threat model, plan format, deployment notes |
+| `prover/` | Self-hosted discovery and screening services |
+| `docs/` | [Threat model](./docs/threat-model.md), [cross-chain](./docs/cross-chain.md) |
+
+There is no `bridge/`. Cross-chain is not a feature of the router, it is a plan —
+which is the whole argument, and it is made in [docs/cross-chain.md](./docs/cross-chain.md).
+
+## Building and testing
+
+Cairo:
+
+```bash
+scarb build --manifest-path contracts/Scarb.toml
+sh contracts/test.sh          # snforge in a pinned container
+```
+
+`test.sh` runs in Docker because starknet-foundry publishes no Windows binary, and
+because pinning the toolchain is worth more than saving a container. The scarb
+cache lives in a named volume, so only the first run pays for the plugin build.
+
+TypeScript:
+
+```bash
+cd sdk && npm test
+```
 
 ## Status
 
