@@ -1,0 +1,19 @@
+[package]
+name = "jalin"
+version = "0.1.0"
+edition = "2024_07"
+license-file = "../LICENSE"
+description = "Programmable execution router for the STRK20 shielded pool"
+
+[dependencies]
+starknet = "2.20.0"
+
+[dev-dependencies]
+snforge_std = "0.63.0"
+
+[[target.starknet-contract]]
+sierra = true
+casm = true
+
+[scripts]
+test = "snforge test"
