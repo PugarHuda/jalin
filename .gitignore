@@ -10,3 +10,5 @@ out/
 .agents/
 .DS_Store
 *.log
+
+.vercel
