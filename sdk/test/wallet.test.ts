@@ -1,0 +1,111 @@
+import assert from 'node:assert/strict'
+import { test } from 'node:test'
+import { openNote, type Plan } from '../src/plan.ts'
+import { previewCalldata, toWalletActions } from '../src/wallet.ts'
+
+const ROUTER = '0xR'
+const USER = '0xU'
+const TOKEN_IN = '0x111'
+const TOKEN_OUT = '0x222'
+const TOKEN_ALT = '0x333'
+
+function plan(outputs: Plan['outputs']): Plan {
+  return {
+    steps: [
+      {
+        target: '0xDEX',
+        selector: '0xSWAP',
+        approvals: [{ token: TOKEN_IN, amount: 1000n }],
+        calldata: [TOKEN_IN],
+      },
+    ],
+    outputs,
+  }
+}
+
+const oneOutput = () => plan([{ token: TOKEN_OUT, noteId: openNote(0), minAmount: 990n }])
+
+test('funds the router before it invokes, because the pool runs withdraw first', () => {
+  const actions = toWalletActions(oneOutput(), {
+    router: ROUTER,
+    inputs: [{ token: TOKEN_IN, amount: 1000n }],
+    recipient: USER,
+  })
+
+  assert.equal(actions[0]!.type, 'withdraw')
+  assert.deepEqual(actions[0], {
+    type: 'withdraw',
+    token: TOKEN_IN,
+    amount: '0x3e8',
+    recipient: ROUTER,
+  })
+  assert.equal(actions.at(-1)!.type, 'invoke')
+})
+
+test('emits exactly one OPEN transfer per output, in output order', () => {
+  const twoOutputs = plan([
+    { token: TOKEN_OUT, noteId: openNote(0), minAmount: 0n },
+    { token: TOKEN_ALT, noteId: openNote(1), minAmount: 0n },
+  ])
+
+  const actions = toWalletActions(twoOutputs, {
+    router: ROUTER,
+    inputs: [{ token: TOKEN_IN, amount: 1000n }],
+    recipient: USER,
+  })
+
+  const opens = actions.filter((a) => a.type === 'transfer')
+  assert.equal(opens.length, 2)
+  // openNoteIds[0] is the first OPEN transfer, so this order is the numbering.
+  assert.deepEqual(
+    opens.map((a) => (a.type === 'transfer' ? a.token : null)),
+    [TOKEN_OUT, TOKEN_ALT],
+  )
+  assert.ok(opens.every((a) => a.type === 'transfer' && a.amount === 'OPEN'))
+})
+
+test('refuses a plan whose note ids do not match their position', () => {
+  // Silently wrong otherwise: the wallet resolves the placeholder, the router
+  // credits a real amount, and it lands in the wrong note.
+  const swapped = plan([
+    { token: TOKEN_OUT, noteId: openNote(1), minAmount: 0n },
+    { token: TOKEN_ALT, noteId: openNote(0), minAmount: 0n },
+  ])
+
+  assert.throws(
+    () =>
+      toWalletActions(swapped, {
+        router: ROUTER,
+        inputs: [{ token: TOKEN_IN, amount: 1000n }],
+        recipient: USER,
+      }),
+    /output 0 carries note id .*expected .*openNoteIds\[0\]/,
+  )
+})
+
+test('refuses a plan that approves tokens nothing funded', () => {
+  assert.throws(
+    () => toWalletActions(oneOutput(), { router: ROUTER, inputs: [], recipient: USER }),
+    /never funded/,
+  )
+})
+
+test('a plan is always one invoke, however many steps it has', () => {
+  const many = oneOutput()
+  many.steps.push({ ...many.steps[0]!, approvals: [] }, { ...many.steps[0]!, approvals: [] })
+
+  const actions = toWalletActions(many, {
+    router: ROUTER,
+    inputs: [{ token: TOKEN_IN, amount: 1000n }],
+    recipient: USER,
+  })
+
+  assert.equal(actions.filter((a) => a.type === 'invoke').length, 1)
+})
+
+test('preview shows hex felts and leaves placeholders readable', () => {
+  const preview = previewCalldata(oneOutput())
+  assert.equal(preview[0], '${poolAddress}')
+  assert.ok(preview.includes('${openNoteIds[0]}'))
+  assert.ok(preview.includes('0x3e8'), '1000 shown as hex')
+})

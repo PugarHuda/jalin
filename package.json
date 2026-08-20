@@ -1,0 +1,11 @@
+{
+  "name": "jalin",
+  "private": true,
+  "workspaces": ["sdk", "app"],
+  "scripts": {
+    "test": "npm test --workspace @jalin/sdk",
+    "test:contracts": "sh contracts/test.sh",
+    "dev": "npm run dev --workspace app",
+    "build": "npm run build --workspace app"
+  }
+}
