@@ -131,9 +131,19 @@ Then record both addresses:
 Two declares and two deploys. A declare pays for the whole Sierra class, so it is
 by far the expensive part.
 
-Measured on mainnet in August 2026, the `JalinGovernor` declare asked for a bound
-of **39.95 STRK**, almost all of it L2 gas — 783,718,980 units at 50,973,799,348
-FRI each. `JalinRouter` is the smaller class and costs less.
+Measured on mainnet in August 2026:
+
+| | Bound |
+|---|---|
+| `declare JalinGovernor` | 39.95 STRK |
+| `declare JalinRouter` | 25.44 STRK |
+| two deploys | ~0.2 STRK |
+| **total** | **~65.6 STRK** |
+
+Almost all of it is L2 gas — 783,718,980 units for the governor at 50,973,799,348
+FRI each. You can measure your own numbers for free: a declare that fails
+validation on balance is rejected before it runs, so it costs nothing and the
+error names the bound. Run it against an underfunded account on purpose.
 
 That number is the *bound*, not the bill. The account has to hold it at submission
 or validation rejects the transaction before anything runs; what actually gets
