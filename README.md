@@ -80,7 +80,7 @@ to find.
 | `sdk/` | TypeScript: plan encoding, recipes, sub-account portfolio |
 | `app/` | The demo anyone can open |
 | `prover/` | Self-hosted discovery and screening services |
-| `docs/` | [Threat model](./docs/threat-model.md), [cross-chain](./docs/cross-chain.md) |
+| `docs/` | [Threat model](./docs/threat-model.md), [deploying](./docs/deploying.md), [cross-chain](./docs/cross-chain.md) |
 
 There is no `bridge/`. Cross-chain is not a feature of the router, it is a plan —
 which is the whole argument, and it is made in [docs/cross-chain.md](./docs/cross-chain.md).
