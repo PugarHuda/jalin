@@ -177,6 +177,32 @@ export default function Home() {
     setStatus(null)
   }
 
+  /**
+   * Whether this wallet implements the STRK20 methods at all. The account class
+   * on chain says nothing about it - support lives in the wallet, not in the
+   * account - so the only honest test is to call one and see. `strk20Balances`
+   * is the read-only one, which makes it the safe probe.
+   */
+  async function probe(wallet: StarknetWindowObject): Promise<string> {
+    const anyWallet = wallet as unknown as {
+      request(call: { type: string; params?: unknown }): Promise<unknown>
+    }
+
+    let versions = 'unknown'
+    try {
+      const supported = (await anyWallet.request({ type: 'wallet_supportedWalletApi' })) as string[]
+      versions = supported.join(', ')
+    } catch {}
+
+    try {
+      await anyWallet.request({ type: 'wallet_strk20Balances' })
+      return `STRK20 supported. Wallet API ${versions}.`
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      return `This wallet does not answer wallet_strk20Balances, so it cannot sign a Jalin plan yet. Wallet API ${versions}. It said: ${message}`
+    }
+  }
+
   async function execute(wallet: StarknetWindowObject) {
     if (!result.plan) return
     setWallets([])
@@ -189,6 +215,13 @@ export default function Home() {
         type: 'wallet_requestAccounts',
       })) as string[]
       if (!account) return setStatus('Wallet returned no account.')
+
+      setStatus('Checking what this wallet supports…')
+      const capability = await probe(wallet)
+      if (!capability.startsWith('STRK20 supported')) return setStatus(capability)
+      if (!ROUTER_ADDRESS) {
+        return setStatus(`${capability} The router is not deployed yet, so there is nothing to sign.`)
+      }
 
       const actions = toWalletActions(result.plan, {
         router: ROUTER_ADDRESS,
@@ -430,10 +463,10 @@ export default function Home() {
           <div className="rounded border border-border bg-surface p-4">
             <button
               onClick={pickWallet}
-              disabled={!result.plan || !ROUTER_ADDRESS}
+              disabled={!result.plan}
               className="rounded bg-accent px-4 py-2 text-sm text-background disabled:opacity-40"
             >
-              Sign and submit
+              {ROUTER_ADDRESS ? 'Sign and submit' : 'Check wallet support'}
             </button>
             {wallets.length > 0 && (
               <ul className="mt-3 space-y-1">
@@ -452,7 +485,7 @@ export default function Home() {
             <p className="mt-2 text-xs text-muted">
               {ROUTER_ADDRESS
                 ? 'Needs a wallet that implements wallet_strk20InvokeTransaction. Proving takes around 30 seconds.'
-                : 'The router is not deployed yet, so signing is disabled. Everything above still works — the plan, the calldata and the disclosure are derived from the plan alone.'}
+                : 'The router is not deployed yet, so there is nothing to sign — but this still connects your wallet and tells you whether it implements the STRK20 methods.'}
             </p>
             {status && <p className="mt-2 break-all font-mono text-xs">{status}</p>}
           </div>
