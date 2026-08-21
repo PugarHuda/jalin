@@ -10,5 +10,8 @@
     "test:contracts": "sh contracts/test.sh",
     "dev": "npm run dev --workspace app",
     "build": "npm run build --workspace app"
+  },
+  "dependencies": {
+    "@scure/starknet": "^2.3.0"
   }
 }
