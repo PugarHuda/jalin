@@ -10,6 +10,10 @@
 # window in which the router is live with an unset governor.
 set -eu
 
+# Git Bash rewrites anything that looks like a unix path in a command line, so
+# `-w /work/contracts` arrives at the daemon as C:/Program Files/Git/work/...
+export MSYS_NO_PATHCONV=1
+
 cd "$(dirname "$0")/.."
 [ -f .env ] && . ./.env
 
