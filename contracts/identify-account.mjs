@@ -98,6 +98,28 @@ if (findings.length === 0) {
       'Open the first value on voyager.online to see what the explorer thinks it is.',
   )
 } else {
+  // An undeployed account has no get_public_key to pair against, so fall back to
+  // pairing the candidates with each other: if one derives another, that one is
+  // the private key and the other is its public key.
+  const addresses = new Set(findings.map((f) => f.value))
+  const keys = candidates.filter((c) => !addresses.has(c))
+  if (findings.every((f) => !f.classHash) && keys.length > 1) {
+    for (const candidate of keys) {
+      let derived
+      try {
+        derived = BigInt(ec.starkCurve.getStarkKey(candidate))
+      } catch {
+        continue
+      }
+      const publicKey = keys.find((k) => k !== candidate && BigInt(k) === derived)
+      if (publicKey) {
+        console.log(`${short(candidate)} is the PRIVATE key`)
+        console.log(`${short(publicKey)} is its public key`)
+      }
+    }
+    console.log('')
+  }
+
   for (const finding of findings) {
     if (!finding.classHash) {
       console.log(
