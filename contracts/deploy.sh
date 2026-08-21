@@ -32,8 +32,13 @@ EXECUTE=0
 
 run() {
   if [ "$EXECUTE" -eq 1 ]; then
+    # jalin-sncast holds ~/.starknet_accounts. Without it the account imported in
+    # step 1 dies with its container and step 2 declares from an account that
+    # does not exist.
     docker run --rm \
-      -v "$(pwd):/work" -v jalin-scarb-cache:/root/.cache/scarb \
+      -v "$(pwd):/work" \
+      -v jalin-scarb-cache:/root/.cache/scarb \
+      -v jalin-sncast:/root/.starknet_accounts \
       -w /work/contracts \
       -e ACCOUNT_PRIVATE_KEY \
       jalin-cairo:2.20.0 "$@"
