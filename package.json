@@ -1,7 +1,10 @@
 {
   "name": "jalin",
   "private": true,
-  "workspaces": ["sdk", "app"],
+  "workspaces": [
+    "sdk",
+    "app"
+  ],
   "scripts": {
     "test": "npm test --workspace @jalin/sdk",
     "test:contracts": "sh contracts/test.sh",

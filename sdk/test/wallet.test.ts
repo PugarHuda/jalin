@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { openNote, type Plan } from '../src/plan.ts'
-import { previewCalldata, toWalletActions } from '../src/wallet.ts'
+import { previewCalldata, toInvokeCall, toWalletActions } from '../src/wallet.ts'
 
 const ROUTER = '0xR'
 const USER = '0xU'
@@ -108,4 +108,41 @@ test('preview shows hex felts and leaves placeholders readable', () => {
   assert.equal(preview[0], '${poolAddress}')
   assert.ok(preview.includes('${openNoteIds[0]}'))
   assert.ok(preview.includes('0x3e8'), '1000 shown as hex')
+})
+
+test('the SDK route substitutes real note ids, never the placeholder', () => {
+  // A wallet resolves ${openNoteIds[N]} itself; the SDK hands you the real id and
+  // expects it substituted. Encoding the placeholder here would be a literal felt
+  // and the pool would credit nothing.
+  const call = toInvokeCall(oneOutput(), {
+    router: ROUTER,
+    openNotes: [{ noteId: 0xabcn, token: TOKEN_OUT }],
+    poolAddress: '0xPOOL',
+  })
+
+  assert.equal(call.contractAddress, ROUTER)
+  assert.ok(call.calldata.includes(0xabcn), 'real note id is in the calldata')
+  assert.ok(
+    !call.calldata.some((f) => typeof f === 'string' && f.startsWith('${')),
+    'no placeholder survives into SDK calldata',
+  )
+})
+
+test('refuses when an open note does not match its output token', () => {
+  assert.throws(
+    () =>
+      toInvokeCall(oneOutput(), {
+        router: ROUTER,
+        openNotes: [{ noteId: 1n, token: TOKEN_ALT }],
+        poolAddress: '0xPOOL',
+      }),
+    /is for token .* but open note 0 is for/,
+  )
+})
+
+test('refuses when the note count does not match the output count', () => {
+  assert.throws(
+    () => toInvokeCall(oneOutput(), { router: ROUTER, openNotes: [], poolAddress: '0xPOOL' }),
+    /matched by position/,
+  )
 })

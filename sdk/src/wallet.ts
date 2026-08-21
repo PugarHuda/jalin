@@ -92,6 +92,53 @@ export function toWalletActions(plan: Plan, args: WalletActionArgs): Strk20Actio
   return actions
 }
 
+/** One open note the pool created for this transaction, in creation order. */
+export interface OpenNote {
+  noteId: string | bigint
+  token: string | bigint
+}
+
+/**
+ * The same plan, for the SDK route rather than the wallet route.
+ *
+ * The two routes differ in one place that is easy to miss: a wallet resolves
+ * `${openNoteIds[N]}` itself, while the SDK hands you the real note ids in the
+ * `invoke` callback and expects them substituted before encoding. Passing a
+ * placeholder string here would be encoded as a literal and the pool would
+ * credit nothing.
+ *
+ * Returns starknet.js `CallDetails`. The entry point is implied - the pool calls
+ * the helper through its own `INVOKE_SELECTOR`, not through a name.
+ */
+export function toInvokeCall(
+  plan: Plan,
+  args: { router: string; openNotes: OpenNote[]; poolAddress: string | bigint },
+): { contractAddress: string; calldata: (string | bigint)[] } {
+  if (plan.outputs.length !== args.openNotes.length) {
+    throw new Error(
+      `plan declares ${plan.outputs.length} outputs but the pool opened ${args.openNotes.length} notes; they are matched by position`,
+    )
+  }
+
+  const resolved: Plan = {
+    steps: plan.steps,
+    outputs: plan.outputs.map((output, index) => {
+      const note = args.openNotes[index]!
+      if (BigInt(note.token) !== BigInt(output.token)) {
+        throw new Error(
+          `output ${index} is for token ${String(output.token)} but open note ${index} is for ${String(note.token)}`,
+        )
+      }
+      return { ...output, noteId: note.noteId }
+    }),
+  }
+
+  return {
+    contractAddress: args.router,
+    calldata: encodePlan(resolved, args.poolAddress),
+  }
+}
+
 /**
  * The felts a wallet will actually see, with placeholders left as strings.
  * Useful for showing a user what they are about to sign.

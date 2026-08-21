@@ -13,3 +13,4 @@ out/
 
 .vercel
 contracts/snfoundry.toml
+vendor/
