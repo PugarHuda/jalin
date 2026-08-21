@@ -44,7 +44,9 @@ Three outcomes and what each means:
 ## `.env`
 
 ```
-STARKNET_RPC_URL=https://starknet-mainnet.g.alchemy.com/v2/<YOUR_ALCHEMY_KEY>
+# Use the versioned path. The default /v2/<key> serves RPC spec 0.8.1, and
+# sncast 0.63 rejects it with a bare "Invalid block id".
+STARKNET_RPC_URL=https://starknet-mainnet.g.alchemy.com/starknet/version/rpc/v0_10/<YOUR_ALCHEMY_KEY>
 POOL_ADDRESS=0x040337b1af3c663e86e333bab5a4b28da8d4652a15a69beee2b677776ffe812a
 
 ACCOUNT_ADDRESS=
@@ -127,8 +129,25 @@ Then record both addresses:
 ## Cost
 
 Two declares and two deploys. A declare pays for the whole Sierra class, so it is
-the expensive part and the router is the larger of the two. Have more STRK than
-you think you need; a declare that runs out mid-flight has still spent the fee.
+by far the expensive part.
+
+Measured on mainnet in August 2026, the `JalinGovernor` declare asked for a bound
+of **39.95 STRK**, almost all of it L2 gas — 783,718,980 units at 50,973,799,348
+FRI each. `JalinRouter` is the smaller class and costs less.
+
+That number is the *bound*, not the bill. The account has to hold it at submission
+or validation rejects the transaction before anything runs; what actually gets
+charged is lower. Budget **80 STRK** for the whole deployment and you will not
+think about it again.
+
+Getting this wrong is cheap but slow: validation fails, nothing is spent, and you
+find out after the toolchain has compiled. The error names both numbers:
+
+```
+Error: Contract failed the validation = Resources bounds (...) exceed balance (2341763398609452084)
+```
+
+The trailing number is your balance in FRI. Divide by 1e18 for STRK.
 
 ## Reproducing the classes
 
