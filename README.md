@@ -84,6 +84,27 @@ I4 deliberately mirrors the pool's own rule. If a token cannot be brought back t
 zero, the transaction reverts rather than leaving a balance behind for someone else
 to find.
 
+## When not to use Jalin
+
+Private swaps are already live on AVNU, routed through its own anonymizer, and
+Ekubo is next. For a single swap, use those. They are purpose-built, audited by
+people who own the venue, and they will price better than a generic router
+calling the same pool.
+
+Jalin and a venue's own anonymizer are not complementary — they are candidates for
+the same slot. The pool allows one invoke per transaction, so a transaction goes
+through AVNU's helper *or* through Jalin, never both. Picking Jalin costs you the
+venue-specific optimisations and buys you exactly one thing: more than one step.
+
+That is also the argument for the router existing. AVNU had to write an anonymizer.
+Ekubo is writing another. Every venue that wants private execution writes its own,
+and none of them compose, because composition would need a second invoke that the
+protocol does not grant. Jalin moves the composition inside the one invoke that is
+allowed.
+
+So: one action at one venue, use the venue. Two actions, or an action at a venue
+that has not written a helper yet, and there is nothing else to use.
+
 ## Repository layout
 
 | Path | What it holds |

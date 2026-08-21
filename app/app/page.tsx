@@ -40,8 +40,8 @@ const ETH = TOKENS[1]!.address
 
 const PRESETS: { name: string; blurb: string; draft: Draft }[] = [
   {
-    name: 'Private swap',
-    blurb: 'One leg. Hides who swapped, not what was swapped.',
+    name: 'Single swap',
+    blurb: 'One leg. AVNU already does this better - see the README on when not to use Jalin.',
     draft: {
       inputToken: STRK,
       inputAmount: '10',
@@ -59,7 +59,7 @@ const PRESETS: { name: string; blurb: string; draft: Draft }[] = [
   },
   {
     name: 'Swap, then bridge',
-    blurb: 'Two legs, one transaction. The gap an observer would correlate is gone.',
+    blurb: 'Two legs, one transaction. This is the case nothing else can do.',
     draft: {
       inputToken: STRK,
       inputAmount: '10',
