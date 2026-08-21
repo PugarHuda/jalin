@@ -38,14 +38,26 @@ payments are the only thing you can ship without writing Cairo.
 Jalin is one helper that takes a **plan** instead of fixed parameters.
 
 ```cairo
-fn privacy_invoke(ref self: ContractState, plan: Plan) -> Span<OpenNoteDeposit>
+fn privacy_invoke(
+    ref self: ContractState,
+    pool_address: ContractAddress,
+    steps: Array<Step>,
+    outputs: Array<Output>,
+) -> Span<OpenNoteDeposit>
 ```
 
 A plan is a bounded list of steps. Each step names a target, a selector, calldata,
-and the approvals the step needs. Jalin executes them in order, measures what came
-back by balance delta per token, enforces the caller's minimum outputs, approves the
-pool, and returns the deposits. Composition moves *inside* the single invoke, where
-the protocol allows it.
+and the approvals the step needs. Jalin executes them in order, credits each declared
+output, enforces the floor the caller set on it, approves the pool, and returns the
+deposits. Composition moves *inside* the single invoke, where the protocol allows it.
+
+Each output is credited its **whole** balance rather than a measured delta. That is
+only sound because of I4 below: anything left on the router is unreachable, so there
+is nothing a delta would be protecting against and one less thing to get wrong.
+
+Outputs may be empty. The pool accepts an empty `Span`, which is what makes a plan
+that sends value away for good — a bridge leg, an escrow funding, a ballot —
+expressible at all.
 
 Nothing is whitelisted. Any Starknet contract is a valid target and calldata is
 free-form, which is what makes a bridge call, a DEX route, and a lending deposit the
