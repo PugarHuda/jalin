@@ -14,8 +14,8 @@ cd "$(dirname "$0")/.."
 [ -f .env ] && . ./.env
 
 : "${STARKNET_RPC_URL:?set STARKNET_RPC_URL}"
-: "${ACCOUNT_ADDRESS:?set ACCOUNT_ADDRESS}"
-: "${ACCOUNT_PRIVATE_KEY:?set ACCOUNT_PRIVATE_KEY}"
+: "${ACCOUNT_ADDRESS:?set ACCOUNT_ADDRESS in .env - run: node contracts/identify-account.mjs <values> to work out which one it is}"
+: "${ACCOUNT_PRIVATE_KEY:?set ACCOUNT_PRIVATE_KEY in .env}"
 : "${POOL_ADDRESS:?set POOL_ADDRESS}"
 : "${BALLOT_TOKEN:?set BALLOT_TOKEN - the token a governance ballot is denominated in}"
 : "${FEE_RECIPIENT:?set FEE_RECIPIENT - where a governed fee would go}"
@@ -42,8 +42,36 @@ run() {
   fi
 }
 
+# Preflight. A declare is sent *from* the deployer, so an address with no
+# contract behind it cannot send one - and the failure you get for that reads
+# like an RPC problem rather than what it is. Cheaper to find out here.
+echo "checking the deployer exists on this network..."
+preflight=$(curl -s "$STARKNET_RPC_URL" -H 'content-type: application/json' \
+  --data "{\"id\":1,\"jsonrpc\":\"2.0\",\"method\":\"starknet_getClassHashAt\",\"params\":{\"block_id\":\"latest\",\"contract_address\":\"$ACCOUNT_ADDRESS\"}}")
+
+case "$preflight" in
+  *'"result"'*)
+    echo "  deployer is deployed here" ;;
+  *'Contract not found'*)
+    cat <<PREFLIGHT
+  $ACCOUNT_ADDRESS has no contract on this network.
+
+  A wallet address exists before its first transaction deploys it, so this is
+  usually a funded-but-never-used account. Send it some STRK, run the "deploy
+  account" step in your wallet, then come back.
+
+  If you expected it to be live already, it may be on the other network -
+  node contracts/identify-account.mjs checks both and reports balances.
+PREFLIGHT
+    exit 1 ;;
+  *)
+    echo "  could not check: $preflight"
+    exit 1 ;;
+esac
+
 docker build -q -t jalin-cairo:2.20.0 contracts >/dev/null
 
+echo
 echo "network:  $STARKNET_RPC_URL"
 echo "pool:     $POOL_ADDRESS"
 echo "deployer: $ACCOUNT_ADDRESS"
