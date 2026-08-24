@@ -445,6 +445,11 @@ export default function Home() {
     }
   }
 
+  const draftIncomplete = draft.steps.some((step) => {
+    const target = step.target.trim()
+    return target === '' || /^0x0*$/.test(target)
+  })
+
   const disclosure = result.plan ? describeDisclosure(result.plan) : null
 
   return (
@@ -652,7 +657,7 @@ export default function Home() {
           <div className="rounded border border-border bg-surface p-4">
             <button
               onClick={() => pickWallet(null)}
-              disabled={!result.plan}
+              disabled={!result.plan || draftIncomplete}
               className="rounded bg-accent px-4 py-2 text-sm text-background disabled:opacity-40"
             >
               {ROUTER_ADDRESS ? 'Sign and submit' : 'Check wallet support'}
@@ -672,7 +677,9 @@ export default function Home() {
               </ul>
             )}
             <p className="mt-2 text-xs text-muted">
-              {ROUTER_ADDRESS
+              {draftIncomplete
+                ? 'Fill in a target address for every step first. The presets are templates - the target is left blank on purpose, because there is no honest default for "which contract". To send something that already works, use the numbered runs below.'
+                : ROUTER_ADDRESS
                 ? 'Needs a wallet that implements wallet_strk20InvokeTransaction. Proving takes around 30 seconds.'
                 : 'The router is not deployed yet, so there is nothing to sign — but this still connects your wallet and tells you whether it implements the STRK20 methods.'}
             </p>
