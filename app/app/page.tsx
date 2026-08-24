@@ -287,7 +287,7 @@ export default function Home() {
       // NOT_REGISTERED is the pool saying "I know this method, you have no notes
       // yet" - which is support, not the absence of it.
       if (/NOT_REGISTERED/i.test(message)) {
-        return `STRK20 supported by ${who}, not yet registered in the pool. Wallet API ${versions}.`
+        return `STRK20 supported by ${who}, but this account has not joined the pool yet. Register once at strk20.starknet.io/app, then come back. Wallet API ${versions}.`
       }
       return `${who} does not answer wallet_strk20Balances, so it cannot sign a Jalin plan yet. Wallet API ${versions}. It said: ${message}`
     }
@@ -392,7 +392,22 @@ export default function Home() {
         )
       }
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : String(error))
+      const message = error instanceof Error ? error.message : String(error)
+      // Registration is once per account and needs no STRK20 wallet support -
+      // the viewing key is derived from a plain signMessage. There is no
+      // register action in the wallet API though, and the pool exposes only
+      // apply_actions, so doing it here would mean hand-encoding an action set
+      // that StarkWare already ships a one-click UI for.
+      if (/NOT_REGISTERED/i.test(message)) {
+        setStatus(
+          'NOT_REGISTERED: this account has never joined the pool. Registering is a one-time, ' +
+            'on-chain step that publishes your public viewing key, and it needs no STRK20 wallet ' +
+            'support - the key is derived from an ordinary signature. Do it once at ' +
+            'strk20.starknet.io/app, then come back and run these in order.',
+        )
+        return
+      }
+      setStatus(message)
     }
   }
 
@@ -639,6 +654,22 @@ export default function Home() {
           Small and deliberately dull: the point is to prove the mechanism with real value, not
           to take a market position. Run them in order - the first one shields the note the
           other two spend.
+        </p>
+
+        <p className="mt-3 rounded border border-border px-3 py-2 text-xs leading-relaxed text-muted">
+          <span className="font-mono">0.</span> First time on this account? The pool needs your
+          public viewing key before anything can be sent to you privately. It is one on-chain
+          step, once per account, and it needs no STRK20 wallet support - the key comes from an
+          ordinary signature. Do it at{' '}
+          <a
+            className="text-accent"
+            href="https://strk20.starknet.io/app"
+            target="_blank"
+            rel="noreferrer"
+          >
+            strk20.starknet.io/app
+          </a>
+          , then come back. Skipping it gives you <span className="font-mono">NOT_REGISTERED</span>.
         </p>
 
         <ol className="mt-4">
