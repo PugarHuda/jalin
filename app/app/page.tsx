@@ -175,6 +175,27 @@ const RUNS: MainnetRun[] = [
   },
 ]
 
+/**
+ * A JSON-RPC error carries a code and usually a `data` field naming the field it
+ * rejected. `error.message` alone reduces all of that to "An error occurred
+ * (INVALID_REQUEST_PAYLOAD)", which is the difference between a fix and a guess.
+ */
+function describeError(error: unknown): string {
+  const parts: string[] = []
+  const anyError = error as { message?: string; code?: unknown; data?: unknown }
+  if (anyError?.message) parts.push(anyError.message)
+  else parts.push(String(error))
+  if (anyError?.code !== undefined) parts.push(`code ${String(anyError.code)}`)
+  if (anyError?.data !== undefined) {
+    try {
+      parts.push(`data ${JSON.stringify(anyError.data)}`)
+    } catch {
+      parts.push(`data ${String(anyError.data)}`)
+    }
+  }
+  return parts.join(' · ')
+}
+
 function decimalsOf(address: string): number {
   return tokenOf(address)?.decimals ?? 18
 }
@@ -227,6 +248,7 @@ export default function Home() {
   const [pendingRun, setPendingRun] = useState<number | null>(null)
   const [hashes, setHashes] = useState<(string | null)[]>([null, null, null])
   const [ballotSecret, setBallotSecret] = useState<string | null>(null)
+  const [lastPayload, setLastPayload] = useState<string | null>(null)
 
   const result = useMemo(() => {
     try {
@@ -284,7 +306,7 @@ export default function Home() {
       await anyWallet.request({ type: 'wallet_strk20Balances', params: { tokens: [] } })
       return `STRK20 supported by ${who}. Wallet API ${versions}.`
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error)
+      const message = describeError(error)
       // NOT_REGISTERED is the pool saying "I know this method, you have no notes
       // yet" - which is support, not the absence of it.
       if (/NOT_REGISTERED/i.test(message)) {
@@ -379,6 +401,8 @@ export default function Home() {
           })
 
       setStatus('Proving. This takes around 30 seconds; the wallet stays open.')
+      setLastPayload(JSON.stringify(actions, null, 2))
+      console.log('[jalin] strk20 actions', actions)
       // get-starknet-core bundles an older @starknet-io/types-js whose request
       // map predates STRK20, so the method it is about to call is not in its
       // types. The wallet either implements wallet_strk20InvokeTransaction or
@@ -653,6 +677,16 @@ export default function Home() {
                 : 'The router is not deployed yet, so there is nothing to sign — but this still connects your wallet and tells you whether it implements the STRK20 methods.'}
             </p>
             {status && <p className="mt-2 break-all font-mono text-xs">{status}</p>}
+            {lastPayload && (
+              <details className="mt-2">
+                <summary className="cursor-pointer text-xs text-muted">
+                  the exact payload that was sent
+                </summary>
+                <pre className="mt-1 max-h-64 overflow-auto rounded border border-border p-2 font-mono text-[10px]">
+                  {lastPayload}
+                </pre>
+              </details>
+            )}
           </div>
         </section>
       </div>
