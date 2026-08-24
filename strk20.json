@@ -1,6 +1,9 @@
 {
   "transactions": [],
-  "contracts": [],
+  "contracts": [
+    "0x008498d79ca390b34a6416cc45fb375ad9b921eefd8d4531d99a2d775feb3a7e",
+    "0x05bd985e794aee4c12d529ab50a68e5a40c7e28a36642b2b8e2ccdb373346984"
+  ],
   "demo_video": "",
   "demo_url": "https://jalin-five.vercel.app"
 }
