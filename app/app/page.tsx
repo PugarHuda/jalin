@@ -9,6 +9,7 @@ import {
   openNote,
   previewCalldata,
   feltsToStrings,
+  toFelt,
   toWalletActions,
   u256,
   type Plan,
@@ -318,7 +319,6 @@ export default function Home() {
 
   function buildRunActions(run: MainnetRun, account: string): Strk20Action[] {
     const strk = TOKENS[0]!.address
-    const hex = (v: bigint) => `0x${v.toString(16)}`
 
     if (run.ballot) {
       // The secret is what redeems the stake once voting closes, and it is only
@@ -334,13 +334,13 @@ export default function Home() {
       return [
         {
           type: 'withdraw',
-          token: strk,
-          amount: hex(run.amount),
-          recipient: GOVERNOR_ADDRESS,
+          token: toFelt(strk),
+          amount: toFelt(run.amount),
+          recipient: toFelt(GOVERNOR_ADDRESS),
         },
         {
           type: 'invoke',
-          contract: GOVERNOR_ADDRESS,
+          contract: toFelt(GOVERNOR_ADDRESS),
           // privacy_invoke(pool_address, operation, proposal_id, support,
           //                commitment, secret, amount, note_id)
           // operation 0 is CAST, which returns an empty span - so no open note.

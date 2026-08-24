@@ -23,13 +23,28 @@ export type Strk20Action =
   | { type: 'transfer'; token: string; amount: string | 'OPEN'; recipient: string }
   | { type: 'invoke'; contract: string; calldata: string[] }
 
+/** `${openNoteIds[N]}` or `${poolAddress}` - resolved by the wallet, not by us. */
+const PLACEHOLDER = /^\$\{(?:openNoteIds\[[0-9]+\]|poolAddress)\}$/
+
 /**
- * Felts go to the wallet over JSON-RPC, and JSON has no bigint - `JSON.stringify`
- * throws on one rather than coercing it. Placeholders stay as they are, because
- * the wallet is the thing that resolves them.
+ * One felt, canonically encoded for the wallet.
+ *
+ * Two things are being fixed here, and both fail the same way. JSON has no
+ * bigint, so `JSON.stringify` throws on one rather than coercing it. And a felt
+ * written with leading zeros - `0x0471…` for `0x471…` - is *non-canonical*: it
+ * parses to the same number and is not the same string, and the STRK20 stack
+ * treats non-canonically encoded addresses as a distinct case rather than
+ * normalising them for you.
+ *
+ * Placeholders pass through untouched. Normalising one would destroy it.
  */
+export function toFelt(felt: string | bigint): string {
+  if (typeof felt === 'string' && PLACEHOLDER.test(felt)) return felt
+  return `0x${BigInt(felt).toString(16)}`
+}
+
 export function feltsToStrings(felts: (string | bigint)[]): string[] {
-  return felts.map((felt) => (typeof felt === 'bigint' ? `0x${felt.toString(16)}` : felt))
+  return felts.map(toFelt)
 }
 
 export interface WalletActionArgs {
@@ -86,8 +101,8 @@ export function toWalletActions(plan: Plan, args: WalletActionArgs): Strk20Actio
   for (const deposit of args.deposits ?? []) {
     actions.push({
       type: 'deposit',
-      token: deposit.token,
-      amount: `0x${deposit.amount.toString(16)}`,
+      token: toFelt(deposit.token),
+      amount: toFelt(deposit.amount),
     })
   }
 
@@ -95,9 +110,9 @@ export function toWalletActions(plan: Plan, args: WalletActionArgs): Strk20Actio
   for (const input of args.inputs) {
     actions.push({
       type: 'withdraw',
-      token: input.token,
-      amount: `0x${input.amount.toString(16)}`,
-      recipient: args.router,
+      token: toFelt(input.token),
+      amount: toFelt(input.amount),
+      recipient: toFelt(args.router),
     })
   }
 
@@ -105,16 +120,16 @@ export function toWalletActions(plan: Plan, args: WalletActionArgs): Strk20Actio
   for (const output of plan.outputs) {
     actions.push({
       type: 'transfer',
-      token: String(output.token),
+      token: toFelt(output.token),
       amount: 'OPEN',
-      recipient: args.recipient,
+      recipient: toFelt(args.recipient),
     })
   }
 
   // 3. The plan itself, as the single permitted invoke.
   actions.push({
     type: 'invoke',
-    contract: args.router,
+    contract: toFelt(args.router),
     calldata: feltsToStrings(encodePlan(plan)),
   })
 

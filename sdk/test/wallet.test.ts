@@ -3,8 +3,8 @@ import { test } from 'node:test'
 import { openNote, type Plan } from '../src/plan.ts'
 import { previewCalldata, toInvokeCall, toWalletActions } from '../src/wallet.ts'
 
-const ROUTER = '0xR'
-const USER = '0xU'
+const ROUTER = '0xa11'
+const USER = '0xc0ffee'
 const TOKEN_IN = '0x111'
 const TOKEN_OUT = '0x222'
 const TOKEN_ALT = '0x333'
@@ -13,8 +13,8 @@ function plan(outputs: Plan['outputs']): Plan {
   return {
     steps: [
       {
-        target: '0xDEX',
-        selector: '0xSWAP',
+        target: '0xdec',
+        selector: '0x5a',
         approvals: [{ token: TOKEN_IN, amount: 1000n }],
         calldata: [TOKEN_IN],
       },
@@ -181,4 +181,24 @@ test('no bigint survives into wallet calldata', () => {
   )
   assert.ok(invoke.calldata.includes('${openNoteIds[0]}'), 'placeholders survive')
   assert.doesNotThrow(() => JSON.stringify(actions))
+})
+
+test('every felt is canonical, leading zeros stripped', () => {
+  // 0x0471… and 0x471… are the same number and not the same string. The STRK20
+  // stack treats a non-canonically encoded address as its own case rather than
+  // normalising it, so the wallet rejects the payload.
+  const padded = '0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d'
+  const actions = toWalletActions(
+    { steps: [{ target: padded, selector: '0x1', approvals: [], calldata: [] }], outputs: [{ token: padded, noteId: openNote(0), minAmount: 0n }] },
+    { router: '0x008498d7', inputs: [{ token: padded, amount: 1000n }], deposits: [{ token: padded, amount: 1000n }], recipient: '0x00abc' },
+  )
+
+  const felts = actions.flatMap((a) =>
+    a.type === 'invoke' ? [a.contract, ...a.calldata] : [a.token, a.amount, 'recipient' in a ? a.recipient : ''],
+  )
+  for (const felt of felts) {
+    if (!felt || felt === 'OPEN' || felt.startsWith('${')) continue
+    assert.ok(!/^0x0./.test(felt), `${felt} still carries a leading zero`)
+  }
+  assert.ok(felts.includes('${openNoteIds[0]}'), 'placeholders are never normalised')
 })
