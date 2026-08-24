@@ -88,9 +88,11 @@ echo "deployer: $ACCOUNT_ADDRESS"
 echo
 
 echo "1. import the deployer account"
+# The account lives in a named volume, so any second run finds it already there.
+# That is the normal case after a failed declare, not a reason to stop.
 run sncast account import --silent --name jalin --type "$ACCOUNT_TYPE" \
   --address "$ACCOUNT_ADDRESS" --private-key "$ACCOUNT_PRIVATE_KEY" \
-  --url "$STARKNET_RPC_URL" --add-profile jalin
+  --url "$STARKNET_RPC_URL" --add-profile jalin || echo "  already imported, continuing"
 
 echo "2. declare both classes"
 run sncast --account jalin declare --url "$STARKNET_RPC_URL" --contract-name JalinGovernor

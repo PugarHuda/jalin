@@ -188,6 +188,12 @@ export default function Home() {
       request(call: { type: string; params?: unknown }): Promise<unknown>
     }
 
+    // Name the wallet in the answer. Without it a pasted result cannot be told
+    // apart from the last one, and "not implemented" is only useful when you
+    // know which wallet said it.
+    const named = wallet as unknown as { id?: string; name?: string; version?: string }
+    const who = `${named.name ?? 'unknown wallet'}${named.version ? ` ${named.version}` : ''} (id: ${named.id ?? '?'})`
+
     let versions = 'unknown'
     try {
       const supported = (await anyWallet.request({ type: 'wallet_supportedWalletApi' })) as string[]
@@ -196,10 +202,10 @@ export default function Home() {
 
     try {
       await anyWallet.request({ type: 'wallet_strk20Balances' })
-      return `STRK20 supported. Wallet API ${versions}.`
+      return `STRK20 supported by ${who}. Wallet API ${versions}.`
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
-      return `This wallet does not answer wallet_strk20Balances, so it cannot sign a Jalin plan yet. Wallet API ${versions}. It said: ${message}`
+      return `${who} does not answer wallet_strk20Balances, so it cannot sign a Jalin plan yet. Wallet API ${versions}. It said: ${message}`
     }
   }
 
