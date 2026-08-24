@@ -8,6 +8,7 @@ import {
   encodePlan,
   openNote,
   previewCalldata,
+  feltsToStrings,
   toWalletActions,
   u256,
   type Plan,
@@ -321,7 +322,16 @@ export default function Home() {
           // privacy_invoke(pool_address, operation, proposal_id, support,
           //                commitment, secret, amount, note_id)
           // operation 0 is CAST, which returns an empty span - so no open note.
-          calldata: ['${poolAddress}', 0n, PROPOSAL_ID, 1n, commitment, 0n, run.amount, 0n],
+          calldata: feltsToStrings([
+            '${poolAddress}',
+            0n,
+            PROPOSAL_ID,
+            1n,
+            commitment,
+            0n,
+            run.amount,
+            0n,
+          ]),
         },
       ]
     }

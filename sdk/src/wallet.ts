@@ -21,7 +21,16 @@ export type Strk20Action =
   | { type: 'deposit'; token: string; amount: string }
   | { type: 'withdraw'; token: string; amount: string; recipient: string }
   | { type: 'transfer'; token: string; amount: string | 'OPEN'; recipient: string }
-  | { type: 'invoke'; contract: string; calldata: (string | bigint)[] }
+  | { type: 'invoke'; contract: string; calldata: string[] }
+
+/**
+ * Felts go to the wallet over JSON-RPC, and JSON has no bigint - `JSON.stringify`
+ * throws on one rather than coercing it. Placeholders stay as they are, because
+ * the wallet is the thing that resolves them.
+ */
+export function feltsToStrings(felts: (string | bigint)[]): string[] {
+  return felts.map((felt) => (typeof felt === 'bigint' ? `0x${felt.toString(16)}` : felt))
+}
 
 export interface WalletActionArgs {
   /** Deployed JalinRouter address. */
@@ -106,7 +115,7 @@ export function toWalletActions(plan: Plan, args: WalletActionArgs): Strk20Actio
   actions.push({
     type: 'invoke',
     contract: args.router,
-    calldata: encodePlan(plan),
+    calldata: feltsToStrings(encodePlan(plan)),
   })
 
   return actions

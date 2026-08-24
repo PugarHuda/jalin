@@ -163,3 +163,22 @@ test('a shield in the same transaction comes before the withdrawal', () => {
   )
   assert.equal(actions[0]!.type === 'deposit' && actions[0].amount, '0x3e8')
 })
+
+test('no bigint survives into wallet calldata', () => {
+  // These go over JSON-RPC, and JSON.stringify throws on a bigint rather than
+  // coercing it - which surfaces as INVALID_REQUEST_PAYLOAD from the wallet.
+  const actions = toWalletActions(oneOutput(), {
+    router: ROUTER,
+    inputs: [{ token: TOKEN_IN, amount: 1000n }],
+    recipient: USER,
+  })
+
+  const invoke = actions.find((a) => a.type === 'invoke')!
+  assert.ok(invoke.type === 'invoke')
+  assert.ok(
+    invoke.calldata.every((f) => typeof f === 'string'),
+    'every felt is a string',
+  )
+  assert.ok(invoke.calldata.includes('${openNoteIds[0]}'), 'placeholders survive')
+  assert.doesNotThrow(() => JSON.stringify(actions))
+})
