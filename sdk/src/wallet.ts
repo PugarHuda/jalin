@@ -30,6 +30,15 @@ export interface WalletActionArgs {
   inputs: { token: string; amount: bigint }[]
   /** Who the open notes belong to - normally the connected account. */
   recipient: string
+  /**
+   * Public funds to shield in the same transaction, before anything is spent.
+   *
+   * A plan spends notes, so a first-time user has nothing to run it with. Doing
+   * the deposit as a separate transaction would work and would also be a second
+   * public footprint for an observer to line up against the first. One
+   * transaction is both simpler and quieter.
+   */
+  deposits?: { token: string; amount: bigint }[]
 }
 
 /**
@@ -61,6 +70,17 @@ export function toWalletActions(plan: Plan, args: WalletActionArgs): Strk20Actio
   }
 
   const actions: Strk20Action[] = []
+
+  // 0. Shield first, so the withdrawal below has something to draw on. The pool
+  // applies actions in order, so a deposit placed after the withdrawal is a
+  // deposit that arrives too late.
+  for (const deposit of args.deposits ?? []) {
+    actions.push({
+      type: 'deposit',
+      token: deposit.token,
+      amount: `0x${deposit.amount.toString(16)}`,
+    })
+  }
 
   // 1. Fund the router. Public, and visible as the pool paying the router.
   for (const input of args.inputs) {

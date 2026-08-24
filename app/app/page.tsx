@@ -2,7 +2,7 @@
 
 import { useMemo, useState, type ReactNode } from 'react'
 import type { StarknetWindowObject } from 'get-starknet-core'
-import { hash } from 'starknet'
+import { hash, shortString } from 'starknet'
 import {
   describeDisclosure,
   encodePlan,
@@ -13,7 +13,15 @@ import {
   type Plan,
   type Strk20Action,
 } from '@jalin/sdk'
-import { POOL_ADDRESS, ROUTER_ADDRESS, TOKENS, label, toBaseUnits, tokenOf } from '@/lib/config'
+import {
+  GOVERNOR_ADDRESS,
+  POOL_ADDRESS,
+  ROUTER_ADDRESS,
+  TOKENS,
+  label,
+  toBaseUnits,
+  tokenOf,
+} from '@/lib/config'
 
 interface StepForm {
   target: string
@@ -102,6 +110,70 @@ const PRESETS: { name: string; blurb: string; draft: Draft }[] = [
   },
 ]
 
+// ---------------------------------------------------------------------------
+// The mainnet run
+//
+// Three transactions, each one an invoke through a contract of ours, because the
+// rules ask for three that touched the pool and - having deployed contracts -
+// ran through one of them. They are deliberately small and deliberately dull:
+// the point is to prove the mechanism on mainnet with real value, not to take a
+// market position with someone else's money.
+// ---------------------------------------------------------------------------
+
+const ONE = 10n ** 18n
+const BALLOT_TAG = 'JALIN_BALLOT:V1'
+const PROPOSAL_ID = 1n
+
+/**
+ * A plan whose steps are real external calls that move nothing: `approve(router, 0)`
+ * on a token contract. The sandwich runs end to end, the whole withdrawn balance
+ * is credited back into a note, and no market risk is taken to demonstrate it.
+ */
+function proofOfMechanism(stepCount: number): Plan {
+  const approve = hash.getSelectorFromName('approve')
+  const targets = [TOKENS[0]!.address, TOKENS[1]!.address]
+  return {
+    steps: Array.from({ length: stepCount }, (_, i) => ({
+      target: targets[i % targets.length]!,
+      selector: approve,
+      approvals: [],
+      calldata: [ROUTER_ADDRESS, 0n, 0n],
+    })),
+    outputs: [{ token: TOKENS[0]!.address, noteId: openNote(0), minAmount: 0n }],
+  }
+}
+
+interface MainnetRun {
+  title: string
+  note: string
+  amount: bigint
+  shield?: boolean
+  ballot?: boolean
+  plan?: Plan
+}
+
+const RUNS: MainnetRun[] = [
+  {
+    title: 'Shield, then run a plan',
+    note: 'Deposits STRK and runs a one-step plan through the router in the same pool transaction. Two footprints collapsed into one, and the note this creates funds the next two.',
+    amount: ONE / 2n,
+    shield: true,
+    plan: proofOfMechanism(1),
+  },
+  {
+    title: 'Two steps, one invoke',
+    note: 'The case nothing else can do. Two external calls inside the single invoke the pool allows, spending the note from the first run.',
+    amount: ONE / 4n,
+    plan: proofOfMechanism(2),
+  },
+  {
+    title: 'Private ballot',
+    note: 'A vote on proposal 1 through JalinGovernor, which is an anonymizer helper in its own right. The weight is public, the voter is not.',
+    amount: ONE / 10n,
+    ballot: true,
+  },
+]
+
 function decimalsOf(address: string): number {
   return tokenOf(address)?.decimals ?? 18
 }
@@ -151,6 +223,9 @@ export default function Home() {
   const [tab, setTab] = useState<'reveals' | 'calldata' | 'actions'>('reveals')
   const [status, setStatus] = useState<string | null>(null)
   const [wallets, setWallets] = useState<StarknetWindowObject[]>([])
+  const [pendingRun, setPendingRun] = useState<number | null>(null)
+  const [hashes, setHashes] = useState<(string | null)[]>([null, null, null])
+  const [ballotSecret, setBallotSecret] = useState<string | null>(null)
 
   const result = useMemo(() => {
     try {
@@ -166,7 +241,8 @@ export default function Home() {
   const patchStep = (i: number, change: Partial<StepForm>) =>
     patch({ steps: draft.steps.map((s, j) => (i === j ? { ...s, ...change } : s)) })
 
-  async function pickWallet() {
+  async function pickWallet(runIndex: number | null = null) {
+    setPendingRun(runIndex)
     const { default: getStarknet } = await import('get-starknet-core')
     const available = await getStarknet.getAvailableWallets()
     if (available.length === 0) {
@@ -201,16 +277,66 @@ export default function Home() {
     } catch {}
 
     try {
-      await anyWallet.request({ type: 'wallet_strk20Balances' })
+      // `tokens` is required; an empty array means every shielded token. Calling
+      // it with no params at all returns INVALID_REQUEST_PAYLOAD, which reads
+      // like a missing method and is not one.
+      await anyWallet.request({ type: 'wallet_strk20Balances', params: { tokens: [] } })
       return `STRK20 supported by ${who}. Wallet API ${versions}.`
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
+      // NOT_REGISTERED is the pool saying "I know this method, you have no notes
+      // yet" - which is support, not the absence of it.
+      if (/NOT_REGISTERED/i.test(message)) {
+        return `STRK20 supported by ${who}, not yet registered in the pool. Wallet API ${versions}.`
+      }
       return `${who} does not answer wallet_strk20Balances, so it cannot sign a Jalin plan yet. Wallet API ${versions}. It said: ${message}`
     }
   }
 
+  function buildRunActions(run: MainnetRun, account: string): Strk20Action[] {
+    const strk = TOKENS[0]!.address
+    const hex = (v: bigint) => `0x${v.toString(16)}`
+
+    if (run.ballot) {
+      // The secret is what redeems the stake once voting closes, and it is only
+      // ever held here. Losing it locks the stake in the governor for good, so
+      // it is shown rather than kept quietly in memory.
+      const bytes = crypto.getRandomValues(new Uint8Array(31))
+      const secret = `0x${[...bytes].map((b) => b.toString(16).padStart(2, '0')).join('')}`
+      const commitment = hash.computePoseidonHashOnElements([
+        shortString.encodeShortString(BALLOT_TAG),
+        secret,
+      ])
+      setBallotSecret(secret)
+      return [
+        {
+          type: 'withdraw',
+          token: strk,
+          amount: hex(run.amount),
+          recipient: GOVERNOR_ADDRESS,
+        },
+        {
+          type: 'invoke',
+          contract: GOVERNOR_ADDRESS,
+          // privacy_invoke(pool_address, operation, proposal_id, support,
+          //                commitment, secret, amount, note_id)
+          // operation 0 is CAST, which returns an empty span - so no open note.
+          calldata: ['${poolAddress}', 0n, PROPOSAL_ID, 1n, commitment, 0n, run.amount, 0n],
+        },
+      ]
+    }
+
+    return toWalletActions(run.plan!, {
+      router: ROUTER_ADDRESS,
+      inputs: [{ token: strk, amount: run.amount }],
+      deposits: run.shield ? [{ token: strk, amount: run.amount }] : undefined,
+      recipient: account,
+    })
+  }
+
   async function execute(wallet: StarknetWindowObject) {
-    if (!result.plan) return
+    const run = pendingRun === null ? null : RUNS[pendingRun]!
+    if (!run && !result.plan) return
     setWallets([])
     setStatus('Connecting…')
     try {
@@ -229,16 +355,18 @@ export default function Home() {
         return setStatus(`${capability} The router is not deployed yet, so there is nothing to sign.`)
       }
 
-      const actions = toWalletActions(result.plan, {
-        router: ROUTER_ADDRESS,
-        inputs: [
-          {
-            token: draft.inputToken,
-            amount: toBaseUnits(draft.inputAmount, decimalsOf(draft.inputToken)),
-          },
-        ],
-        recipient: account,
-      })
+      const actions = run
+        ? buildRunActions(run, account)
+        : toWalletActions(result.plan!, {
+            router: ROUTER_ADDRESS,
+            inputs: [
+              {
+                token: draft.inputToken,
+                amount: toBaseUnits(draft.inputAmount, decimalsOf(draft.inputToken)),
+              },
+            ],
+            recipient: account,
+          })
 
       setStatus('Proving. This takes around 30 seconds; the wallet stays open.')
       // get-starknet-core bundles an older @starknet-io/types-js whose request
@@ -257,6 +385,12 @@ export default function Home() {
       })
 
       setStatus(`Submitted: ${response.transaction_hash}`)
+      if (pendingRun !== null) {
+        const index = pendingRun
+        setHashes((previous) =>
+          previous.map((h, i) => (i === index ? response.transaction_hash : h)),
+        )
+      }
     } catch (error) {
       setStatus(error instanceof Error ? error.message : String(error))
     }
@@ -468,7 +602,7 @@ export default function Home() {
 
           <div className="rounded border border-border bg-surface p-4">
             <button
-              onClick={pickWallet}
+              onClick={() => pickWallet(null)}
               disabled={!result.plan}
               className="rounded bg-accent px-4 py-2 text-sm text-background disabled:opacity-40"
             >
@@ -497,6 +631,57 @@ export default function Home() {
           </div>
         </section>
       </div>
+
+      <section className="mt-10 rounded border border-border bg-surface p-5">
+        <h2 className="font-mono text-sm">The mainnet run</h2>
+        <p className="mt-1 max-w-3xl text-xs text-muted">
+          Three transactions on Starknet mainnet, each an invoke through a contract of ours.
+          Small and deliberately dull: the point is to prove the mechanism with real value, not
+          to take a market position. Run them in order - the first one shields the note the
+          other two spend.
+        </p>
+
+        <ol className="mt-4">
+          {RUNS.map((run, i) => (
+            <li key={run.title} className="border-t border-border py-3">
+              <div className="flex items-baseline justify-between gap-4">
+                <span className="font-mono text-sm">
+                  {i + 1}. {run.title}
+                </span>
+                <button
+                  onClick={() => pickWallet(i)}
+                  disabled={!ROUTER_ADDRESS}
+                  className="shrink-0 rounded border border-border px-3 py-1 text-xs hover:border-accent disabled:opacity-40"
+                >
+                  {hashes[i] ? 'run again' : `run · ${Number(run.amount) / 1e18} STRK`}
+                </button>
+              </div>
+              <p className="mt-1 max-w-2xl text-xs leading-relaxed text-muted">{run.note}</p>
+              {hashes[i] && (
+                <a
+                  className="mt-1 block break-all font-mono text-[11px] text-accent"
+                  href={`https://voyager.online/tx/${hashes[i]}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {hashes[i]}
+                </a>
+              )}
+            </li>
+          ))}
+        </ol>
+
+        {ballotSecret && (
+          <p className="mt-3 break-all rounded border border-warn/40 bg-warn/10 p-3 font-mono text-[11px] text-warn">
+            Ballot secret, save it: {ballotSecret}
+            <span className="mt-1 block font-sans">
+              This is the only thing that redeems the stake once voting closes. It exists
+              nowhere else - not on chain, not on a server. Lose it and the stake stays in the
+              governor for good.
+            </span>
+          </p>
+        )}
+      </section>
 
       <footer className="mt-12 border-t border-border pt-6 text-xs text-muted">
         <a className="text-accent" href="https://github.com/PugarHuda/jalin">

@@ -146,3 +146,20 @@ test('refuses when the note count does not match the output count', () => {
     /matched by position/,
   )
 })
+
+test('a shield in the same transaction comes before the withdrawal', () => {
+  // The pool applies actions in order, so a deposit placed after the withdrawal
+  // is a deposit that arrives too late to fund it.
+  const actions = toWalletActions(oneOutput(), {
+    router: ROUTER,
+    inputs: [{ token: TOKEN_IN, amount: 1000n }],
+    deposits: [{ token: TOKEN_IN, amount: 1000n }],
+    recipient: USER,
+  })
+
+  assert.deepEqual(
+    actions.map((a) => a.type),
+    ['deposit', 'withdraw', 'transfer', 'invoke'],
+  )
+  assert.equal(actions[0]!.type === 'deposit' && actions[0].amount, '0x3e8')
+})
