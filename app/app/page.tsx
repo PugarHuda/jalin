@@ -684,6 +684,16 @@ export default function Home() {
                 : 'The router is not deployed yet, so there is nothing to sign — but this still connects your wallet and tells you whether it implements the STRK20 methods.'}
             </p>
             {status && <p className="mt-2 break-all font-mono text-xs">{status}</p>}
+            {status?.includes('NOT_REGISTERED') && (
+              <a
+                className="mt-2 inline-block rounded bg-accent px-3 py-1.5 text-sm text-background"
+                href="https://strk20.starknet.io/app"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Register this account →
+              </a>
+            )}
             {lastPayload && (
               <details className="mt-2">
                 <summary className="cursor-pointer text-xs text-muted">
