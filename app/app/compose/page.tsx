@@ -513,7 +513,7 @@ export default function Home() {
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
-        <section className="space-y-5">
+        <section className="min-w-0 space-y-5">
           <Panel title="Input" note="What the pool withdraws to the router before the plan runs.">
             <div className="flex gap-2">
               <TokenSelect
@@ -630,7 +630,7 @@ export default function Home() {
           </Panel>
         </section>
 
-        <section className="space-y-4">
+        <section className="min-w-0 space-y-4">
           <div className="flex gap-2 border-b border-thread">
             {(['reveals', 'calldata', 'actions'] as const).map((name) => (
               <button
@@ -731,7 +731,7 @@ export default function Home() {
                 <summary className="cursor-pointer text-xs text-muted">
                   the exact payload that was sent
                 </summary>
-                <pre className="mt-1 max-h-64 overflow-auto rounded border border-thread p-2 font-mono text-[10px]">
+                <pre className="mt-1 max-h-64 overflow-auto rounded border border-thread p-2 font-mono text-[10px] break-all whitespace-pre-wrap">
                   {lastPayload}
                 </pre>
               </details>
