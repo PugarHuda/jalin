@@ -1,0 +1,31 @@
+# Deposit screening sidecar, kept in its own file so its required variables apply
+# only when you actually bring it up:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.screening.yml up -d
+#
+# It lives here rather than behind a profile because compose interpolates the
+# whole file regardless of profiles, so a profile would have forced SCREENING_URL
+# to be optional - and an empty SCREENING_URL makes this a pass-through that
+# always allows while /health still reports OK. Fail-closed is the point of it.
+
+services:
+  # Deposit screening sidecar. The prover calls this, not clients. Included so a
+  # self-hosted proving route meets the same screening requirement as the hosted
+  # one - the pool verifies the FPI signature on chain either way.
+  proof-interceptor:
+    image: ghcr.io/starkware-libs/starknet-privacy/proof-interceptor:${INTERCEPTOR_TAG:-latest}
+    environment:
+      NODE_ENV: production
+      # Reachable from the prover container, never from outside the host.
+      HOST: 0.0.0.0
+      PORT: 8080
+      SCREENING_URL: ${SCREENING_URL:?screening must have an endpoint; empty means allow everything}
+      SCREENING_POOL_ADDRESS: ${POOL_ADDRESS:?set POOL_ADDRESS in .env}
+      # Production posture from the upstream checklist, not the shipped defaults.
+      SCREENING_BLOCK_NON_POOL_TX: "true"
+      SCREENING_FAIL_OPEN: "false"
+    ports:
+      - "127.0.0.1:${INTERCEPTOR_PORT:-8082}:8080"
+    restart: unless-stopped
+    # Opt in with `--profile screening`. Discovery is the piece that matters for
+    # privacy and it should not need a screening endpoint to come up.

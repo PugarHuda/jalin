@@ -12,12 +12,18 @@ Verified against mainnet on 26 August 2026:
 {"status":"OK","chain_head":{"block_number":13852335,...},"lag_secs":4}
 ```
 
-The screening sidecar sits behind a profile, because discovery is the piece that
-carries the privacy weight and should not need a screening endpoint to come up:
+The screening sidecar lives in its own compose file:
 
 ```bash
-docker compose --profile screening up -d
+docker compose -f docker-compose.yml -f docker-compose.screening.yml up -d
 ```
+
+It is a separate file rather than a profile on purpose. Compose interpolates the
+whole file whatever the profile, so a profile would have forced `SCREENING_URL`
+to be optional - and an empty `SCREENING_URL` makes the sidecar a pass-through
+that allows everything while `/health` still reports OK. Split out, it stays
+required, and bringing screening up without an endpoint fails instead of quietly
+screening nothing.
 
 **Configuration goes through environment variables, not the TOML file.** Upstream
 documents both and says of Docker: *"set env vars in compose (no config file
