@@ -1,53 +1,127 @@
 @import "tailwindcss";
 
+/*
+ * Indigo and gold: tarum dye and songket thread. The name means to weave
+ * separate strands into one, and the protocol constraint - one invoke per
+ * transaction - is the same shape, so the cloth is where the palette comes from
+ * rather than from a crypto template.
+ */
 :root {
-  --background: #fbfaf8;
-  --surface: #ffffff;
-  --border: #e2ded6;
-  --foreground: #1a1917;
-  --muted: #6b6660;
-  --accent: #9a4a1f;
-  --hidden: #2f6b4f;
-  --visible: #8a6d12;
-  --warn: #a33a2a;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #12110f;
-    --surface: #191816;
-    --border: #2d2b27;
-    --foreground: #ebe7e0;
-    --muted: #918b82;
-    --accent: #e08a55;
-    --hidden: #63b58c;
-    --visible: #d0ac48;
-    --warn: #e2705c;
-  }
+  --ground: #101423;
+  --raised: #171d31;
+  --thread: #2a3350;
+  --cloth: #e6e2d8;
+  --muted: #8b93ad;
+  --gold: #c9a227;
+  --hidden: #6fbf9a;
+  --visible: #c9a227;
+  --warn: #d4674f;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-surface: var(--surface);
-  --color-border: var(--border);
-  --color-foreground: var(--foreground);
+  --color-ground: var(--ground);
+  --color-raised: var(--raised);
+  --color-thread: var(--thread);
+  --color-cloth: var(--cloth);
   --color-muted: var(--muted);
-  --color-accent: var(--accent);
+  --color-gold: var(--gold);
   --color-hidden: var(--hidden);
   --color-visible: var(--visible);
   --color-warn: var(--warn);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-plex-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  background: var(--ground);
+  color: var(--cloth);
+  font-family: var(--font-plex-sans), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* The warp: fixed vertical threads the content is woven across. */
+.warp {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image: repeating-linear-gradient(
+    to right,
+    color-mix(in srgb, var(--thread) 55%, transparent) 0 1px,
+    transparent 1px 88px
+  );
+  mask-image: linear-gradient(to bottom, transparent, black 12rem, black 70%, transparent);
+}
+
+input,
+select,
+textarea,
+pre,
+code {
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
 }
 
 input,
 select,
 textarea {
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  color: var(--cloth);
+}
+
+::placeholder {
+  color: color-mix(in srgb, var(--muted) 70%, transparent);
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+/* The weave draws itself once, then holds. */
+@keyframes thread-in {
+  from {
+    stroke-dashoffset: var(--len);
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.thread-draw {
+  stroke-dasharray: var(--len);
+  stroke-dashoffset: var(--len);
+  animation: thread-in 1.1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: var(--delay, 0ms);
+}
+
+@keyframes lift {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.lift {
+  opacity: 0;
+  animation: lift 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: var(--delay, 0ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .thread-draw,
+  .lift {
+    animation: none;
+    stroke-dashoffset: 0;
+    opacity: 1;
+    transform: none;
+  }
 }
