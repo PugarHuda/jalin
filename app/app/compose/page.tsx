@@ -690,7 +690,7 @@ export default function Home() {
             <button
               onClick={() => pickWallet(null)}
               disabled={!result.plan || draftIncomplete}
-              className="rounded bg-gold px-4 py-2 text-sm text-ground disabled:opacity-40"
+              className="rounded-sm px-4 py-2 text-sm font-medium transition-colors enabled:bg-gold enabled:text-ground enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:border disabled:border-thread disabled:text-muted"
             >
               {ROUTER_ADDRESS ? 'Sign and submit' : 'Check wallet support'}
             </button>
