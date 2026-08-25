@@ -16,6 +16,14 @@ export interface KnownToken {
   decimals: number
 }
 
+/**
+ * Endur's liquid staking vault, an ERC-4626 whose share token is the contract
+ * itself. Verified on mainnet: asset() is STRK and deposit is the standard
+ * deposit(assets: u256, receiver: ContractAddress).
+ */
+export const ENDUR_VAULT =
+  '0x28d709c875c0ceac3dce7065bec5328186dc89fe254527084d1689910954b0a'
+
 export const TOKENS: KnownToken[] = [
   {
     symbol: 'STRK',
@@ -25,6 +33,11 @@ export const TOKENS: KnownToken[] = [
   {
     symbol: 'ETH',
     address: '0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7',
+    decimals: 18,
+  },
+  {
+    symbol: 'xSTRK',
+    address: '0x28d709c875c0ceac3dce7065bec5328186dc89fe254527084d1689910954b0a',
     decimals: 18,
   },
   {

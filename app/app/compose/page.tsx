@@ -16,6 +16,7 @@ import {
   type Strk20Action,
 } from '@jalin/sdk'
 import {
+  ENDUR_VAULT,
   GOVERNOR_ADDRESS,
   POOL_ADDRESS,
   ROUTER_ADDRESS,
@@ -145,6 +146,32 @@ function proofOfMechanism(stepCount: number): Plan {
   }
 }
 
+/**
+ * Endur liquid staking as a plan.
+ *
+ * The router approves the vault, calls the standard ERC-4626
+ * `deposit(assets, receiver)` with itself as receiver, and credits the xSTRK
+ * shares into an open note. Nothing here is Endur-specific on our side: the
+ * vault has an ABI, so it is reachable. That is the whole argument - AVNU had to
+ * write an anonymizer for this shape, and Ekubo is writing another.
+ *
+ * The floor is set below the quoted rate rather than at it, because the share
+ * price moves between quoting and proving and a proof takes about half a minute.
+ */
+function endurStake(assets: bigint): Plan {
+  return {
+    steps: [
+      {
+        target: ENDUR_VAULT,
+        selector: hash.getSelectorFromName('deposit'),
+        approvals: [{ token: TOKENS[0]!.address, amount: assets }],
+        calldata: [...u256(assets), ROUTER_ADDRESS],
+      },
+    ],
+    outputs: [{ token: ENDUR_VAULT, noteId: openNote(0), minAmount: (assets * 78n) / 100n }],
+  }
+}
+
 interface MainnetRun {
   title: string
   note: string
@@ -171,16 +198,16 @@ const SHIELD: MainnetRun = {
 
 const RUNS: MainnetRun[] = [
   {
-    title: 'Run a plan through the router',
-    note: 'One step, spending the note you just shielded. The whole withdrawn balance is credited straight back, so this costs fees and nothing else.',
+    title: 'Two steps, one invoke',
+    note: 'Two external calls inside the single invoke the pool allows - the composition nothing else can do. The calls move nothing and the whole balance is credited back, so this proves the sandwich for the price of fees.',
     amount: ONE / 2n,
-    plan: proofOfMechanism(1),
+    plan: proofOfMechanism(2),
   },
   {
-    title: 'Two steps, one invoke',
-    note: 'The case nothing else can do. Two external calls inside the single invoke the pool allows, spending the note from the first run.',
+    title: 'Stake on Endur, privately',
+    note: 'A real ERC-4626 deposit into Endur’s liquid staking vault, which returns xSTRK straight into a shielded note. No Jalin-specific adapter and no contract written for Endur - the vault has an ABI, so it is reachable as a step.',
     amount: ONE / 4n,
-    plan: proofOfMechanism(2),
+    plan: endurStake(ONE / 4n),
   },
   {
     title: 'Private ballot',
