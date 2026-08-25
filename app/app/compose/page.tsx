@@ -661,7 +661,7 @@ export default function Home() {
         </section>
 
         <section className="min-w-0 space-y-4">
-          <div className="flex gap-2 border-b border-thread">
+          <div className="flex flex-wrap gap-2 border-b border-thread">
             {(['reveals', 'calldata', 'actions'] as const).map((name) => (
               <button
                 key={name}
@@ -682,7 +682,7 @@ export default function Home() {
           )}
 
           {tab === 'reveals' && disclosure && (
-            <div className="space-y-4 text-sm">
+            <div className="min-w-0 space-y-4 text-sm break-words">
               <Group title="Hidden" colour="text-hidden" items={disclosure.hidden} />
               <Group title="Visible" colour="text-visible" items={disclosure.visible} />
               {disclosure.warnings.length > 0 && (
@@ -922,7 +922,7 @@ function Group({ title, colour, items }: { title: string; colour: string; items:
       <h3 className={`font-mono text-xs uppercase tracking-wide ${colour}`}>{title}</h3>
       <ul className="mt-2 space-y-1.5">
         {items.map((item, i) => (
-          <li key={i} className="text-sm leading-relaxed text-muted">
+          <li key={i} className="text-sm leading-relaxed break-words text-muted">
             {item}
           </li>
         ))}
