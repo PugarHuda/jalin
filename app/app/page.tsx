@@ -13,17 +13,17 @@ const REPO = 'https://github.com/PugarHuda/jalin'
  */
 function Weave() {
   const under = [
-    { d: 'M 0 40 C 110 40, 150 105, 236 105 C 300 105, 330 115, 352 115', label: 'approve', y: 40 },
+    { d: 'M 0 40 C 62 40, 140 105, 236 105 C 300 105, 330 115, 352 115', label: 'approve', y: 40 },
     {
-      d: 'M 0 140 C 110 140, 150 185, 236 185 C 300 185, 330 115, 352 115',
+      d: 'M 0 140 C 62 140, 140 185, 236 185 C 300 185, 330 115, 352 115',
       label: 'deposit',
       y: 140,
     },
   ]
   const over = [
-    { d: 'M 0 90 C 110 90, 150 45, 236 45 C 300 45, 330 115, 352 115', label: 'swap', y: 90 },
+    { d: 'M 0 90 C 62 90, 140 45, 236 45 C 300 45, 330 115, 352 115', label: 'swap', y: 90 },
     {
-      d: 'M 0 190 C 110 190, 150 135, 236 135 C 300 135, 330 115, 352 115',
+      d: 'M 0 190 C 62 190, 140 135, 236 135 C 300 135, 330 115, 352 115',
       label: 'bridge',
       y: 190,
     },
@@ -84,7 +84,7 @@ function Weave() {
 
   return (
     <svg
-      viewBox="0 0 720 230"
+      viewBox="0 18 720 184"
       className="w-full"
       role="img"
       aria-label="Four steps interlace, converge into a single privacy_invoke, and emerge as shielded notes"
