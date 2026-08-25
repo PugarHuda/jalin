@@ -3,91 +3,142 @@ import { GOVERNOR_ADDRESS, ROUTER_ADDRESS } from '@/lib/config'
 
 const REPO = 'https://github.com/PugarHuda/jalin'
 
-/** Four steps in, one invoke, notes out. The constraint and the name are the same shape. */
+/**
+ * Four steps in, one invoke, notes out - which is both the protocol constraint
+ * and what the name means.
+ *
+ * The strands cross before they converge, and the ones drawn last carry a
+ * ground-coloured halo so they read as passing over. Without that they only
+ * funnel, and a funnel is not a weave.
+ */
 function Weave() {
-  const strands = [
-    { d: 'M 0 40 C 140 40, 210 115, 352 115', label: 'approve', y: 40 },
-    { d: 'M 0 90 C 150 90, 230 115, 352 115', label: 'swap', y: 90 },
-    { d: 'M 0 140 C 150 140, 230 115, 352 115', label: 'deposit', y: 140 },
-    { d: 'M 0 190 C 140 190, 210 115, 352 115', label: 'bridge', y: 190 },
+  const under = [
+    { d: 'M 0 40 C 110 40, 150 105, 236 105 C 300 105, 330 115, 352 115', label: 'approve', y: 40 },
+    {
+      d: 'M 0 140 C 110 140, 150 185, 236 185 C 300 185, 330 115, 352 115',
+      label: 'deposit',
+      y: 140,
+    },
   ]
+  const over = [
+    { d: 'M 0 90 C 110 90, 150 45, 236 45 C 300 45, 330 115, 352 115', label: 'swap', y: 90 },
+    {
+      d: 'M 0 190 C 110 190, 150 135, 236 135 C 300 135, 330 115, 352 115',
+      label: 'bridge',
+      y: 190,
+    },
+  ]
+
+  const Strand = ({
+    d,
+    delay,
+    halo,
+  }: {
+    d: string
+    delay: number
+    halo?: boolean
+  }) => (
+    <>
+      {halo && (
+        <path
+          className="thread-draw"
+          style={{ ['--len' as string]: '560', ['--delay' as string]: `${delay}ms` }}
+          d={d}
+          fill="none"
+          stroke="var(--ground)"
+          strokeWidth="7"
+        />
+      )}
+      <path
+        className="thread-draw"
+        style={{ ['--len' as string]: '560', ['--delay' as string]: `${delay}ms` }}
+        d={d}
+        fill="none"
+        stroke="var(--strand)"
+        strokeWidth="1.75"
+      />
+    </>
+  )
+
+  const Label = ({ x, y, delay, anchor, text, fill }: {
+    x: number
+    y: number
+    delay: number
+    anchor?: 'end'
+    text: string
+    fill: string
+  }) => (
+    <text
+      x={x}
+      y={y}
+      className="lift"
+      style={{ ['--delay' as string]: `${delay}ms` }}
+      fill={fill}
+      fontSize="12"
+      fontFamily="var(--font-plex-mono)"
+      textAnchor={anchor}
+    >
+      {text}
+    </text>
+  )
 
   return (
     <svg
       viewBox="0 0 720 230"
       className="w-full"
       role="img"
-      aria-label="Four steps converge into a single privacy_invoke and emerge as shielded notes"
+      aria-label="Four steps interlace, converge into a single privacy_invoke, and emerge as shielded notes"
     >
-      {strands.map((strand, i) => (
-        <g key={strand.label}>
-          <path
-            className="thread-draw"
-            style={{ ['--len' as string]: '520', ['--delay' as string]: `${i * 110}ms` }}
-            d={strand.d}
-            fill="none"
-            stroke="var(--thread)"
-            strokeWidth="1.5"
-          />
-          <text
-            x="4"
-            y={strand.y - 10}
-            className="lift"
-            style={{ ['--delay' as string]: `${i * 110 + 200}ms` }}
-            fill="var(--muted)"
-            fontSize="12"
-            fontFamily="var(--font-plex-mono)"
-          >
-            {strand.label}
-          </text>
-        </g>
+      {under.map((s, i) => (
+        <Strand key={s.label} d={s.d} delay={i * 120} />
+      ))}
+      {over.map((s, i) => (
+        <Strand key={s.label} d={s.d} delay={60 + i * 120} halo />
+      ))}
+
+      {[...under, ...over].map((s, i) => (
+        <Label
+          key={s.label}
+          x={4}
+          y={s.y - 11}
+          delay={i * 90 + 240}
+          text={s.label}
+          fill="var(--muted)"
+        />
       ))}
 
       <path
         className="thread-draw"
-        style={{ ['--len' as string]: '160', ['--delay' as string]: '520ms' }}
-        d="M 352 115 L 470 115"
+        style={{ ['--len' as string]: '160', ['--delay' as string]: '560ms' }}
+        d="M 352 115 L 468 115"
         fill="none"
         stroke="var(--gold)"
-        strokeWidth="3"
+        strokeWidth="5"
+        strokeLinecap="round"
       />
-      <text
-        x="356"
-        y="103"
-        className="lift"
-        style={{ ['--delay' as string]: '700ms' }}
-        fill="var(--gold)"
-        fontSize="12"
-        fontFamily="var(--font-plex-mono)"
-      >
-        privacy_invoke
-      </text>
+      <Label x={352} y={100} delay={760} text="privacy_invoke" fill="var(--gold)" />
 
       {[
-        { d: 'M 470 115 C 570 115, 610 78, 716 78', y: 78 },
-        { d: 'M 470 115 C 570 115, 610 152, 716 152', y: 152 },
+        { d: 'M 468 115 C 570 115, 610 78, 716 78', y: 78 },
+        { d: 'M 468 115 C 570 115, 610 152, 716 152', y: 152 },
       ].map((out, i) => (
         <g key={out.y}>
           <path
             className="thread-draw"
-            style={{ ['--len' as string]: '320', ['--delay' as string]: `${700 + i * 110}ms` }}
+            style={{ ['--len' as string]: '320', ['--delay' as string]: `${760 + i * 110}ms` }}
             d={out.d}
             fill="none"
-            stroke="var(--thread)"
-            strokeWidth="1.5"
+            stroke="var(--strand)"
+            strokeWidth="1.75"
           />
-          <text
-            x="640"
-            y={out.y - 10}
-            className="lift"
-            style={{ ['--delay' as string]: `${900 + i * 110}ms` }}
+          <Label
+            x={716}
+            y={out.y - 11}
+            delay={960 + i * 110}
+            anchor="end"
+            text="note"
             fill="var(--muted)"
-            fontSize="12"
-            fontFamily="var(--font-plex-mono)"
-            textAnchor="end"
-          >
-            note
-          </text>
+          />
         </g>
       ))}
     </svg>
@@ -112,8 +163,8 @@ function Address({ label, value }: { label: string; value: string }) {
       rel="noreferrer"
       className="group block border-t border-thread py-4"
     >
-      <div className="font-mono text-xs text-muted">{label}</div>
-      <div className="mt-1 break-all font-mono text-sm text-cloth group-hover:text-gold">
+      <div className="font-mono text-xs uppercase tracking-[0.15em] text-gold">{label}</div>
+      <div className="mt-1 break-all font-mono text-sm text-cloth group-hover:text-gold sm:text-base">
         {value}
       </div>
     </a>
@@ -160,12 +211,12 @@ export default function Landing() {
           inside that single invoke.
         </p>
 
-        <div className="mt-14">
+        <div className="mt-12">
           <Weave />
         </div>
 
         <div
-          className="lift mt-12 flex flex-wrap items-center gap-4"
+          className="lift mt-6 flex flex-wrap items-center gap-4"
           style={{ ['--delay' as string]: '1000ms' }}
         >
           <Link

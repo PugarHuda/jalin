@@ -10,6 +10,7 @@
   --ground: #101423;
   --raised: #171d31;
   --thread: #2a3350;
+  --strand: #5a67a0;
   --cloth: #e6e2d8;
   --muted: #8b93ad;
   --gold: #c9a227;
@@ -22,6 +23,7 @@
   --color-ground: var(--ground);
   --color-raised: var(--raised);
   --color-thread: var(--thread);
+  --color-strand: var(--strand);
   --color-cloth: var(--cloth);
   --color-muted: var(--muted);
   --color-gold: var(--gold);
