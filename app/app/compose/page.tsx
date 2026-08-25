@@ -515,13 +515,14 @@ export default function Home() {
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <section className="min-w-0 space-y-5">
           <Panel title="Input" note="What the pool withdraws to the router before the plan runs.">
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <TokenSelect
                 value={draft.inputToken}
                 onChange={(inputToken) => patch({ inputToken })}
               />
               <input
                 value={draft.inputAmount}
+                aria-label="Input amount"
                 onChange={(e) => patch({ inputAmount: e.target.value })}
                 className="w-32 rounded border border-thread bg-raised px-2 py-1.5 text-sm"
               />
@@ -547,13 +548,14 @@ export default function Home() {
                   />
                 </Field>
                 <Field label="approve">
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     <TokenSelect
                       value={step.approveToken}
                       onChange={(approveToken) => patchStep(i, { approveToken })}
                     />
                     <input
                       value={step.approveAmount}
+                      aria-label={`Step ${i + 1} approval amount`}
                       onChange={(e) => patchStep(i, { approveAmount: e.target.value })}
                       className="w-28 rounded border border-thread bg-raised px-2 py-1.5 text-xs"
                     />
@@ -593,7 +595,7 @@ export default function Home() {
               <p className="text-xs text-muted">Nothing is credited back.</p>
             )}
             {draft.outputs.map((output, i) => (
-              <div key={i} className="mb-2 flex gap-2">
+              <div key={i} className="mb-2 flex flex-wrap items-center gap-2">
                 <TokenSelect
                   value={output.token}
                   onChange={(token) =>
@@ -612,9 +614,10 @@ export default function Home() {
                     })
                   }
                   placeholder="floor"
+                  aria-label={`Output ${i + 1} minimum amount`}
                   className="w-28 rounded border border-thread bg-raised px-2 py-1.5 text-xs"
                 />
-                <span className="self-center font-mono text-xs text-muted">
+                <span className="min-w-0 self-center break-all font-mono text-xs text-muted">
                   {openNote(i)}
                 </span>
               </div>
@@ -872,6 +875,7 @@ function TokenSelect({ value, onChange }: { value: string; onChange: (v: string)
   return (
     <select
       value={value}
+      aria-label="Token"
       onChange={(e) => onChange(e.target.value)}
       className="rounded border border-thread bg-raised px-2 py-1.5 text-sm"
     >
