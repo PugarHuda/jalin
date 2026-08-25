@@ -149,17 +149,31 @@ interface MainnetRun {
   title: string
   note: string
   amount: bigint
-  shield?: boolean
+  /** Deposit only. Nothing to spend until this has landed. */
+  shieldOnly?: boolean
   ballot?: boolean
   plan?: Plan
 }
 
+/**
+ * Enough to cover all three runs at once. Runs 1 and 2 are round trips - what
+ * they withdraw comes straight back into a note - so only the ballot's stake
+ * actually leaves, and one shield covers the lot.
+ */
+const SHIELD_AMOUNT = ONE
+
+const SHIELD: MainnetRun = {
+  title: 'Shield 1 STRK',
+  note: 'Moves public STRK into the pool as an encrypted note. Not one of the three - it goes through the pool but not through a contract of ours, so it does not count. Combining it with the plan below would be quieter, and the wallet will not have it: a withdrawal is checked against the private balance you already hold, and a deposit in the same action set does not arrive in time to cover it.',
+  amount: SHIELD_AMOUNT,
+  shieldOnly: true,
+}
+
 const RUNS: MainnetRun[] = [
   {
-    title: 'Shield, then run a plan',
-    note: 'Deposits STRK and runs a one-step plan through the router in the same pool transaction. Two footprints collapsed into one, and the note this creates funds the next two.',
+    title: 'Run a plan through the router',
+    note: 'One step, spending the note you just shielded. The whole withdrawn balance is credited straight back, so this costs fees and nothing else.',
     amount: ONE / 2n,
-    shield: true,
     plan: proofOfMechanism(1),
   },
   {
@@ -250,6 +264,7 @@ export default function Home() {
   const [hashes, setHashes] = useState<(string | null)[]>([null, null, null])
   const [ballotSecret, setBallotSecret] = useState<string | null>(null)
   const [lastPayload, setLastPayload] = useState<string | null>(null)
+  const [shieldHash, setShieldHash] = useState<string | null>(null)
 
   const result = useMemo(() => {
     try {
@@ -320,6 +335,10 @@ export default function Home() {
   function buildRunActions(run: MainnetRun, account: string): Strk20Action[] {
     const strk = TOKENS[0]!.address
 
+    if (run.shieldOnly) {
+      return [{ type: 'deposit', token: toFelt(strk), amount: toFelt(run.amount) }]
+    }
+
     if (run.ballot) {
       // The secret is what redeems the stake once voting closes, and it is only
       // ever held here. Losing it locks the stake in the governor for good, so
@@ -361,13 +380,13 @@ export default function Home() {
     return toWalletActions(run.plan!, {
       router: ROUTER_ADDRESS,
       inputs: [{ token: strk, amount: run.amount }],
-      deposits: run.shield ? [{ token: strk, amount: run.amount }] : undefined,
       recipient: account,
     })
   }
 
   async function execute(wallet: StarknetWindowObject) {
-    const run = pendingRun === null ? null : RUNS[pendingRun]!
+    const run =
+      pendingRun === null ? null : pendingRun === -1 ? SHIELD : RUNS[pendingRun]!
     if (!run && !result.plan) return
     setWallets([])
     setStatus('Connecting…')
@@ -419,7 +438,9 @@ export default function Home() {
       })
 
       setStatus(`Submitted: ${response.transaction_hash}`)
-      if (pendingRun !== null) {
+      if (pendingRun === -1) {
+        setShieldHash(response.transaction_hash)
+      } else if (pendingRun !== null) {
         const index = pendingRun
         setHashes((previous) =>
           previous.map((h, i) => (i === index ? response.transaction_hash : h)),
@@ -732,6 +753,30 @@ export default function Home() {
           </a>
           , then come back. Skipping it gives you <span className="font-mono">NOT_REGISTERED</span>.
         </p>
+
+        <div className="mt-4 border-t border-border py-3">
+          <div className="flex items-baseline justify-between gap-4">
+            <span className="font-mono text-sm text-muted">{SHIELD.title}</span>
+            <button
+              onClick={() => pickWallet(-1)}
+              disabled={!ROUTER_ADDRESS}
+              className="shrink-0 rounded border border-border px-3 py-1 text-xs hover:border-accent disabled:opacity-40"
+            >
+              {shieldHash ? 'shield again' : `shield · ${Number(SHIELD.amount) / 1e18} STRK`}
+            </button>
+          </div>
+          <p className="mt-1 max-w-2xl text-xs leading-relaxed text-muted">{SHIELD.note}</p>
+          {shieldHash && (
+            <a
+              className="mt-1 block break-all font-mono text-[11px] text-accent"
+              href={`https://voyager.online/tx/${shieldHash}`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              {shieldHash}
+            </a>
+          )}
+        </div>
 
         <ol className="mt-4">
           {RUNS.map((run, i) => (
