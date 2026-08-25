@@ -105,6 +105,51 @@ allowed.
 So: one action at one venue, use the venue. Two actions, or an action at a venue
 that has not written a helper yet, and there is nothing else to use.
 
+## Sub-accounts, and what stands in for them
+
+`sdk/src/subaccounts.ts` implements the sub-account portfolio layer — deriving a
+stable label per strategy, rolling unlinkable positions back into one balance
+sheet, and saying out loud when a portfolio has no internal anonymity left. It is
+tested and it is not wired into the app, which is deliberate and worth explaining
+rather than hiding.
+
+Two things block it. The Wallet API exposes no sub-account method, and the SDK
+route that does (`transfers.build().subaccounts(name).invoke(...)`, from Privacy
+SDK 0.14.3-rc.4) needs a proving service URL that is not published for mainnet —
+see [starkience/strk20-hackathon#121](https://github.com/starkience/strk20-hackathon/issues/121)
+and the three issues alongside it. So the helpers ship in the SDK for anyone who
+holds keys and has prover access, and the product does something else.
+
+**What the router does instead.** Every external step is dispatched by the router
+itself, so from the venue's side the caller is always the same address. Endur sees
+`0x8498d79…` deposit into its vault; it cannot see which pool user asked. The
+`PlanExecuted` event carries a plan id and two counts and deliberately no token,
+amount or note id.
+
+That is a different shape of privacy from a sub-account, and for flow-through
+actions it is the better one:
+
+| | Sub-account | Jalin router |
+|---|---|---|
+| Identity seen by the venue | fresh, and yours alone | shared by every user of the router |
+| Anonymity | unlinked from your wallet | unlinked, *and* in a crowd |
+| Grows with usage | no | yes |
+
+A fresh address is unlinked and alone, which is why a single transaction from one
+is often still identifiable by amount and timing. A shared router puts you in a
+set, and the set grows every time someone else runs a plan.
+
+**Where it genuinely falls short.** This only holds for actions that flow through:
+swap, or stake-and-take-the-shares, where nothing is left owned afterwards. A
+protocol that records a persistent owner — a lending position, a vault
+subscription — cannot have the router hold it, because the router holds nothing
+between transactions by construction (invariant I4). For those, sub-accounts are
+the right answer and this is not a substitute for them.
+
+And the honest caveat on the crowd: it is only as large as the number of people
+using the router, which today is small. The mechanism is right; the set has to be
+earned.
+
 ## Repository layout
 
 | Path | What it holds |

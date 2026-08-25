@@ -1,10 +1,30 @@
 # Self-hosted infrastructure
 
 ```bash
-cp .env.example .env   # fill in STARKNET_RPC_URL and SCREENING_URL
-docker compose up -d
+cp .env.example .env          # STARKNET_RPC_URL is the only one discovery needs
+docker compose up -d discovery
 curl -s localhost:8081/health
 ```
+
+Verified against mainnet on 26 August 2026:
+
+```json
+{"status":"OK","chain_head":{"block_number":13852335,...},"lag_secs":4}
+```
+
+The screening sidecar sits behind a profile, because discovery is the piece that
+carries the privacy weight and should not need a screening endpoint to come up:
+
+```bash
+docker compose --profile screening up -d
+```
+
+**Configuration goes through environment variables, not the TOML file.** Upstream
+documents both and says of Docker: *"set env vars in compose (no config file
+needed)"*. The file route needs `${VAR}` expansion that the loader rejected here -
+including on a plain `${STARKNET_RPC_URL}` - and env vars win over the file
+anyway, so the file was not worth the failure. `discovery.toml` is kept as a
+reference for anyone running the binary directly.
 
 Then point the SDK at your own services:
 

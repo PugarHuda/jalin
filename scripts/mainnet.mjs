@@ -18,9 +18,10 @@
  * others; they cannot, and pretending otherwise would only move the failure
  * later. See `requireProver` below and starkience/strk20-hackathon#121.
  */
-import { Account, RpcProvider, constants } from 'starknet'
+import { Account, RpcProvider, constants, hash, num, shortString } from 'starknet'
 import { poseidonHashMany } from '@scure/starknet'
 import { readFileSync } from 'node:fs'
+import { randomBytes } from 'node:crypto'
 import { createPrivateTransfers } from '../vendor/starknet-privacy/sdk/dist/index.js'
 import { PlanBuilder, toInvokeCall } from '../sdk/src/index.ts'
 
@@ -160,12 +161,45 @@ async function plan() {
   return submit(callAndProof, 'plan')
 }
 
-async function ballot(proposalId) {
+/**
+ * A private ballot. The pool withdraws the stake to the governor and calls its
+ * `privacy_invoke`, so the weight is public and the voter is not.
+ *
+ * CAST returns an empty span, so no open note is declared: the stake stays
+ * escrowed in the governor until the vote closes and is redeemed by revealing
+ * the secret. The secret is printed once and stored nowhere.
+ */
+async function ballot(proposalId = '1') {
+  requireProver('ballot')
   const governor = env('GOVERNOR_ADDRESS')
-  console.log(`casting a private ballot on proposal ${proposalId} via ${governor}`)
-  throw new Error(
-    'ballot is wired once the governor is deployed and a proposal exists; see docs/deploying.md',
+  const amount = BigInt(process.env.BALLOT_AMOUNT ?? '100000000000000000') // 0.1 STRK
+
+  const secret = num.toHex(
+    BigInt('0x' + Buffer.from(randomBytes(31)).toString('hex')) % 2n ** 250n,
   )
+  const commitment = hash.computePoseidonHashOnElements([
+    shortString.encodeShortString('JALIN_BALLOT:V1'),
+    secret,
+  ])
+
+  console.log(`proposal   ${proposalId}`)
+  console.log(`stake      ${Number(amount) / 1e18} STRK`)
+  console.log(`secret     ${secret}`)
+  console.log('           ^ the only thing that redeems the stake. Save it now.')
+
+  const { callAndProof } = await transfers
+    .build({ autoSetup: true })
+    .surplusTo(account.address)
+    .with(STRK, (t) => t.withdraw({ amount, recipient: governor }))
+    .invoke(({ poolAddress }) => ({
+      contractAddress: governor,
+      // privacy_invoke(pool_address, operation, proposal_id, support,
+      //                commitment, secret, amount, note_id)
+      calldata: [poolAddress, 0n, BigInt(proposalId), 1n, commitment, 0n, amount, 0n],
+    }))
+    .execute({ provingBlockId: await provingBlockId() })
+
+  return submit(callAndProof, 'ballot')
 }
 
 // ---------------------------------------------------------------------------

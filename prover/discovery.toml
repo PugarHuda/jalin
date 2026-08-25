@@ -7,8 +7,8 @@ max_concurrent_requests = 10
 max_batch_size = 100
 event_page_size = 1024
 
-[indexer]
-ws_url = "${STARKNET_WS_URL:-}"
+# [indexer] is omitted on purpose. ws_url is only for live indexing, and an
+# empty ${VAR:-} default made the config loader reject the whole file.
 
 [api]
 # Overridden by API_HOST in the compose file; kept here so the file runs alone too.

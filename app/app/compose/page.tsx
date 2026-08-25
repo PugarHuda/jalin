@@ -51,64 +51,69 @@ const ETH = TOKENS[1]!.address
 
 const PRESETS: { name: string; blurb: string; draft: Draft }[] = [
   {
-    name: 'Single swap',
-    blurb: 'One leg. AVNU already does this better - see the README on when not to use Jalin.',
+    name: 'Stake on Endur',
+    blurb: 'A real ERC-4626 deposit into the xSTRK vault. Shares land in a shielded note.',
     draft: {
       inputToken: STRK,
-      inputAmount: '10',
+      inputAmount: '0.25',
       steps: [
         {
-          target: '',
-          selector: 'swap',
+          target: ENDUR_VAULT,
+          selector: 'deposit',
           approveToken: STRK,
-          approveAmount: '10',
-          calldata: `${STRK}\n${ETH}\n{amount:u256}\n0\n0`,
+          approveAmount: '0.25',
+          calldata: `{amount:u256}
+${ROUTER_ADDRESS}`,
         },
       ],
-      outputs: [{ token: ETH, minAmount: '0.001' }],
+      outputs: [{ token: ENDUR_VAULT, minAmount: '0.19' }],
     },
   },
   {
-    name: 'Swap, then bridge',
-    blurb: 'Two legs, one transaction. This is the case nothing else can do.',
+    name: 'Two deposits, one invoke',
+    blurb: 'Two calls into a live protocol inside the single invoke the pool allows. This is the case nothing else can do.',
     draft: {
       inputToken: STRK,
-      inputAmount: '10',
+      inputAmount: '0.4',
       steps: [
         {
-          target: '',
-          selector: 'swap',
+          target: ENDUR_VAULT,
+          selector: 'deposit',
           approveToken: STRK,
-          approveAmount: '10',
-          calldata: `${STRK}\n${ETH}\n{amount:u256}\n0\n0`,
+          approveAmount: '0.2',
+          calldata: `{amount:u256}
+${ROUTER_ADDRESS}`,
         },
         {
-          target: '',
-          selector: 'deposit_for_burn',
-          approveToken: ETH,
-          approveAmount: '0.002',
-          calldata: '{amount:u256}\n0x0\n0x0',
+          target: ENDUR_VAULT,
+          selector: 'deposit',
+          approveToken: STRK,
+          approveAmount: '0.2',
+          calldata: `{amount:u256}
+${ROUTER_ADDRESS}`,
         },
       ],
-      outputs: [],
+      outputs: [{ token: ENDUR_VAULT, minAmount: '0.3' }],
     },
   },
   {
-    name: 'Bridge away',
-    blurb: 'Credits nothing back. Legal because the pool accepts an empty Span.',
+    name: 'Round trip',
+    blurb: 'Calls that move nothing, so the whole balance comes straight back. The cheapest way to prove the sandwich end to end.',
     draft: {
       inputToken: STRK,
-      inputAmount: '10',
+      inputAmount: '0.1',
       steps: [
         {
-          target: '',
-          selector: 'deposit_for_burn',
-          approveToken: STRK,
-          approveAmount: '10',
-          calldata: '{amount:u256}\n0x0\n0x0',
+          target: STRK,
+          selector: 'approve',
+          approveToken: '',
+          approveAmount: '0',
+          calldata: `${ROUTER_ADDRESS}
+0
+0`,
         },
       ],
-      outputs: [],
+      outputs: [{ token: STRK, minAmount: '0' }],
     },
   },
 ]

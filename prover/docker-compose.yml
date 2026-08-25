@@ -10,14 +10,13 @@ services:
   # yourself means the key never leaves your infrastructure.
   discovery:
     image: ghcr.io/starkware-libs/starknet-privacy/discovery-service:${DISCOVERY_TAG:-latest}
-    command: ["--config", "/etc/jalin/discovery.toml"]
-    volumes:
-      - ./discovery.toml:/etc/jalin/discovery.toml:ro
     environment:
       RUST_LOG: ${RUST_LOG:-info}
       API_HOST: 0.0.0.0:8080
-      STARKNET_RPC_URL: ${STARKNET_RPC_URL:?set STARKNET_RPC_URL in .env}
-      STARKNET_WS_URL: ${STARKNET_WS_URL:-}
+      # Upstream: "Docker: set env vars in compose (no config file needed)".
+      # The TOML route needs ${VAR} expansion that the loader rejected here, and
+      # env vars win over the file anyway, so the file is not worth the failure.
+      RPC_URL: ${STARKNET_RPC_URL:?set STARKNET_RPC_URL in .env}
     ports:
       - "127.0.0.1:${DISCOVERY_PORT:-8081}:8080"
     restart: unless-stopped
@@ -32,7 +31,11 @@ services:
       # Reachable from the prover container, never from outside the host.
       HOST: 0.0.0.0
       PORT: 8080
-      SCREENING_URL: ${SCREENING_URL:?set SCREENING_URL in .env}
+      # Empty makes the sidecar a pass-through that always allows, and /health
+      # still reports OK - upstream's warning, repeated because it is easy to
+      # believe screening is on when it is not. Required for production, not
+      # for bringing discovery up.
+      SCREENING_URL: ${SCREENING_URL:-}
       SCREENING_POOL_ADDRESS: ${POOL_ADDRESS:?set POOL_ADDRESS in .env}
       # Production posture from the upstream checklist, not the shipped defaults.
       SCREENING_BLOCK_NON_POOL_TX: "true"
@@ -40,3 +43,6 @@ services:
     ports:
       - "127.0.0.1:${INTERCEPTOR_PORT:-8082}:8080"
     restart: unless-stopped
+    # Opt in with `--profile screening`. Discovery is the piece that matters for
+    # privacy and it should not need a screening endpoint to come up.
+    profiles: [screening]
