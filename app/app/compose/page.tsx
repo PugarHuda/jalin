@@ -570,6 +570,7 @@ export default function Home() {
                 <Field label="selector">
                   <input
                     value={step.selector}
+                    aria-label={`Step ${i + 1} selector`}
                     onChange={(e) => patchStep(i, { selector: e.target.value })}
                     className="w-full rounded border border-thread bg-raised px-2 py-1.5 text-xs"
                   />
