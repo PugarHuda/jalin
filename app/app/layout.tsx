@@ -23,10 +23,28 @@ const plexMono = IBM_Plex_Mono({
   weight: ['400', '500'],
 })
 
+const DESCRIPTION =
+  'A programmable execution router for the STRK20 shielded pool. The pool allows one ' +
+  'invoke per transaction, so Jalin weaves the whole plan inside it.'
+
+/**
+ * metadataBase is what turns the generated Open Graph image into an absolute URL.
+ * Without it Next emits a relative path, which every unfurler ignores - so the
+ * link that carries this submission would arrive as a bare grey rectangle.
+ */
 export const metadata: Metadata = {
-  title: 'Jalin',
-  description:
-    'A programmable execution router for the STRK20 shielded pool. The pool allows one invoke per transaction, so Jalin weaves the whole plan inside it.',
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'https://jalin-five.vercel.app'),
+  title: { default: 'Jalin', template: '%s · Jalin' },
+  description: DESCRIPTION,
+  applicationName: 'Jalin',
+  openGraph: {
+    type: 'website',
+    siteName: 'Jalin',
+    title: 'Jalin — weaving a plan inside one invoke',
+    description: DESCRIPTION,
+  },
+  twitter: { card: 'summary_large_image', title: 'Jalin', description: DESCRIPTION },
+  robots: { index: true, follow: true },
 }
 
 export default function RootLayout({ children }: LayoutProps<'/'>) {

@@ -5,6 +5,30 @@ const nextConfig: NextConfig = {
   // is what lets `node --test` run it without a build step. Next has to compile
   // it rather than expect a dist/.
   transpilePackages: ['@jalin/sdk'],
+
+  /**
+   * This page asks people to connect a wallet and sign. Framing it inside
+   * another site is how a signing prompt gets put in front of someone who
+   * thinks they are clicking something else, so nothing may frame it.
+   *
+   * The rest are the cheap ones that have no downside: no MIME sniffing, no
+   * referrer leaking the path to third parties, and no cross-origin window
+   * handle onto a page a wallet talks to.
+   */
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          { key: 'Content-Security-Policy', value: "frame-ancestors 'none'" },
+          { key: 'X-Frame-Options', value: 'DENY' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
+        ],
+      },
+    ]
+  },
 }
 
 export default nextConfig

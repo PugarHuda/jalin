@@ -9,7 +9,12 @@ import { ENDUR_VAULT } from '@/lib/config'
  * safe. A constant cannot know the share price moved, so it is either too loose
  * to guard anything or tight enough to revert for no reason.
  */
-export const dynamic = 'force-dynamic'
+/**
+ * Cached for half a minute. A vault share price moves with staking rewards, not
+ * with the page load, so re-asking on every render only spends the node's quota
+ * - and the quota is a shared key that anyone reloading the page can drain.
+ */
+export const revalidate = 30
 
 export async function GET(request: Request) {
   const assets = new URL(request.url).searchParams.get('assets')
@@ -19,7 +24,7 @@ export async function GET(request: Request) {
 
   const amount = BigInt(assets)
   try {
-    const result = await rpc.call(ENDUR_VAULT, 'preview_deposit', u256(amount))
+    const result = await rpc.call(ENDUR_VAULT, 'preview_deposit', u256(amount), revalidate)
     const shares = BigInt(result[0]!) + (BigInt(result[1] ?? '0x0') << 128n)
     return Response.json({ assets: amount.toString(), shares: shares.toString() })
   } catch (error) {

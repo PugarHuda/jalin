@@ -94,3 +94,28 @@ test.describe('/api/crowd', () => {
     expect(crowd.head).toBeGreaterThan(13_000_000)
   })
 })
+
+test.describe('the page itself', () => {
+  test('cannot be framed by another site', async ({ request }) => {
+    // A signing prompt inside somebody else's iframe is how a person ends up
+    // approving a transaction they never saw.
+    const response = await request.get('/compose')
+    const headers = response.headers()
+
+    expect(headers['content-security-policy']).toContain("frame-ancestors 'none'")
+    expect(headers['x-frame-options']).toBe('DENY')
+    expect(headers['x-content-type-options']).toBe('nosniff')
+  })
+
+  test('unfurls with a real card when the link is pasted', async ({ request, page }) => {
+    const image = await request.get('/opengraph-image')
+    expect(image.status()).toBe(200)
+    expect(image.headers()['content-type']).toContain('image/png')
+    expect((await image.body()).length).toBeGreaterThan(5_000)
+
+    await page.goto('/')
+    const url = await page.locator('meta[property="og:image"]').getAttribute('content')
+    // Relative here means every unfurler ignores it and the link arrives blank.
+    expect(url).toMatch(/^https?:\/\//)
+  })
+})
