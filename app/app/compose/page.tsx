@@ -4,6 +4,7 @@ import { useMemo, useState, type ReactNode } from 'react'
 import type { StarknetWindowObject } from 'get-starknet-core'
 import { hash, shortString } from 'starknet'
 import {
+  depositStep,
   describeDisclosure,
   encodePlan,
   openNote,
@@ -165,13 +166,16 @@ function proofOfMechanism(stepCount: number): Plan {
  */
 function endurStake(assets: bigint): Plan {
   return {
+    // depositStep is the SDK recipe for exactly this shape, so the product uses
+    // it rather than restating the calldata layout in a second place.
     steps: [
-      {
-        target: ENDUR_VAULT,
+      depositStep({
+        market: ENDUR_VAULT,
         selector: hash.getSelectorFromName('deposit'),
-        approvals: [{ token: TOKENS[0]!.address, amount: assets }],
-        calldata: [...u256(assets), ROUTER_ADDRESS],
-      },
+        asset: TOKENS[0]!.address,
+        amount: assets,
+        receiver: ROUTER_ADDRESS,
+      }),
     ],
     outputs: [{ token: ENDUR_VAULT, noteId: openNote(0), minAmount: (assets * 78n) / 100n }],
   }

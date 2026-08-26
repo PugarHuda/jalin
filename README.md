@@ -105,6 +105,31 @@ allowed.
 So: one action at one venue, use the venue. Two actions, or an action at a venue
 that has not written a helper yet, and there is nothing else to use.
 
+## A venue that never wrote a helper
+
+Endur has no anonymizer. It has an ERC-4626 vault, and that is enough:
+
+```ts
+depositStep({
+  market: ENDUR_VAULT,          // 0x28d709c8…0954b0a, verified on mainnet
+  selector: getSelectorFromName('deposit'),
+  asset: STRK,
+  amount,
+  receiver: ROUTER_ADDRESS,
+})
+```
+
+The router approves the vault, calls `deposit(assets, receiver)` with itself as
+receiver, and the xSTRK shares land in a shielded note. `asset()` returns STRK and
+0.25 STRK quotes at 0.2126 xSTRK — both checked against the live contract before
+this was written.
+
+Nothing in that step is Endur-specific on our side. No adapter was registered, no
+contract was deployed for it, and no permission was asked for. AVNU had to write
+an anonymizer to offer private swaps and Ekubo is writing another; every venue
+that wants private execution writes its own, and none of them compose. This is
+the alternative, and it runs today.
+
 ## Sub-accounts, and what stands in for them
 
 `sdk/src/subaccounts.ts` implements the sub-account portfolio layer — deriving a
