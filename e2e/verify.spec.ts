@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { settled } from './settled'
 
 /** Real, permanent: a pool deposit that went through nobody's router. */
 const POOL_TX = '0x6abbe003a51a29b634d8615517d231d469f3e009b4a1289a0e701efef057779'
@@ -7,6 +8,7 @@ const ROUTER = '0x008498d79ca390b34a6416cc45fb375ad9b921eefd8d4531d99a2d775feb3a
 test.describe('verify', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/verify')
+    await settled(page)
   })
 
   test('cannot be run empty', async ({ page }) => {
@@ -49,6 +51,7 @@ test.describe('verify', () => {
 
 test('refuses a batch larger than it will read', async ({ page }) => {
   await page.goto('/verify')
+  await settled(page)
 
   // Each hash is a node call on a shared key. A public text box with no cap on
   // it is a public text box that gets handed a phone book.
@@ -63,6 +66,7 @@ test('refuses a batch larger than it will read', async ({ page }) => {
 
 test('a batch at the cap still runs', async ({ page }) => {
   await page.goto('/verify')
+  await settled(page)
   await page.getByLabel('transaction hashes').fill(Array.from({ length: 20 }, () => POOL_TX).join('\n'))
   await page.getByRole('button', { name: 'Check' }).click()
 

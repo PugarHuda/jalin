@@ -1,4 +1,8 @@
 node_modules/
+# One workspace, one lockfile. app/ had its own with 439 packages against the
+# root's 434, so `npm ci` in that directory resolved a different tree than the
+# one CI and Vercel build from.
+app/package-lock.json
 .env
 .env.*
 !.env.example
@@ -7,7 +11,12 @@ target/
 dist/
 .next/
 out/
+# Agent skill packs: vendored copies of StarkWare's own documentation, kept
+# locally for offline reference. Not this project's source, and .claude/skills
+# is only a set of symlinks into .agents, so tracking one and ignoring the other
+# put 284K of somebody else's docs in the history under a broken indirection.
 .agents/
+.claude/
 .DS_Store
 *.log
 

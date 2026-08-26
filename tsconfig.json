@@ -1,0 +1,23 @@
+{
+  "//": "Covers the files that belong to no workspace: the Playwright config and its suite. Without it the type-aware linter cannot read them, and nothing type-checks the tests at all.",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "allowImportingTsExtensions": true,
+    "types": [
+      "node"
+    ],
+    "allowJs": true
+  },
+  "include": [
+    "playwright.config.ts",
+    "e2e/**/*.ts",
+    "scripts/lib/*.mjs"
+  ],
+  "//allowJs": "playwright.config.ts imports scripts/lib/env.mjs, which is plain JavaScript because the .mjs scripts run it under node with no build. Reading the file is honest; a hand-written .d.mts beside it would be a second description free to drift."
+}

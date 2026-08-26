@@ -1,13 +1,11 @@
 import { expect, test } from '@playwright/test'
+import { json, type ParamsResponse } from './api-types'
 
 const ENDUR_VAULT = '0x28d709c875c0ceac3dce7065bec5328186dc89fe254527084d1689910954b0a'
 
 test.describe('/api/params', () => {
   test('reads the bounds the router actually enforces', async ({ request }) => {
-    const response = await request.get('/api/params')
-    expect(response.status()).toBe(200)
-
-    const params = await response.json()
+    const params = await json<ParamsResponse>(await request.get('/api/params'))
     expect(typeof params.paused).toBe('boolean')
     expect(params.maxSteps).toBeGreaterThan(0)
     expect(params.maxCalldata).toBeGreaterThan(0)
@@ -20,7 +18,7 @@ test.describe('/api/params', () => {
   test('agrees with the governance page, because both read the same contract', async ({
     page,
   }) => {
-    const params = await (await page.request.get('/api/params')).json()
+    const params = await json<ParamsResponse>(await page.request.get('/api/params'))
     await page.goto('/governance')
 
     // Compared as rendered text, not as HTML: React puts comment nodes between
@@ -31,10 +29,9 @@ test.describe('/api/params', () => {
   })
 
   test('answers whether a target has been denied', async ({ request }) => {
-    const response = await request.get(`/api/params?targets=${ENDUR_VAULT}`)
-    expect(response.status()).toBe(200)
-
-    const params = await response.json()
+    const params = await json<ParamsResponse>(
+      await request.get(`/api/params?targets=${ENDUR_VAULT}`),
+    )
     expect(params.denied[ENDUR_VAULT]).toBe(false)
   })
 

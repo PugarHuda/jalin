@@ -149,9 +149,17 @@ export async function readGovernance(revalidate = 60): Promise<Governance | null
       if (!cursor) break
     }
 
+    // One request per proposal, all at once. Awaiting them in a loop made the
+    // page's latency the sum of every proposal's round trip - the N+1 shape,
+    // with the network as the query - and under parallel test load that was
+    // enough for the server to stop answering.
+    const raws = await Promise.all(
+      ids.map((id) => rpc.call(GOVERNOR_ADDRESS, 'get_proposal', [BigInt(id)], revalidate)),
+    )
+
     const proposals: Proposal[] = []
-    for (const id of ids) {
-      const raw = await rpc.call(GOVERNOR_ADDRESS, 'get_proposal', [BigInt(id)], revalidate)
+    for (const [index, id] of ids.entries()) {
+      const raw = raws[index]!
       const kindCode = Number(u(raw[0]))
       const valueA = num.toHex(u(raw[2]))
 
@@ -181,30 +189,33 @@ export async function readGovernance(revalidate = 60): Promise<Governance | null
     // A donation to the router wedges every future plan touching that token.
     // The threat model describes the escape hatch; this is what makes it
     // reachable, and reads zero when there is nothing to reach for.
-    const stuck: Stuck[] = []
-    if (ROUTER_ADDRESS) {
-      for (const token of TOKENS) {
-        try {
-          const balance = await rpc.call(
-            token.address,
-            'balanceOf',
-            [ROUTER_ADDRESS],
-            revalidate,
-          )
-          const amount = u(balance[0]) + (u(balance[1]) << 128n)
-          if (amount > 0n) {
-            stuck.push({
-              symbol: token.symbol,
-              address: token.address,
-              amount,
-              decimals: token.decimals,
-            })
-          }
-        } catch {
-          // One unreadable token must not take the whole page with it.
-        }
-      }
-    }
+    const balances = ROUTER_ADDRESS
+      ? await Promise.all(
+          TOKENS.map(async (token) => {
+            try {
+              const balance = await rpc.call(
+                token.address,
+                'balanceOf',
+                [ROUTER_ADDRESS],
+                revalidate,
+              )
+              return { token, amount: u(balance[0]) + (u(balance[1]) << 128n) }
+            } catch {
+              // One unreadable token must not take the whole page with it.
+              return null
+            }
+          }),
+        )
+      : []
+
+    const stuck: Stuck[] = balances
+      .filter((entry) => entry !== null && entry.amount > 0n)
+      .map((entry) => ({
+        symbol: entry!.token.symbol,
+        address: entry!.token.address,
+        amount: entry!.amount,
+        decimals: entry!.token.decimals,
+      }))
 
     const sample = proposals[0]
     return {

@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { json, type CrowdResponse } from './api-types'
 import { settled } from './settled'
 
 test.describe('landing', () => {
@@ -16,14 +17,14 @@ test.describe('landing', () => {
     // Whatever the page prints for the crowd has to agree with the route that
     // reads it. If someone replaces the reading with a nice-looking constant,
     // these two stop matching and this fails.
-    const crowd = await (await page.request.get('/api/crowd')).json()
+    const crowd = await json<CrowdResponse>(await page.request.get('/api/crowd'))
     await expect(page.locator('body')).toContainText(String(crowd.depositors))
   })
 
   test('does not claim a bigger crowd than the pool has', async ({ page }) => {
     await page.goto('/')
 
-    const crowd = await (await page.request.get('/api/crowd')).json()
+    const crowd = await json<CrowdResponse>(await page.request.get('/api/crowd'))
     // The honest number has to be on the page next to the flattering one.
     await expect(page.locator('body')).toContainText(
       crowd.cells.medianEffectiveSet.toFixed(2),

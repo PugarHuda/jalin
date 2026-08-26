@@ -87,7 +87,7 @@ test('an address hiding in calldata is called out, because calldata is public', 
     line.includes('Calldata carries'),
   )
   assert.ok(warning, 'the stranger should be named')
-  assert.ok(warning!.includes('0x123456789abcdef'), 'and named canonically')
+  assert.ok(warning.includes('0x123456789abcdef'), 'and named canonically')
 })
 
 test('the receiver being a contract the plan already names is not a stranger', () => {
@@ -99,7 +99,7 @@ test('the receiver being a contract the plan already names is not a stranger', (
     outputs: [],
   }
 
-  const warnings = describeDisclosure(plan as never).warnings
+  const warnings = describeDisclosure(plan).warnings
   assert.ok(!warnings.some((line) => line.includes('Calldata carries')))
 })
 
@@ -110,7 +110,7 @@ test('a placeholder is not an address leak', () => {
     ],
     outputs: [],
   }
-  const warnings = describeDisclosure(plan as never).warnings
+  const warnings = describeDisclosure(plan).warnings
   assert.ok(!warnings.some((line) => line.includes('Calldata carries')))
 })
 
@@ -122,7 +122,7 @@ test('an amount is never mistaken for an address', () => {
     ],
     outputs: [],
   }
-  const warnings = describeDisclosure(plan as never).warnings
+  const warnings = describeDisclosure(plan).warnings
   assert.ok(!warnings.some((line) => line.includes('Calldata carries')))
 })
 
@@ -131,6 +131,6 @@ test('calldata is named as public, not only the target and selector', () => {
     steps: [{ target: '0x1', selector: '0x2', approvals: [], calldata: [] }],
     outputs: [],
   }
-  const visible = describeDisclosure(plan as never).visible.join(' ')
+  const visible = describeDisclosure(plan).visible.join(' ')
   assert.ok(visible.includes('calldata'), 'the thing that leaked a ballot secret')
 })

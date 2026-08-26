@@ -17,4 +17,10 @@ import { expect, type Page } from '@playwright/test'
 export async function settled(page: Page): Promise<void> {
   await page.waitForLoadState('domcontentloaded')
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+
+  // And interactive. A controlled input discards anything typed before React
+  // takes over, so filling a form before this resolves is a race the test loses
+  // silently - the value lands in the DOM, hydration wipes it, and the button
+  // that watches React state never enables.
+  await page.waitForFunction(() => document.documentElement.dataset.hydrated === 'true')
 }

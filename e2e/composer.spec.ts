@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { json, type ParamsResponse } from './api-types'
 import { settled } from './settled'
 
 const ENDUR_VAULT = '0x28d709c875c0ceac3dce7065bec5328186dc89fe254527084d1689910954b0a'
@@ -6,6 +7,7 @@ const ENDUR_VAULT = '0x28d709c875c0ceac3dce7065bec5328186dc89fe254527084d1689910
 test.describe('composer', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/compose')
+    await settled(page)
   })
 
   test('a preset loads real mainnet addresses, not example ones', async ({ page }) => {
@@ -141,7 +143,7 @@ test.describe('without a wallet installed', () => {
 test.describe('what governance owns', () => {
   test('the plan is checked against the bounds the chain reports', async ({ page }) => {
     await page.goto('/compose')
-    const params = await (await page.request.get('/api/params')).json()
+    const params = await json<ParamsResponse>(await page.request.get('/api/params'))
 
     // Add steps until one over the live bound, then the composer has to refuse
     // with the number it read rather than a number compiled into the SDK.
@@ -155,7 +157,7 @@ test.describe('what governance owns', () => {
 
   test('a denied target would be reported, and none is denied today', async ({ page }) => {
     await page.goto('/compose')
-    const params = await (await page.request.get('/api/params')).json()
+    const params = await json<ParamsResponse>(await page.request.get('/api/params'))
     expect(params.paused).toBe(false)
 
     // Nothing is denied on mainnet right now, so the warning must be absent —

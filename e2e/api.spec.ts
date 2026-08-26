@@ -1,4 +1,12 @@
 import { expect, test } from '@playwright/test'
+import {
+  json,
+  type CrowdResponse,
+  type ErrorResponse,
+  type ProspectResponse,
+  type QuoteResponse,
+  type TxResponse,
+} from './api-types'
 
 /**
  * The three read routes, against the live chain.
@@ -14,10 +22,9 @@ const ABSENT_TX = '0x' + 'a'.repeat(63) + '1'
 
 test.describe('/api/quote', () => {
   test('quotes a deposit from the Endur vault itself', async ({ request }) => {
-    const response = await request.get('/api/quote?assets=1000000000000000000')
-    expect(response.status()).toBe(200)
-
-    const body = await response.json()
+    const body = await json<QuoteResponse>(
+      await request.get('/api/quote?assets=1000000000000000000'),
+    )
     expect(body.assets).toBe('1000000000000000000')
 
     const shares = BigInt(body.shares)
@@ -30,9 +37,8 @@ test.describe('/api/quote', () => {
   })
 
   test('rejects a missing amount', async ({ request }) => {
-    const response = await request.get('/api/quote')
-    expect(response.status()).toBe(400)
-    expect((await response.json()).error).toContain('assets')
+    const body = await json<ErrorResponse>(await request.get('/api/quote'), 400)
+    expect(body.error).toContain('assets')
   })
 
   test('rejects a non-integer amount', async ({ request }) => {
@@ -43,18 +49,16 @@ test.describe('/api/quote', () => {
   })
 
   test('a zero quote is a real question, not an error', async ({ request }) => {
-    const response = await request.get('/api/quote?assets=0')
-    expect(response.status()).toBe(200)
-    expect((await response.json()).shares).toBe('0')
+    const body = await json<QuoteResponse>(await request.get('/api/quote?assets=0'))
+    expect(body.shares).toBe('0')
   })
 })
 
 test.describe('/api/tx', () => {
   test('a pool transaction that missed our router does not qualify', async ({ request }) => {
-    const response = await request.get(`/api/tx?hash=${POOL_TX_NOT_OURS}`)
-    expect(response.status()).toBe(200)
-
-    const verdict = await response.json()
+    const verdict = await json<TxResponse>(
+      await request.get(`/api/tx?hash=${POOL_TX_NOT_OURS}`),
+    )
     expect(verdict.exists).toBe(true)
     expect(verdict.succeeded).toBe(true)
     expect(verdict.touchedPool).toBe(true)
@@ -64,10 +68,7 @@ test.describe('/api/tx', () => {
   })
 
   test('a transaction that is not on chain reads as not found', async ({ request }) => {
-    const response = await request.get(`/api/tx?hash=${ABSENT_TX}`)
-    expect(response.status()).toBe(200)
-
-    const verdict = await response.json()
+    const verdict = await json<TxResponse>(await request.get(`/api/tx?hash=${ABSENT_TX}`))
     expect(verdict.exists).toBe(false)
     expect(verdict.qualifies).toBe(false)
   })
@@ -82,10 +83,7 @@ test.describe('/api/tx', () => {
 
 test.describe('/api/crowd', () => {
   test('counts the people already in the pool', async ({ request }) => {
-    const response = await request.get('/api/crowd')
-    expect(response.status()).toBe(200)
-
-    const crowd = await response.json()
+    const crowd = await json<CrowdResponse>(await request.get('/api/crowd'))
     expect(typeof crowd.depositors).toBe('number')
     // The crowd grows; the assertion is that it is a plausible count read from
     // events, not a placeholder and not the whole event list counted twice.
@@ -124,10 +122,9 @@ test.describe('/api/crowd with an intent', () => {
   const STRK = '0x4718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d'
 
   test('answers how big the cell this deposit would join is', async ({ request }) => {
-    const response = await request.get(`/api/crowd?asset=${STRK}&amount=1000000000000000000`)
-    expect(response.status()).toBe(200)
-
-    const prospect = await response.json()
+    const prospect = await json<ProspectResponse>(
+      await request.get(`/api/crowd?asset=${STRK}&amount=1000000000000000000`),
+    )
     expect(typeof prospect.headcount).toBe('number')
     // Whatever the cell holds, adding yourself can never leave it under one.
     expect(prospect.effectiveSetAfter).toBeGreaterThanOrEqual(1)
@@ -154,7 +151,7 @@ test.describe('/api/crowd with an intent', () => {
   })
 
   test('the pool-wide reading carries the honest measurement too', async ({ request }) => {
-    const crowd = await (await request.get('/api/crowd')).json()
+    const crowd = await json<CrowdResponse>(await request.get('/api/crowd'))
     expect(crowd.cells.cells).toBeGreaterThan(0)
     // The median cell cannot be a bigger crowd than the biggest cell.
     expect(crowd.cells.medianEffectiveSet).toBeLessThanOrEqual(crowd.cells.largestEffectiveSet)

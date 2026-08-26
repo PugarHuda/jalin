@@ -21,7 +21,6 @@
 import { Account, RpcProvider, constants, hash, num, shortString } from 'starknet'
 import { poseidonHashMany } from '@scure/starknet'
 import { loadEnv, required } from './lib/env.mjs'
-import { readFileSync } from 'node:fs'
 import { randomBytes } from 'node:crypto'
 import { createPrivateTransfers } from '../vendor/starknet-privacy/sdk/dist/index.js'
 import { PlanBuilder, toInvokeCall } from '../sdk/src/index.ts'

@@ -4,21 +4,44 @@ import { settled } from './settled'
 for (const path of ['/', '/compose', '/verify', '/governance']) {
   test(`${path} shows where the keyboard is`, async ({ page }) => {
     await page.goto(path)
-    await page.keyboard.press('Tab')
+    await settled(page)
 
-    const focused = page.locator(':focus')
-    await expect(focused).toBeVisible()
+    /**
+     * Driven by real Tab presses, which is the only way this can be true.
+     *
+     * The rule the page relies on is `:focus-visible`, and `:focus-visible` is
+     * defined not to match when script calls `.focus()` - that is the whole
+     * point of it existing beside `:focus`. Testing with `.focus()` therefore
+     * asks a question the CSS is designed to answer "no" to, and reported the
+     * one control that happened to be reached that way as unmarked.
+     *
+     * Tab visits exactly what a keyboard user visits. WebKit skips links unless
+     * full keyboard access is on, so it simply sees fewer elements - and every
+     * element it does see is checked.
+     */
+    const unmarked: string[] = []
 
-    // A focus ring you cannot see is the same as no focus ring. The browser
-    // default counts; what fails here is `outline: none` with nothing put back.
-    const ring = await focused.evaluate((el) => {
-      const style = getComputedStyle(el)
-      return {
-        outline: style.outlineStyle !== 'none' && parseFloat(style.outlineWidth) > 0,
-        shadow: style.boxShadow !== 'none',
-      }
-    })
-    expect(ring.outline || ring.shadow).toBe(true)
+    for (let i = 0; i < 12; i += 1) {
+      await page.keyboard.press('Tab')
+
+      const result = await page.evaluate(() => {
+        const el = document.activeElement as HTMLElement | null
+        if (!el || el === document.body) return null
+
+        const style = getComputedStyle(el)
+        const outlined = style.outlineStyle !== 'none' && parseFloat(style.outlineWidth) > 0
+        const shadowed = style.boxShadow !== 'none'
+        return {
+          marked: outlined || shadowed,
+          what: `${el.tagName.toLowerCase()} ${(el.textContent ?? '').trim().slice(0, 24)}`,
+        }
+      })
+
+      if (!result) continue
+      if (!result.marked) unmarked.push(result.what)
+    }
+
+    expect(unmarked).toEqual([])
   })
 
   test(`${path} has one h1 and no skipped heading levels`, async ({ page }) => {
@@ -89,6 +112,11 @@ for (const path of ['/', '/compose', '/verify', '/governance']) {
  */
 for (const path of ['/', '/compose', '/verify', '/governance']) {
   test(`${path} passes axe at WCAG 2.1 AA`, async ({ page }) => {
+    // axe injects and walks the whole tree. On a machine running three engines
+    // at once that overran the default budget on Firefox, which is a fact about
+    // the machine rather than about the page.
+    test.slow()
+
     await page.goto(path)
     await settled(page)
 

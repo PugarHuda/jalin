@@ -16,12 +16,23 @@
 
 import { encodePlan, openNote, type Felt, type Plan } from './plan.ts'
 
+/**
+ * A felt as it travels to the wallet: canonical hex, or a placeholder the wallet
+ * resolves at submit time.
+ *
+ * Typed rather than described. `string` for these fields let the transfer amount
+ * be declared `string | 'OPEN'`, which collapses to `string` - the literal read
+ * as a constraint and enforced nothing. Written this way the union survives, and
+ * so does every other field's shape.
+ */
+export type WireFelt = `0x${string}` | `\${${string}}`
+
 /** Matches `STRK20_ACTION` from `@starknet-io/types-js`, structurally. */
 export type Strk20Action =
-  | { type: 'deposit'; token: string; amount: string }
-  | { type: 'withdraw'; token: string; amount: string; recipient: string }
-  | { type: 'transfer'; token: string; amount: string | 'OPEN'; recipient: string }
-  | { type: 'invoke'; contract: string; calldata: string[] }
+  | { type: 'deposit'; token: WireFelt; amount: WireFelt }
+  | { type: 'withdraw'; token: WireFelt; amount: WireFelt; recipient: WireFelt }
+  | { type: 'transfer'; token: WireFelt; amount: WireFelt | 'OPEN'; recipient: WireFelt }
+  | { type: 'invoke'; contract: WireFelt; calldata: WireFelt[] }
 
 /** `${openNoteIds[N]}` or `${poolAddress}` - resolved by the wallet, not by us. */
 const PLACEHOLDER = /^\$\{(?:openNoteIds\[[0-9]+\]|poolAddress)\}$/
@@ -38,12 +49,15 @@ const PLACEHOLDER = /^\$\{(?:openNoteIds\[[0-9]+\]|poolAddress)\}$/
  *
  * Placeholders pass through untouched. Normalising one would destroy it.
  */
-export function toFelt(felt: string | bigint): string {
-  if (typeof felt === 'string' && PLACEHOLDER.test(felt)) return felt
+export function toFelt(felt: string | bigint): WireFelt {
+  // The regex proves the shape; TypeScript cannot read a regex, so this is the
+  // one place the two have to be trusted to agree. Both are right here, and
+  // both are tested.
+  if (typeof felt === 'string' && PLACEHOLDER.test(felt)) return felt as WireFelt
   return `0x${BigInt(felt).toString(16)}`
 }
 
-export function feltsToStrings(felts: (string | bigint)[]): string[] {
+export function feltsToStrings(felts: (string | bigint)[]): WireFelt[] {
   return felts.map(toFelt)
 }
 

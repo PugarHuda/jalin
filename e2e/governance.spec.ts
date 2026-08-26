@@ -6,6 +6,7 @@ const ROUTER = '0x008498d79ca390b34a6416cc45fb375ad9b921eefd8d4531d99a2d775feb3a
 test.describe('governance', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/governance')
+    await settled(page)
   })
 
   test('is not serving the failure fallback', async ({ page }) => {
@@ -114,6 +115,7 @@ test.describe('stuck balances', () => {
 
   test('explains why sweeping is safe to leave open to anyone', async ({ page }) => {
     await page.goto('/governance')
+    await settled(page)
     await expect(page.locator('main')).toContainText(/anyone may call it/i)
     await expect(page.locator('main')).toContainText(/never profitable|not profitable/i)
   })

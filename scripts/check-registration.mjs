@@ -13,7 +13,6 @@
  */
 import { hash, num, RpcProvider } from 'starknet'
 import { loadEnv } from './lib/env.mjs'
-import { readFileSync } from 'node:fs'
 
 loadEnv(import.meta.url)
 

@@ -13,14 +13,17 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "check:links": "node scripts/check-links.mjs",
-    "lint": "npm run lint --workspace app",
-    "typecheck": "npm run typecheck --workspace @jalin/sdk"
+    "lint": "eslint sdk e2e scripts playwright.config.ts && npm run lint --workspace app",
+    "typecheck": "tsc --noEmit -p tsconfig.json && npm run typecheck --workspace @jalin/sdk"
   },
   "dependencies": {
     "@scure/starknet": "^2.3.0"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
-    "@playwright/test": "^1.62.1"
+    "@playwright/test": "^1.62.1",
+    "eslint": "^9.39.5",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.68.0"
   }
 }
