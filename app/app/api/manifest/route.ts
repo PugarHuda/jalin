@@ -1,4 +1,10 @@
-import { checkReceipt, describeVerdict, type Verdict } from '@jalin/sdk'
+import {
+  checkReceipt,
+  countDistinct,
+  describeVerdict,
+  findDuplicates,
+  type Verdict,
+} from '@jalin/sdk'
 import { RpcError, rpc } from '@/lib/rpc'
 import { POOL_ADDRESS } from '@/lib/config'
 
@@ -102,10 +108,20 @@ export async function GET(request: Request) {
     )
   }
 
-  // Sequential: this reads a shared node, and twenty at once is how a public
-  // endpoint starts refusing everybody.
+  // A manifest naming the same transaction three times has one transaction in
+  // it. Answering "3 of 3 would count" tells a team exactly the thing that gets
+  // them rejected, so the repeats are named and the count is of distinct ones.
+  const duplicates = findDuplicates(transactions)
+
+  // Read once per distinct hash. Sequential, because this reads a shared node
+  // and twenty at once is how a public endpoint starts refusing everybody.
   const results: (Verdict & { hash: string; summary: string })[] = []
+  const asked = new Set<string>()
+
   for (const hash of transactions) {
+    const key = BigInt(hash).toString()
+    if (asked.has(key)) continue
+    asked.add(key)
     let receipt: unknown = null
     try {
       receipt = await rpc.receipt(hash)
@@ -120,13 +136,17 @@ export async function GET(request: Request) {
     results.push({ hash, ...verdict, summary: describeVerdict(verdict) })
   }
 
+  const counted = results.filter((result) => result.qualifies).length
+
   return Response.json({
     source,
     contracts,
-    counted: results.filter((result) => result.qualifies).length,
-    listed: results.length,
+    counted,
+    listed: countDistinct(transactions),
+    /** Named so a team can see what a naive count would have hidden. */
+    duplicates,
     /** The sprint asks for three that count. */
-    enough: results.filter((result) => result.qualifies).length >= 3,
+    enough: counted >= 3,
     hasDemoVideo: typeof manifest.demo_video === 'string' && manifest.demo_video.length > 0,
     results,
   })

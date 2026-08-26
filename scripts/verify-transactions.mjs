@@ -11,7 +11,7 @@
  * Read-only. It sends nothing and needs no key.
  */
 import { RpcProvider } from 'starknet'
-import { checkReceipt, describeVerdict } from '../sdk/src/index.ts'
+import { checkReceipt, countDistinct, describeVerdict, findDuplicates } from '../sdk/src/index.ts'
 import { loadEnv, required } from './lib/env.mjs'
 import { readFileSync } from 'node:fs'
 
@@ -49,7 +49,18 @@ const hashes = manifest.transactions ?? []
 
 console.log(`pool      ${short(POOL)}`)
 console.log(`contracts ${ours.length ? ours.map(short).join(', ') : 'none declared'}`)
-console.log(`listed    ${hashes.length} transaction${hashes.length === 1 ? '' : 's'}\n`)
+// Counted by felt value, so a hash listed twice - or listed once padded and
+// once not - is the one transaction it actually is. The web checker and this
+// script share the rule, because two copies of a rule are two rules.
+const distinct = countDistinct(hashes)
+const repeated = findDuplicates(hashes)
+
+console.log(`listed    ${distinct} transaction${distinct === 1 ? '' : 's'}`)
+if (repeated.length > 0) {
+  console.log(`          ${hashes.length} entries, ${repeated.length} of them repeated:`)
+  for (const hash of repeated) console.log(`            ${short(hash)}`)
+}
+console.log()
 
 if (hashes.length === 0) {
   console.log('strk20.json lists no transactions yet. Three are needed to be scored.')
@@ -57,7 +68,13 @@ if (hashes.length === 0) {
 }
 
 const results = []
+const asked = new Set()
+
 for (const hash of hashes) {
+  const key = BigInt(hash).toString()
+  if (asked.has(key)) continue
+  asked.add(key)
+
   const r = await check(hash)
   results.push(r)
   console.log(`${short(hash)}  ${describeVerdict(r)}`)

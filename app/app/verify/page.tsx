@@ -38,6 +38,7 @@ interface ManifestReport {
   contracts: string[]
   counted: number
   listed: number
+  duplicates: string[]
   enough: boolean
   hasDemoVideo: boolean
   results: ManifestResult[]
@@ -244,6 +245,15 @@ export default function Verify() {
               {report.contracts.length} contract{report.contracts.length === 1 ? '' : 's'} declared ·
               demo video {report.hasDemoVideo ? 'present' : 'missing'}
             </p>
+
+            {report.duplicates.length > 0 && (
+              <p className="mt-2 rounded border border-warn/40 bg-warn/10 px-3 py-2 text-xs leading-relaxed text-warn">
+                {report.duplicates.length} hash
+                {report.duplicates.length === 1 ? ' is' : 'es are'} listed more than once, so the
+                manifest names fewer transactions than it appears to. Counted once each here, which
+                is how a panel will count them.
+              </p>
+            )}
 
             {report.results.length === 0 ? (
               <p className="mt-3 text-xs text-muted">

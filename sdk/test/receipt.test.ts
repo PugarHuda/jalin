@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { checkReceipt, describeVerdict } from '../src/receipt.ts'
+import { checkReceipt, countDistinct, describeVerdict, findDuplicates } from '../src/receipt.ts'
 
 const POOL = '0x040337b1af3c663e86e333bab5a4b28da8d4652a15a69beee2b677776ffe812a'
 const ROUTER = '0x008498d79ca390b34a6416cc45fb375ad9b921eefd8d4531d99a2d775feb3a7e'
@@ -83,4 +83,39 @@ test('does not claim a contract that was never declared', () => {
   const line = describeVerdict(checkReceipt(receipt([POOL]), { pool: POOL }))
   assert.ok(!line.includes('our contract'), 'no contracts declared, none to credit')
   assert.ok(line.startsWith('counts:'))
+})
+
+test('a hash listed twice is reported once, in the order it appeared', () => {
+  const found = findDuplicates(['0x1', '0x2', '0x1', '0x3', '0x2', '0x1'])
+  assert.deepEqual(found, ['0x1', '0x2'])
+})
+
+test('padding does not hide a duplicate', () => {
+  // 0x0abc and 0xabc are one transaction. The padded form is the one somebody
+  // pastes out of a block explorer without noticing.
+  assert.deepEqual(findDuplicates(['0xabc', '0x0abc']), ['0x0abc'])
+  assert.equal(countDistinct(['0xabc', '0x0abc', '0x00000abc']), 1)
+})
+
+test('a list with no repeats has no duplicates', () => {
+  assert.deepEqual(findDuplicates(['0x1', '0x2', '0x3']), [])
+  assert.equal(countDistinct(['0x1', '0x2', '0x3']), 3)
+})
+
+test('an empty list is not a duplicate of anything', () => {
+  assert.deepEqual(findDuplicates([]), [])
+  assert.equal(countDistinct([]), 0)
+})
+
+test('an unparseable entry is skipped rather than crashing the count', () => {
+  assert.deepEqual(findDuplicates(['0x1', 'nonsense', '0x1']), ['0x1'])
+  assert.equal(countDistinct(['0x1', 'nonsense']), 1)
+})
+
+test('three copies of one hash are one transaction, not three', () => {
+  // The whole point: a manifest padded this way passes a naive count and fails
+  // the panel.
+  const padded = ['0xdead', '0xdead', '0xdead']
+  assert.equal(countDistinct(padded), 1)
+  assert.deepEqual(findDuplicates(padded), ['0xdead'])
 })

@@ -113,3 +113,15 @@ test.describe('reading a whole submission', () => {
     await expect(page.getByRole('button', { name: 'Read it' })).toBeDisabled()
   })
 })
+
+test('the same hash pasted three times is one transaction, not three', async ({ page }) => {
+  await page.goto('/verify')
+  await settled(page)
+
+  // A naive counter says "3 of 3 would count" here, which is exactly the answer
+  // that gets a team rejected.
+  await page.getByLabel('transaction hashes').fill([POOL_TX, POOL_TX, POOL_TX].join('\n'))
+  await page.getByRole('button', { name: 'Check' }).click()
+
+  await expect(page.getByText('3 of 3 would count')).toBeVisible({ timeout: 30_000 })
+})

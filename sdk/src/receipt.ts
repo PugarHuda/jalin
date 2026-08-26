@@ -80,3 +80,54 @@ export function describeVerdict(verdict: Verdict): string {
     ? 'counts: succeeded and touched the pool'
     : 'counts: succeeded, touched the pool, ran through our contract'
 }
+
+/**
+ * Hashes listed more than once, by value.
+ *
+ * A manifest that names the same transaction three times has one transaction in
+ * it, and a checker that answers "3 of 3 would count" has told the team exactly
+ * the thing that gets them rejected. Compared as felts rather than strings,
+ * because `0x0abc` and `0xabc` are one hash written two ways and the padded
+ * variant is the version somebody pastes without noticing.
+ *
+ * Returns each repeated hash once, in the order it first appeared.
+ */
+export function findDuplicates(hashes: string[]): string[] {
+  const seen = new Set<string>()
+  const repeated = new Set<string>()
+  const order: string[] = []
+
+  for (const hash of hashes) {
+    let key: string
+    try {
+      key = BigInt(hash).toString()
+    } catch {
+      // Not a felt. Whatever else is wrong with it, it is not a duplicate.
+      continue
+    }
+
+    if (seen.has(key)) {
+      if (!repeated.has(key)) {
+        repeated.add(key)
+        order.push(hash)
+      }
+      continue
+    }
+    seen.add(key)
+  }
+
+  return order
+}
+
+/** Distinct transactions in a list, by felt value. */
+export function countDistinct(hashes: string[]): number {
+  const seen = new Set<string>()
+  for (const hash of hashes) {
+    try {
+      seen.add(BigInt(hash).toString())
+    } catch {
+      // Ignored: an unparseable entry is not a transaction.
+    }
+  }
+  return seen.size
+}
