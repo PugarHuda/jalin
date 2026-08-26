@@ -17,3 +17,11 @@ casm = true
 
 [scripts]
 test = "snforge test"
+
+# Mainnet, pinned. A fork test that follows the chain head is a test whose
+# result changes for reasons that have nothing to do with this repository.
+# The node is public and needs no key, so this runs on a fork of the repo too.
+[[tool.snforge.fork]]
+name = "MAINNET"
+url = "https://api.cartridge.gg/x/starknet/mainnet"
+block_id.number = "13874000"

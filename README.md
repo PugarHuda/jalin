@@ -233,11 +233,25 @@ sh contracts/test.sh          # snforge in a pinned container
 because pinning the toolchain is worth more than saving a container. The scarb
 cache lives in a named volume, so only the first run pays for the plugin build.
 
+29 tests, two of them fuzzed at 256 runs each. Three fork Starknet mainnet at a
+pinned block and run a plan through Endur's deployed xSTRK vault, funded by the
+STRK20 pool's own STRK — which is where the STRK comes from in a real
+transaction. A mock ERC-4626 returns what the mock was told to return; those
+three prove the router works against a contract nobody here wrote. They need
+network, and use a public node that takes no key.
+
 TypeScript:
 
 ```bash
-cd sdk && npm test
+npm test                      # 53 SDK tests, no build step
+npm run test:e2e              # 40 Playwright tests against a real build
 ```
+
+The browser suite has no fixtures in it. It reads the live chain, so it asserts
+invariants rather than values: that one STRK buys strictly fewer than one xSTRK
+share, that the crowd count is bounded by the deposit count, that a real mainnet
+transaction which touched the pool without going through our router does not
+qualify. A test that asserts a fixture only proves the fixture loaded.
 
 ## Status
 
