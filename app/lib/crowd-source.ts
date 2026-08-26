@@ -4,9 +4,11 @@ import { hash, num } from 'starknet'
 import {
   countDepositors,
   measureCells,
+  measurePeriods,
   summariseCells,
   type Crowd,
   type CellSummary,
+  type Period,
   type PoolEvent,
 } from '@jalin/sdk'
 import { POOL_ADDRESS } from './config'
@@ -55,6 +57,8 @@ export interface CrowdReading extends Crowd {
    * agreeing on all three hide each other.
    */
   cells: CellSummary
+  /** The same measurement per six-hour slot, oldest first. */
+  periods: Period[]
 }
 
 export interface DepositReading {
@@ -119,11 +123,14 @@ export async function readCrowd(revalidate = 300): Promise<CrowdReading | null> 
     feeCollector: reading.feeCollector,
   })
 
+  const cells = measureCells(reading.events)
+
   return {
     ...crowd,
     windowBlocks: CROWD_WINDOW_BLOCKS,
     head: reading.head,
     truncated: reading.truncated,
-    cells: summariseCells(measureCells(reading.events)),
+    cells: summariseCells(cells),
+    periods: measurePeriods(cells),
   }
 }

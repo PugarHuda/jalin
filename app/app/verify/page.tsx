@@ -28,6 +28,21 @@ interface Row {
   error: string | null
 }
 
+interface ManifestResult extends Verdict {
+  hash: string
+  summary: string
+}
+
+interface ManifestReport {
+  source: string
+  contracts: string[]
+  counted: number
+  listed: number
+  enough: boolean
+  hasDemoVideo: boolean
+  results: ManifestResult[]
+}
+
 /**
  * Each hash is one node call on a shared key. The sprint asks for three; twenty
  * is room to check a whole manifest twice over. Without a cap this page reads
@@ -48,6 +63,10 @@ export default function Verify() {
   const [rows, setRows] = useState<Row[] | null>(null)
   const [busy, setBusy] = useState(false)
   const [tooMany, setTooMany] = useState<number | null>(null)
+  const [repo, setRepo] = useState('')
+  const [report, setReport] = useState<ManifestReport | null>(null)
+  const [repoError, setRepoError] = useState<string | null>(null)
+  const [reading, setReading] = useState(false)
 
   async function check() {
     const list = hashes
@@ -84,6 +103,39 @@ export default function Verify() {
     }
 
     setBusy(false)
+  }
+
+  /**
+   * Reads a team's own strk20.json rather than making them copy out of it.
+   *
+   * `owner/repo`, optionally `owner/repo@ref`. The URL is built on the server
+   * from those two names and never accepted from here, so there is no way to
+   * point it at anything but a file in a GitHub repository.
+   */
+  async function readManifest() {
+    setReport(null)
+    setRepoError(null)
+
+    const match = /^([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+)(?:@(.+))?$/.exec(repo.trim())
+    if (!match) {
+      setRepoError('Write it as owner/repo, or owner/repo@branch.')
+      return
+    }
+
+    const [, owner, name, ref] = match
+    setReading(true)
+    try {
+      const query = new URLSearchParams({ owner: owner!, repo: name!, ...(ref ? { ref } : {}) })
+      const response = await fetch(`/api/manifest?${query}`)
+      const body: unknown = await response.json()
+
+      if (response.ok) setReport(body as ManifestReport)
+      else setRepoError(String((body as { error?: string }).error ?? response.status))
+    } catch (error) {
+      setRepoError(error instanceof Error ? error.message : String(error))
+    } finally {
+      setReading(false)
+    }
   }
 
   const counted = rows?.filter((row) => row.verdict?.qualifies).length ?? 0
@@ -147,6 +199,79 @@ export default function Verify() {
           {busy ? 'reading the chain…' : 'Check'}
         </button>
       </div>
+
+      <section className="mt-10 border-t border-thread pt-6">
+        <h2 className="font-display text-xl font-semibold">Or read the whole submission</h2>
+        <p className="mt-1 text-sm text-muted">
+          Point this at a repository and it reads that project&apos;s own{' '}
+          <span className="font-mono">strk20.json</span> — every hash and every contract in it,
+          judged together. Copying five values out of a file by hand is the step at which people
+          stop checking.
+        </p>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          <label className="min-w-0 flex-1">
+            <span className="font-mono text-xs text-muted">owner/repo</span>
+            <input
+              value={repo}
+              onChange={(event) => setRepo(event.target.value)}
+              placeholder="PugarHuda/jalin"
+              className="mt-1 w-full rounded border border-strand bg-raised px-3 py-2 font-mono text-xs"
+            />
+          </label>
+          <button
+            onClick={readManifest}
+            disabled={reading || repo.trim() === ''}
+            className="mt-5 h-9 rounded-sm px-4 text-sm font-medium transition-colors enabled:bg-gold enabled:text-ground enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:border disabled:border-strand disabled:text-muted"
+          >
+            {reading ? 'reading…' : 'Read it'}
+          </button>
+        </div>
+
+        {repoError && (
+          <p className="mt-3 rounded border border-warn/40 bg-warn/10 px-3 py-2 text-xs text-warn">
+            {repoError}
+          </p>
+        )}
+
+        {report && (
+          <div className="mt-4 rounded border border-thread bg-raised p-4">
+            <p className={`font-mono text-sm ${report.enough ? 'text-hidden' : 'text-warn'}`}>
+              {report.counted} of {report.listed} listed transactions would count
+              {!report.enough && ' · the sprint asks for three'}
+            </p>
+            <p className="mt-1 font-mono text-xs text-muted">
+              {report.contracts.length} contract{report.contracts.length === 1 ? '' : 's'} declared ·
+              demo video {report.hasDemoVideo ? 'present' : 'missing'}
+            </p>
+
+            {report.results.length === 0 ? (
+              <p className="mt-3 text-xs text-muted">
+                The manifest lists no transactions yet, so there is nothing to judge.
+              </p>
+            ) : (
+              <ul className="mt-3 space-y-2">
+                {report.results.map((result) => (
+                  <li key={result.hash} className="font-mono text-xs">
+                    <span className={result.qualifies ? 'text-hidden' : 'text-warn'}>
+                      {result.qualifies ? '✓' : '✗'}
+                    </span>{' '}
+                    <a
+                      className="break-all text-gold underline underline-offset-2"
+                      href={`https://voyager.online/tx/${result.hash}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {result.hash.slice(0, 18)}…
+                    </a>{' '}
+                    <span className="text-muted">{result.summary}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+      </section>
 
       {tooMany !== null && (
         <p className="mt-4 rounded border border-warn/40 bg-warn/10 px-3 py-2 text-xs leading-relaxed text-warn">

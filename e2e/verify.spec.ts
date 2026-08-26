@@ -72,3 +72,44 @@ test('a batch at the cap still runs', async ({ page }) => {
 
   await expect(page.getByText('20 of 20 would count')).toBeVisible({ timeout: 60_000 })
 })
+
+test.describe('reading a whole submission', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/verify')
+    await settled(page)
+  })
+
+  test('reads a real repository’s manifest from GitHub', async ({ page }) => {
+    await page.getByLabel('owner/repo').fill('PugarHuda/jalin')
+    await page.getByRole('button', { name: 'Read it' }).click()
+
+    // Our own manifest: two contracts declared, no transactions listed yet.
+    await expect(page.getByText(/listed transactions would count/)).toBeVisible({ timeout: 30_000 })
+    await expect(page.locator('main')).toContainText('2 contracts declared')
+    await expect(page.locator('main')).toContainText('the sprint asks for three')
+  })
+
+  test('says so when the repository has no manifest', async ({ page }) => {
+    await page.getByLabel('owner/repo').fill('PugarHuda/jalin@no-such-branch')
+    await page.getByRole('button', { name: 'Read it' }).click()
+
+    await expect(page.getByText(/no strk20.json/)).toBeVisible({ timeout: 30_000 })
+  })
+
+  test('refuses something that is not owner/repo before sending anything', async ({ page }) => {
+    const calls: string[] = []
+    page.on('request', (request) => {
+      if (request.url().includes('/api/manifest')) calls.push(request.url())
+    })
+
+    await page.getByLabel('owner/repo').fill('https://example.com/whatever')
+    await page.getByRole('button', { name: 'Read it' }).click()
+
+    await expect(page.getByText(/Write it as owner\/repo/)).toBeVisible()
+    expect(calls, 'nothing should reach the server').toEqual([])
+  })
+
+  test('cannot be run empty', async ({ page }) => {
+    await expect(page.getByRole('button', { name: 'Read it' })).toBeDisabled()
+  })
+})

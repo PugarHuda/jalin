@@ -36,6 +36,8 @@ export interface ChainState {
   aloneShare: number | null
   /** The biggest crowd anywhere in the pool. */
   largestEffectiveSet: number | null
+  /** Median effective set per six-hour slot, oldest first. */
+  periods: { fromBlock: number; medianEffectiveSet: number; bestEffectiveSet: number }[]
   reachable: boolean
 }
 
@@ -53,6 +55,7 @@ export async function readChainState(): Promise<ChainState> {
     medianEffectiveSet: crowd?.cells.medianEffectiveSet ?? null,
     aloneShare: crowd?.cells.aloneShare ?? null,
     largestEffectiveSet: crowd?.cells.largestEffectiveSet ?? null,
+    periods: crowd?.periods ?? [],
     reachable: plans !== null || proposals !== null,
   }
 }

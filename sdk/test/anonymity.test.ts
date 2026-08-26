@@ -4,6 +4,7 @@ import {
   CELL_BLOCKS,
   effectiveSet,
   measureCells,
+  measurePeriods,
   prospectFor,
   summariseCells,
 } from '../src/anonymity.ts'
@@ -142,4 +143,49 @@ test('the expiry is answered even when the amount is not a question', () => {
   const none = prospectFor([], { asset: STRK, amount: 0n, atBlock: 5 })
   assert.equal(none.effectiveSetAfter, 0)
   assert.equal(none.blocksLeftInCell, CELL_BLOCKS - 5)
+})
+
+test('periods are grouped by slot and ordered oldest first', () => {
+  const cells = measureCells([
+    deposit('0x1', STRK, 10n ** 18n, 5),
+    deposit('0x2', STRK, 10n ** 18n, CELL_BLOCKS * 3 + 5),
+    deposit('0x3', STRK, 10n ** 18n, CELL_BLOCKS + 5),
+  ])
+  const periods = measurePeriods(cells)
+
+  assert.deepEqual(
+    periods.map((period) => period.slot),
+    [0, 1, 3],
+  )
+  assert.equal(periods[0]!.fromBlock, 0)
+  assert.equal(periods[2]!.fromBlock, CELL_BLOCKS * 3)
+})
+
+test('a slot nobody shielded in is absent, not zero', () => {
+  // A day with no deposits is not a day the anonymity set was zero. Emitting a
+  // zero would draw a line to the floor and invite exactly that reading.
+  const periods = measurePeriods(
+    measureCells([deposit('0x1', STRK, 10n ** 18n, 0), deposit('0x2', STRK, 10n ** 18n, CELL_BLOCKS * 9)]),
+  )
+  assert.equal(periods.length, 2)
+  assert.deepEqual(periods.map((p) => p.slot), [0, 9])
+})
+
+test('the best cell in a period is reported alongside the median', () => {
+  // Two cells in one slot: one person, and three splitting the flow evenly.
+  const cells = measureCells([
+    deposit('0x1', STRK, 10n ** 18n, 1),
+    deposit('0x2', STRK, 100n * 10n ** 18n, 2),
+    deposit('0x3', STRK, 100n * 10n ** 18n, 3),
+    deposit('0x4', STRK, 100n * 10n ** 18n, 4),
+  ])
+  const [period] = measurePeriods(cells)
+
+  assert.equal(period!.cells, 2)
+  assert.equal(period!.bestEffectiveSet, 3)
+  assert.ok(period!.medianEffectiveSet <= period!.bestEffectiveSet)
+})
+
+test('measuring nothing produces no periods', () => {
+  assert.deepEqual(measurePeriods([]), [])
 })

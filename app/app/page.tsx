@@ -49,6 +49,100 @@ function Label({
   )
 }
 
+
+/**
+ * The anonymity set over the pool's life.
+ *
+ * One median says the pool is thin; it cannot say whether that is improving,
+ * and a single number that reads 1.00 forever looks like a broken gauge rather
+ * than a finding. Two lines: what a typical deposit got in each six-hour slot,
+ * and the best any single deposit managed.
+ *
+ * Drawn as SVG rather than with a charting library. This is a server component,
+ * so a library would be client JavaScript shipped to draw twenty points.
+ */
+function Trend({
+  periods,
+}: {
+  periods: { fromBlock: number; medianEffectiveSet: number; bestEffectiveSet: number }[]
+}) {
+  if (periods.length < 3) return null
+
+  const width = 720
+  const height = 132
+  const pad = { top: 12, right: 8, bottom: 20, left: 28 }
+  const ceiling = Math.max(2, ...periods.map((period) => period.bestEffectiveSet))
+
+  const x = (index: number) =>
+    pad.left + (index / (periods.length - 1)) * (width - pad.left - pad.right)
+  // 1 is the floor, not 0: a deposit alone in its cell is a crowd of one, and
+  // there is no such thing as a crowd of zero.
+  const y = (value: number) =>
+    height - pad.bottom - ((value - 1) / (ceiling - 1)) * (height - pad.top - pad.bottom)
+
+  const path = (pick: (period: (typeof periods)[number]) => number) =>
+    periods.map((period, index) => `${index === 0 ? 'M' : 'L'} ${x(index)} ${y(pick(period))}`).join(' ')
+
+  return (
+    <figure className="mt-5">
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        className="w-full"
+        role="img"
+        aria-label={`Effective anonymity set across ${periods.length} six-hour windows. The typical deposit ends at ${periods.at(-1)!.medianEffectiveSet.toFixed(2)}; the best single deposit in the last window reached ${periods.at(-1)!.bestEffectiveSet.toFixed(2)}.`}
+      >
+        <line
+          x1={pad.left}
+          x2={width - pad.right}
+          y1={y(1)}
+          y2={y(1)}
+          stroke="var(--thread)"
+          strokeWidth="1"
+        />
+        <text x={0} y={y(1) + 4} fontSize="10" fill="var(--muted)" fontFamily="var(--font-plex-mono)">
+          1.00
+        </text>
+        <text
+          x={0}
+          y={y(ceiling) + 4}
+          fontSize="10"
+          fill="var(--muted)"
+          fontFamily="var(--font-plex-mono)"
+        >
+          {ceiling.toFixed(1)}
+        </text>
+
+        <path d={path((period) => period.bestEffectiveSet)} fill="none" stroke="var(--hidden)" strokeWidth="1.5" strokeDasharray="3 3" />
+        <path d={path((period) => period.medianEffectiveSet)} fill="none" stroke="var(--warn)" strokeWidth="2" />
+
+        <text
+          x={pad.left}
+          y={height - 4}
+          fontSize="10"
+          fill="var(--muted)"
+          fontFamily="var(--font-plex-mono)"
+        >
+          block {periods[0]!.fromBlock.toLocaleString()}
+        </text>
+        <text
+          x={width - pad.right}
+          y={height - 4}
+          textAnchor="end"
+          fontSize="10"
+          fill="var(--muted)"
+          fontFamily="var(--font-plex-mono)"
+        >
+          now
+        </text>
+      </svg>
+
+      <figcaption className="mt-2 font-mono text-xs text-muted">
+        <span className="text-warn">solid</span> the typical deposit ·{' '}
+        <span className="text-hidden">dashed</span> the best one · each point is a six-hour window
+      </figcaption>
+    </figure>
+  )
+}
 function Weave() {
   const under = [
     { d: 'M 0 40 C 62 40, 140 105, 236 105 C 300 105, 330 115, 352 115', label: 'approve', y: 40 },
@@ -412,6 +506,8 @@ export default async function Landing() {
                 The composer tells you the size of the cell you are about to land in, before you
                 sign.
               </p>
+
+              <Trend periods={chain.periods} />
             </div>
           )}
 

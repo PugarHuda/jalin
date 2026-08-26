@@ -199,3 +199,49 @@ export function prospectFor(
     blocksLeftInCell,
   }
 }
+
+export interface Period {
+  /** The CELL_BLOCKS-wide slot these cells belong to. */
+  slot: number
+  /** First block of the slot, so a reader can find it on a block explorer. */
+  fromBlock: number
+  /** Cells that opened in this slot. */
+  cells: number
+  /** The middle cell's effective set — what a typical deposit got that day. */
+  medianEffectiveSet: number
+  /** The best any single deposit could have done. */
+  bestEffectiveSet: number
+}
+
+/**
+ * The same measurement, over time.
+ *
+ * A single median says the pool is thin. It cannot say whether that is
+ * improving, and "1.00" printed forever reads as a broken gauge rather than a
+ * finding. Grouped by slot, the shape of the thing becomes visible: whether a
+ * crowd ever forms, and how long it lasts when it does.
+ *
+ * Slots with no deposits are absent rather than zero. A day nobody shielded is
+ * not a day the anonymity set was zero; it is a day the question was not asked.
+ */
+export function measurePeriods(cells: Cell[], cellBlocks = CELL_BLOCKS): Period[] {
+  const bySlot = new Map<number, Cell[]>()
+  for (const cell of cells) {
+    const group = bySlot.get(cell.slot) ?? []
+    group.push(cell)
+    bySlot.set(cell.slot, group)
+  }
+
+  return [...bySlot]
+    .sort(([a], [b]) => a - b)
+    .map(([slot, group]) => {
+      const sorted = [...group].sort((a, b) => a.effectiveSet - b.effectiveSet)
+      return {
+        slot,
+        fromBlock: slot * cellBlocks,
+        cells: group.length,
+        medianEffectiveSet: sorted[Math.floor(sorted.length / 2)]!.effectiveSet,
+        bestEffectiveSet: Math.max(...group.map((cell) => cell.effectiveSet)),
+      }
+    })
+}
