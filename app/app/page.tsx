@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { GOVERNOR_ADDRESS, ROUTER_ADDRESS } from '@/lib/config'
+import { headers } from 'next/headers'
 import { readChainState } from '@/lib/chain'
 
 const REPO = 'https://github.com/PugarHuda/jalin'
@@ -173,7 +174,8 @@ function Address({ label, value }: { label: string; value: string }) {
 }
 
 export default async function Landing() {
-  const chain = await readChainState()
+  const host = (await headers()).get('host') ?? 'jalin-five.vercel.app'
+  const chain = await readChainState(`https://${host}`)
 
   return (
     <main>
@@ -327,7 +329,7 @@ export default async function Landing() {
           <Address label="JalinGovernor" value={GOVERNOR_ADDRESS} />
 
           {chain.reachable && (
-            <div className="grid gap-6 border-t border-thread py-5 sm:grid-cols-2">
+            <div className="grid gap-6 border-t border-thread py-5 sm:grid-cols-3">
               <div>
                 <div className="font-display text-3xl font-semibold tabular-nums">
                   {chain.plansExecuted ?? '—'}
@@ -344,6 +346,16 @@ export default async function Landing() {
                   governance proposals, read from the governor
                 </div>
               </div>
+              {chain.depositors !== null && (
+                <div>
+                  <div className="font-display text-3xl font-semibold tabular-nums">
+                    {chain.depositors}
+                  </div>
+                  <div className="mt-1 font-mono text-xs text-muted">
+                    addresses in the crowd, counted from the pool&apos;s own deposits
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
