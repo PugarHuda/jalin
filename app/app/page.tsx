@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { GOVERNOR_ADDRESS, ROUTER_ADDRESS } from '@/lib/config'
+import { readChainState } from '@/lib/chain'
 
 const REPO = 'https://github.com/PugarHuda/jalin'
 
@@ -171,7 +172,9 @@ function Address({ label, value }: { label: string; value: string }) {
   )
 }
 
-export default function Landing() {
+export default async function Landing() {
+  const chain = await readChainState()
+
   return (
     <main>
       <header className="mx-auto flex w-full max-w-5xl items-baseline justify-between px-6 py-6">
@@ -322,9 +325,34 @@ export default function Landing() {
         <div className="mt-6">
           <Address label="JalinRouter" value={ROUTER_ADDRESS} />
           <Address label="JalinGovernor" value={GOVERNOR_ADDRESS} />
+
+          {chain.reachable && (
+            <div className="grid gap-6 border-t border-thread py-5 sm:grid-cols-2">
+              <div>
+                <div className="font-display text-3xl font-semibold tabular-nums">
+                  {chain.plansExecuted ?? '—'}
+                </div>
+                <div className="mt-1 font-mono text-xs text-muted">
+                  plans executed, read from the router
+                </div>
+              </div>
+              <div>
+                <div className="font-display text-3xl font-semibold tabular-nums">
+                  {chain.proposalCount ?? '—'}
+                </div>
+                <div className="mt-1 font-mono text-xs text-muted">
+                  governance proposals, read from the governor
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="border-t border-thread py-4 font-mono text-xs text-muted">
             Governance owns every router parameter and is an anonymizer helper itself: ballots
             arrive through privacy_invoke, so the weight of a vote is public and the voter is not.
+            {chain.reachable
+              ? ' The two numbers above are contract calls made when this page was served, not figures typed into it.'
+              : ''}
           </div>
         </div>
       </section>
