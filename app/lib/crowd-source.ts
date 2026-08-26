@@ -1,6 +1,13 @@
 import 'server-only'
 import { hash, num } from 'starknet'
-import { countDepositors, type Crowd, type PoolEvent } from '@jalin/sdk'
+import {
+  countDepositors,
+  measureCells,
+  summariseCells,
+  type Crowd,
+  type CellSummary,
+  type PoolEvent,
+} from '@jalin/sdk'
 import { POOL_ADDRESS } from './config'
 import { rpc } from './rpc'
 
@@ -15,7 +22,15 @@ import { rpc } from './rpc'
  * whole class of problem.
  */
 
-export const CROWD_WINDOW_BLOCKS = 50_000
+/**
+ * Roughly the pool's whole life. Starknet mainnet averages 1.68s a block, so
+ * 600k blocks is about eleven days and the pool opened on 14 August 2026.
+ *
+ * It used to be 50k, which is under a day - a window that made the crowd look
+ * like whoever happened to be around this afternoon. All of it fits in one
+ * page: 343 deposits so far.
+ */
+export const CROWD_WINDOW_BLOCKS = 600_000
 
 /** Relays gasless pool transactions; its deposits are not a person arriving. */
 const PAYMASTER = BigInt('0x127021a1b5a52d3174c2ab077c2b043c80369250d29428cee956d76ee51584f')
@@ -32,9 +47,24 @@ export interface CrowdReading extends Crowd {
    * cap reads as "we counted everything" when it did not.
    */
   truncated: boolean
+  /**
+   * The number that actually describes a deposit. `depositors` is the pool's
+   * headcount, which is not the crowd anyone hides in: an observer of the
+   * public leg sees asset, magnitude and roughly when, so only deposits
+   * agreeing on all three hide each other.
+   */
+  cells: CellSummary
 }
 
-export async function readCrowd(revalidate = 300): Promise<CrowdReading | null> {
+export interface DepositReading {
+  events: PoolEvent[]
+  head: number
+  truncated: boolean
+  feeCollector?: string
+}
+
+/** Every Deposit in the window, read once so callers do not each fetch them. */
+export async function readDeposits(revalidate = 300): Promise<DepositReading | null> {
   try {
     const head = await rpc.blockNumber()
     const selector = num.toHex(hash.starknetKeccak('Deposit'))
@@ -68,13 +98,26 @@ export async function readCrowd(revalidate = 300): Promise<CrowdReading | null> 
     }
     const truncated = Boolean(token)
 
-    const crowd = countDepositors(events, {
-      paymaster: num.toHex(PAYMASTER),
-      feeCollector: collector?.[0],
-    })
-
-    return { ...crowd, windowBlocks: CROWD_WINDOW_BLOCKS, head, truncated }
+    return { events, head, truncated, feeCollector: collector?.[0] }
   } catch {
     return null
+  }
+}
+
+export async function readCrowd(revalidate = 300): Promise<CrowdReading | null> {
+  const reading = await readDeposits(revalidate)
+  if (!reading) return null
+
+  const crowd = countDepositors(reading.events, {
+    paymaster: num.toHex(PAYMASTER),
+    feeCollector: reading.feeCollector,
+  })
+
+  return {
+    ...crowd,
+    windowBlocks: CROWD_WINDOW_BLOCKS,
+    head: reading.head,
+    truncated: reading.truncated,
+    cells: summariseCells(measureCells(reading.events)),
   }
 }

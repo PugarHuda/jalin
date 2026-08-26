@@ -308,7 +308,15 @@ export default function Home() {
   const [account, setAccount] = useState<string | null>(null)
   const [verdicts, setVerdicts] = useState<Record<string, string>>({})
   const [quote, setQuote] = useState<{ shares: bigint } | null>(null)
-  const [crowd, setCrowd] = useState<{ depositors: number; windowBlocks: number } | null>(null)
+  const [crowd, setCrowd] = useState<{
+    depositors: number
+    windowBlocks: number
+    cells: { medianEffectiveSet: number; aloneShare: number; largestEffectiveSet: number }
+  } | null>(null)
+  const [prospect, setProspect] = useState<{
+    headcount: number
+    effectiveSetAfter: number
+  } | null>(null)
 
   // The Endur run's floor comes from the vault rather than from a constant. A
   // constant cannot know the share price moved, so it is either too loose to
@@ -342,6 +350,41 @@ export default function Home() {
       cancelled = true
     }
   }, [])
+
+  /**
+   * The crowd for this deposit, not for the pool. An observer of the public leg
+   * sees the asset, the order of magnitude and roughly when, so the set that
+   * covers you is the one that agrees on all three. Re-asked as the amount
+   * changes, because changing it moves you to a different cell.
+   */
+  useEffect(() => {
+    let cancelled = false
+    let amount = 0n
+    try {
+      amount = toBaseUnits(draft.inputAmount, decimalsOf(draft.inputToken))
+    } catch {
+      return
+    }
+    if (amount <= 0n) {
+      setProspect(null)
+      return
+    }
+
+    const timer = setTimeout(() => {
+      const query = new URLSearchParams({ asset: draft.inputToken, amount: amount.toString() })
+      fetch(`/api/crowd?${query}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((body) => {
+          if (!cancelled && typeof body?.effectiveSetAfter === 'number') setProspect(body)
+        })
+        .catch(() => {})
+    }, 300)
+
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [draft.inputToken, draft.inputAmount])
 
   const result = useMemo(() => {
     try {
@@ -429,7 +472,7 @@ export default function Home() {
       // NOT_REGISTERED is the pool saying "I know this method, you have no notes
       // yet" - which is support, not the absence of it.
       if (/NOT_REGISTERED/i.test(message)) {
-        return `STRK20 supported by ${who}, but this account has not joined the pool yet. Register once at strk20.starknet.io/app, then come back. Wallet API ${versions}.`
+        return `STRK20 supported by ${who}, but this account has not joined the pool yet. Shield once from inside the wallet and it registers you in the same transaction. Wallet API ${versions}.`
       }
       return `${who} does not answer wallet_strk20Balances, so it cannot sign a Jalin plan yet. Wallet API ${versions}. It said: ${message}`
     }
@@ -577,16 +620,17 @@ export default function Home() {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       // Registration is once per account and needs no STRK20 wallet support -
-      // the viewing key is derived from a plain signMessage. There is no
-      // register action in the wallet API though, and the pool exposes only
-      // apply_actions, so doing it here would mean hand-encoding an action set
-      // that StarkWare already ships a one-click UI for.
+      // There is no register method in the Wallet API because registration is
+      // not a dapp's to perform: the wallet emits ViewingKeySet itself, on the
+      // first shield made from inside it. Verified on mainnet in
+      // 0x04816dbb…0278, where one Ready shield of 10 STRK emitted
+      // ViewingKeySet, Deposit and EncNoteCreated in a single transaction.
       if (/NOT_REGISTERED/i.test(message)) {
         setStatus(
-          'NOT_REGISTERED: this account has never joined the pool. Registering is a one-time, ' +
-            'on-chain step that publishes your public viewing key, and it needs no STRK20 wallet ' +
-            'support - the key is derived from an ordinary signature. Do it once at ' +
-            'strk20.starknet.io/app, then come back and run these in order.',
+          'NOT_REGISTERED: this account has never joined the pool. It is not a step you do ' +
+            'here - open your wallet, shield any amount from inside it once, and the wallet ' +
+            'publishes your viewing key in that same transaction. Then come back and run ' +
+            'these in order.',
         )
         return
       }
@@ -793,13 +837,27 @@ export default function Home() {
               {disclosure.warnings.length > 0 && (
                 <Group title="Gives it back" colour="text-warn" items={disclosure.warnings} />
               )}
+              {prospect && (
+                <Group
+                  title="The crowd you would land in"
+                  colour={prospect.effectiveSetAfter < 2 ? 'text-warn' : 'text-hidden'}
+                  items={[
+                    prospect.headcount === 0
+                      ? `Nobody else has shielded this much of this token in the current window. Your effective anonymity set would be ${prospect.effectiveSetAfter.toFixed(2)} — you, alone. The public deposit leg would identify this transaction completely.`
+                      : `${prospect.headcount} other ${prospect.headcount === 1 ? 'address is' : 'addresses are'} in the same cell — same token, same order of magnitude, same six-hour window. Your effective anonymity set would be ${prospect.effectiveSetAfter.toFixed(2)}.`,
+                    'A cell, not the pool. An observer of the public leg sees the asset, the magnitude and roughly when, so only deposits agreeing on all three cover each other. The figure is a perplexity over the flow, because a cell one address dominates is not the crowd its headcount claims.',
+                    'Changing the amount moves you to a different cell. Rounding to whatever your neighbours used is the cheapest privacy available here.',
+                  ]}
+                />
+              )}
               {crowd && (
                 <Group
-                  title="The crowd"
-                  colour="text-hidden"
+                  title="The pool"
+                  colour="text-muted"
                   items={[
-                    `${crowd.depositors} distinct addresses shielded into the pool in the last ${crowd.windowBlocks.toLocaleString()} blocks. That is the set you are standing in, counted from Deposit events rather than assumed.`,
-                    'Withdrawals are not counted. Most of them name the fee collector or the paymaster that relays gas, and a withdrawal only means someone left if its destination is a person.',
+                    `${crowd.depositors} distinct addresses have shielded into the pool. Across every cell the median effective set is ${crowd.cells.medianEffectiveSet.toFixed(2)} and ${Math.round(crowd.cells.aloneShare * 100)}% of cells hold exactly one person; the largest crowd anywhere is ${crowd.cells.largestEffectiveSet.toFixed(1)}.`,
+                    'Withdrawals are not counted. Most of them name the fee collector or the paymaster that relays gas, and a shield with no exit still emits one — so a withdrawal only means someone left if its destination is a person.',
+                    'Jalin cannot conjure other people. What it changes is how many public legs you need: three transactions at three separate moments is three chances to be the only one there, and a plan is one.',
                   ]}
                 />
               )}
@@ -857,14 +915,11 @@ export default function Home() {
             </p>
             {status && <p className="mt-2 break-all font-mono text-xs">{status}</p>}
             {status?.includes('NOT_REGISTERED') && (
-              <a
-                className="mt-2 inline-block rounded bg-gold px-3 py-1.5 text-sm text-ground"
-                href="https://strk20.starknet.io/app"
-                target="_blank"
-                rel="noreferrer"
-              >
-                Register this account →
-              </a>
+              <p className="mt-2 rounded border border-strand px-3 py-2 text-xs leading-relaxed">
+                In Ready: open the wallet, shield any amount from its own privacy screen. That one
+                transaction emits <span className="font-mono">ViewingKeySet</span> and you are
+                registered. Nothing to sign here for it.
+              </p>
             )}
             {lastPayload && (
               <details className="mt-2">
@@ -891,18 +946,22 @@ export default function Home() {
 
         <p className="mt-3 rounded border border-thread px-3 py-2 text-xs leading-relaxed text-muted">
           <span className="font-mono">0.</span> First time on this account? The pool needs your
-          public viewing key before anything can be sent to you privately. It is one on-chain
-          step, once per account, and it needs no STRK20 wallet support - the key comes from an
-          ordinary signature. Do it at{' '}
+          public viewing key before anything can be sent to you privately, and that is not a step
+          any dapp can do for you — there is no register method in the Wallet API. Shield any
+          amount once from inside your wallet and it publishes the key in that same transaction.
+          Verified on mainnet in{' '}
           <a
             className="text-gold underline underline-offset-2"
-            href="https://strk20.starknet.io/app"
+            href="https://voyager.online/tx/0x04816dbb3ec04d21cc5da879358e485afdbfe52a3d8f6b8bf4a678003b6e0278"
             target="_blank"
             rel="noreferrer"
           >
-            strk20.starknet.io/app
+            0x04816dbb…0278
           </a>
-          , then come back. Skipping it gives you <span className="font-mono">NOT_REGISTERED</span>.
+          , where one Ready shield emitted <span className="font-mono">ViewingKeySet</span>,{' '}
+          <span className="font-mono">Deposit</span> and{' '}
+          <span className="font-mono">EncNoteCreated</span> together. Skipping it gives you{' '}
+          <span className="font-mono">NOT_REGISTERED</span>.
         </p>
 
         <div className="mt-4 border-t border-thread py-3">

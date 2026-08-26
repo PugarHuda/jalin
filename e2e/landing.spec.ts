@@ -19,6 +19,17 @@ test.describe('landing', () => {
     await expect(page.locator('body')).toContainText(String(crowd.depositors))
   })
 
+  test('does not claim a bigger crowd than the pool has', async ({ page }) => {
+    await page.goto('/')
+
+    const crowd = await (await page.request.get('/api/crowd')).json()
+    // The honest number has to be on the page next to the flattering one.
+    await expect(page.locator('body')).toContainText(
+      crowd.cells.medianEffectiveSet.toFixed(2),
+    )
+    await expect(page.locator('body')).toContainText('hides in')
+  })
+
   test('leads to the composer', async ({ page }) => {
     await page.goto('/')
     await page.getByRole('link', { name: /compose|open|try|composer/i }).first().click()

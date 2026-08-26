@@ -78,7 +78,10 @@ export const rpc = {
     ),
 
   events: (filter: Record<string, unknown>, revalidate?: number) =>
-    send<{ events?: { keys: string[]; from_address?: string }[]; continuation_token?: string }>(
+    send<{
+      events?: { keys: string[]; data?: string[]; block_number?: number; from_address?: string }[]
+      continuation_token?: string
+    }>(
       'starknet_getEvents',
       { filter },
       revalidate,

@@ -23,6 +23,9 @@
 /** The minimum shape of a Starknet event this needs. */
 export interface PoolEvent {
   keys: string[]
+  /** `data[0]` of a Deposit is the amount. Absent on events read keys-only. */
+  data?: string[]
+  block_number?: number
 }
 
 /**

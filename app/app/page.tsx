@@ -353,12 +353,40 @@ export default async function Landing() {
                     {chain.depositorsAreAFloor ? `${chain.depositors}+` : chain.depositors}
                   </div>
                   <div className="mt-1 font-mono text-xs text-muted">
-                    {chain.depositorsAreAFloor
-                      ? 'addresses in the crowd — at least, the count stopped at the page cap'
-                      : "addresses in the crowd, counted from the pool's own deposits"}
+                    addresses have shielded into the pool
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {chain.medianEffectiveSet !== null && (
+            <div className="border-t border-thread py-5">
+              <div className="flex flex-wrap items-baseline gap-3">
+                <span className="font-display text-3xl font-semibold tabular-nums text-warn">
+                  {chain.medianEffectiveSet.toFixed(2)}
+                </span>
+                <span className="font-mono text-xs text-muted">
+                  is the crowd the median deposit actually hides in
+                </span>
+              </div>
+              <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted">
+                That first number is the pool&apos;s headcount, and it is not what hides you. An
+                observer of the public deposit leg sees the asset, the order of magnitude and
+                roughly when — so two deposits only cover each other if they agree on all three.
+                Grouped that way, {chain.aloneShare !== null && `${Math.round(chain.aloneShare * 100)}% of `}
+                the resulting cells hold exactly one person, and the biggest crowd anywhere in the
+                pool is {chain.largestEffectiveSet?.toFixed(1)}. The figure is a perplexity rather
+                than a headcount, because a cell where one address carries most of the volume is
+                not the crowd its headcount claims.
+              </p>
+              <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted">
+                Jalin does not fix that — nothing a helper contract does can conjure other people.
+                What it changes is how many transactions you need: three public legs at three
+                separate moments is three chances to be the only one there, and a plan is one.
+                The composer tells you the size of the cell you are about to land in, before you
+                sign.
+              </p>
             </div>
           )}
 
@@ -366,7 +394,7 @@ export default async function Landing() {
             Governance owns every router parameter and is an anonymizer helper itself: ballots
             arrive through privacy_invoke, so the weight of a vote is public and the voter is not.
             {chain.reachable
-              ? ' The two numbers above are contract calls made when this page was served, not figures typed into it.'
+              ? ' Every figure above is a contract call or an event read made when this page was served, not a number typed into it.'
               : ''}
           </div>
         </div>

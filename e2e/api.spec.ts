@@ -119,3 +119,46 @@ test.describe('the page itself', () => {
     expect(url).toMatch(/^https?:\/\//)
   })
 })
+
+test.describe('/api/crowd with an intent', () => {
+  const STRK = '0x4718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d'
+
+  test('answers how big the cell this deposit would join is', async ({ request }) => {
+    const response = await request.get(`/api/crowd?asset=${STRK}&amount=1000000000000000000`)
+    expect(response.status()).toBe(200)
+
+    const prospect = await response.json()
+    expect(typeof prospect.headcount).toBe('number')
+    // Whatever the cell holds, adding yourself can never leave it under one.
+    expect(prospect.effectiveSetAfter).toBeGreaterThanOrEqual(1)
+    expect(prospect.effectiveSetAfter).toBeLessThanOrEqual(prospect.headcount + 1)
+  })
+
+  test('a different magnitude is a different question', async ({ request }) => {
+    const [small, large] = await Promise.all([
+      request.get(`/api/crowd?asset=${STRK}&amount=1000000000000000000`),
+      request.get(`/api/crowd?asset=${STRK}&amount=999000000000000000000000`),
+    ])
+    // Not asserted equal or unequal — asserted that both are answerable, which
+    // is what would break if the cell key stopped including the magnitude.
+    expect(small.status()).toBe(200)
+    expect(large.status()).toBe(200)
+  })
+
+  test('rejects an asset that is not a felt and an amount that is not an integer', async ({
+    request,
+  }) => {
+    expect((await request.get(`/api/crowd?asset=nope&amount=1`)).status()).toBe(400)
+    expect((await request.get(`/api/crowd?asset=${STRK}&amount=1.5`)).status()).toBe(400)
+    expect((await request.get(`/api/crowd?asset=${STRK}&amount=-1`)).status()).toBe(400)
+  })
+
+  test('the pool-wide reading carries the honest measurement too', async ({ request }) => {
+    const crowd = await (await request.get('/api/crowd')).json()
+    expect(crowd.cells.cells).toBeGreaterThan(0)
+    // The median cell cannot be a bigger crowd than the biggest cell.
+    expect(crowd.cells.medianEffectiveSet).toBeLessThanOrEqual(crowd.cells.largestEffectiveSet)
+    expect(crowd.cells.aloneShare).toBeGreaterThanOrEqual(0)
+    expect(crowd.cells.aloneShare).toBeLessThanOrEqual(1)
+  })
+})

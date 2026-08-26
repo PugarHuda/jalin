@@ -28,6 +28,12 @@ export interface ChainState {
   depositors: number | null
   /** The crowd count hit the page cap, so it is a floor rather than a total. */
   depositorsAreAFloor: boolean
+  /** Median effective anonymity set across every cell. Null if unreadable. */
+  medianEffectiveSet: number | null
+  /** Share of cells holding exactly one depositor. */
+  aloneShare: number | null
+  /** The biggest crowd anywhere in the pool. */
+  largestEffectiveSet: number | null
   reachable: boolean
 }
 
@@ -42,6 +48,9 @@ export async function readChainState(): Promise<ChainState> {
     proposalCount: proposals?.[0] ? Number(BigInt(proposals[0])) : null,
     depositors: crowd?.depositors ?? null,
     depositorsAreAFloor: crowd?.truncated ?? false,
+    medianEffectiveSet: crowd?.cells.medianEffectiveSet ?? null,
+    aloneShare: crowd?.cells.aloneShare ?? null,
+    largestEffectiveSet: crowd?.cells.largestEffectiveSet ?? null,
     reachable: plans !== null || proposals !== null,
   }
 }

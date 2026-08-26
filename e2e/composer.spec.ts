@@ -61,6 +61,27 @@ test.describe('composer', () => {
     expect(new Set(seen).size).toBe(3)
   })
 
+  test('says how big the crowd for this exact deposit would be', async ({ page }) => {
+    await page.getByRole('button', { name: 'Stake on Endur' }).click()
+
+    // Measured against the chain for the amount in the box, not a pool-wide
+    // headcount dressed up as an anonymity set.
+    const panel = page.getByText('The crowd you would land in')
+    await expect(panel).toBeVisible({ timeout: 20_000 })
+    await expect(page.locator('main')).toContainText(/effective anonymity set would be \d+\.\d\d/)
+  })
+
+  test('changing the amount asks the question again', async ({ page }) => {
+    await page.getByRole('button', { name: 'Stake on Endur' }).click()
+    await expect(page.getByText('The crowd you would land in')).toBeVisible({ timeout: 20_000 })
+
+    await page.getByLabel('Input amount').fill('98765')
+    // Still answered, and still about the amount that is in the box now.
+    await expect(page.locator('main')).toContainText(/effective anonymity set would be/, {
+      timeout: 20_000,
+    })
+  })
+
   test('the mainnet run quotes the vault live', async ({ page }) => {
     // The floor under the Endur run comes from preview_deposit, not a constant.
     const quote = page.getByText(/vault quotes/)
