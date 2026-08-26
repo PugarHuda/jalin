@@ -26,8 +26,10 @@ export async function GET(request: Request) {
   }
 
   const amount = BigInt(assets)
-  const low = (amount & ((1n << 128n) - 1n)).toString()
-  const high = (amount >> 128n).toString()
+  // Hex, not decimal. starknet.js normalises felts for you; a raw fetch does not,
+  // and the node answers a decimal calldata entry with a bare failure.
+  const low = `0x${(amount & ((1n << 128n) - 1n)).toString(16)}`
+  const high = `0x${(amount >> 128n).toString(16)}`
 
   try {
     const response = await fetch(rpc, {
