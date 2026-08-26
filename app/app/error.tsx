@@ -1,4 +1,5 @@
 'use client'
+import Link from 'next/link'
 
 import { useEffect } from 'react'
 
@@ -44,12 +45,12 @@ export default function Error({
         >
           Try again
         </button>
-        <a
+        <Link
           href="/"
           className="rounded border border-strand px-4 py-2 text-sm hover:border-gold"
         >
           Back to the start
-        </a>
+        </Link>
       </div>
     </main>
   )

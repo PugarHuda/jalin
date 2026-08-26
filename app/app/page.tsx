@@ -12,6 +12,43 @@ const REPO = 'https://github.com/PugarHuda/jalin'
  * ground-coloured halo so they read as passing over. Without that they only
  * funnel, and a funnel is not a weave.
  */
+/**
+ * Hoisted out of the diagram rather than closed over inside it. A component
+ * declared during render is a new component type on every render, so React
+ * throws the subtree away and rebuilds it - which restarts the entrance
+ * animation these labels exist to carry.
+ */
+function Label({
+  x,
+  y,
+  delay,
+  anchor,
+  text,
+  fill,
+}: {
+  x: number
+  y: number
+  delay: number
+  anchor?: 'end'
+  text: string
+  fill: string
+}) {
+  return (
+    <text
+      x={x}
+      y={y}
+      className="lift"
+      style={{ ['--delay' as string]: `${delay}ms` }}
+      fill={fill}
+      fontSize="12"
+      fontFamily="var(--font-plex-mono)"
+      textAnchor={anchor}
+    >
+      {text}
+    </text>
+  )
+}
+
 function Weave() {
   const under = [
     { d: 'M 0 40 C 62 40, 140 105, 236 105 C 300 105, 330 115, 352 115', label: 'approve', y: 40 },
@@ -59,28 +96,6 @@ function Weave() {
         strokeWidth="1.75"
       />
     </>
-  )
-
-  const Label = ({ x, y, delay, anchor, text, fill }: {
-    x: number
-    y: number
-    delay: number
-    anchor?: 'end'
-    text: string
-    fill: string
-  }) => (
-    <text
-      x={x}
-      y={y}
-      className="lift"
-      style={{ ['--delay' as string]: `${delay}ms` }}
-      fill={fill}
-      fontSize="12"
-      fontFamily="var(--font-plex-mono)"
-      textAnchor={anchor}
-    >
-      {text}
-    </text>
   )
 
   return (

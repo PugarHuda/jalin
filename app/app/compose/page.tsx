@@ -1,4 +1,5 @@
 'use client'
+import Link from 'next/link'
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { StarknetWindowObject } from 'get-starknet-core'
@@ -375,12 +376,17 @@ export default function Home() {
     } catch {
       return
     }
-    if (amount <= 0n) {
-      setProspect(null)
-      return
-    }
 
+    // Clearing runs on the same timer as asking. Calling setState straight out
+    // of an effect body forces a second render pass before paint, and doing it
+    // only on the empty-amount branch meant one path was debounced and the
+    // other was not.
     const timer = setTimeout(() => {
+      if (amount <= 0n) {
+        if (!cancelled) setProspect(null)
+        return
+      }
+
       const query = new URLSearchParams({ asset: draft.inputToken, amount: amount.toString() })
       fetch(`/api/crowd?${query}`)
         .then((r) => (r.ok ? r.json() : null))
@@ -699,19 +705,19 @@ export default function Home() {
     <main className="mx-auto w-full max-w-6xl px-5 py-10">
       <header className="border-b border-thread pb-6">
         <div className="flex items-baseline justify-between">
-          <a href="/" className="font-display text-lg font-extrabold tracking-tight hover:text-gold">
+          <Link href="/" className="font-display text-lg font-extrabold tracking-tight hover:text-gold">
             jalin
-          </a>
+          </Link>
           <nav className="flex gap-5 font-mono text-xs text-muted">
-            <a href="/governance" className="hover:text-gold">
+            <Link href="/governance" className="hover:text-gold">
               governance
-            </a>
-            <a href="/verify" className="hover:text-gold">
+            </Link>
+            <Link href="/verify" className="hover:text-gold">
               verify
-            </a>
-            <a href="/" className="hover:text-gold">
+            </Link>
+            <Link href="/" className="hover:text-gold">
               what this is
-            </a>
+            </Link>
           </nav>
         </div>
         <h1 className="mt-6 font-display text-3xl font-semibold tracking-tight">Composer</h1>

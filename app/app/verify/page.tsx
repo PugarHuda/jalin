@@ -1,4 +1,5 @@
 'use client'
+import Link from 'next/link'
 
 import { useState } from 'react'
 
@@ -91,16 +92,16 @@ export default function Verify() {
     <main className="mx-auto w-full max-w-3xl px-5 py-10">
       <header className="border-b border-thread pb-6">
         <div className="flex items-baseline justify-between">
-          <a href="/" className="font-display text-lg font-extrabold tracking-tight hover:text-gold">
+          <Link href="/" className="font-display text-lg font-extrabold tracking-tight hover:text-gold">
             jalin
-          </a>
+          </Link>
           <nav className="flex gap-5 font-mono text-xs text-muted">
-            <a href="/compose" className="hover:text-gold">
+            <Link href="/compose" className="hover:text-gold">
               composer
-            </a>
-            <a href="/governance" className="hover:text-gold">
+            </Link>
+            <Link href="/governance" className="hover:text-gold">
               governance
-            </a>
+            </Link>
           </nav>
         </div>
         <h1 className="mt-6 font-display text-3xl font-semibold tracking-tight">

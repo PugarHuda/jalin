@@ -12,7 +12,9 @@
     "build": "npm run build --workspace app",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "check:links": "node scripts/check-links.mjs"
+    "check:links": "node scripts/check-links.mjs",
+    "lint": "npm run lint --workspace app",
+    "typecheck": "npm run typecheck --workspace @jalin/sdk"
   },
   "dependencies": {
     "@scure/starknet": "^2.3.0"

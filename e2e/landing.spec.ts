@@ -53,3 +53,22 @@ test.describe('landing', () => {
     expect(response?.status()).toBe(404)
   })
 })
+
+test('navigation between pages does not reload the document', async ({ page }) => {
+  // Every internal link is a client navigation. An <a> here would work and would
+  // also throw away the React tree and re-download the page on each hop.
+  await page.goto('/')
+  await page.evaluate(() => {
+    ;(window as unknown as { __kept: boolean }).__kept = true
+  })
+
+  await page.getByRole('link', { name: 'composer' }).first().click()
+  await expect(page).toHaveURL(/\/compose/)
+  await page.getByRole('link', { name: 'governance' }).first().click()
+  await expect(page).toHaveURL(/\/governance/)
+
+  const survived = await page.evaluate(
+    () => (window as unknown as { __kept?: boolean }).__kept === true,
+  )
+  expect(survived, 'the document was replaced, so these were full page loads').toBe(true)
+})

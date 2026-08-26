@@ -29,6 +29,10 @@ jobs:
       # an explanation that does not exist; two were live before this ran.
       - run: npm run check:links
 
+      # The SDK ships TypeScript source, so nothing compiles it before it is
+      # published. tsc is the only thing that reads the files nobody imports.
+      - run: npm run typecheck
+
   app:
     name: app builds
     runs-on: ubuntu-latest
@@ -41,6 +45,10 @@ jobs:
       # next build runs TypeScript itself. A separate tsc step would also need
       # .next/types, which does not exist until the build has produced it.
       - run: npm run build --workspace app
+
+      # Configured since the first commit and never once run, which is how six
+      # errors accumulated in it.
+      - run: npm run lint
 
   e2e:
     name: browser
