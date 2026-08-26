@@ -1,4 +1,5 @@
 import { hash } from 'starknet'
+import { toFelt, u256 } from '@jalin/sdk'
 import { ENDUR_VAULT } from '@/lib/config'
 
 /**
@@ -26,10 +27,11 @@ export async function GET(request: Request) {
   }
 
   const amount = BigInt(assets)
-  // Hex, not decimal. starknet.js normalises felts for you; a raw fetch does not,
-  // and the node answers a decimal calldata entry with a bare failure.
-  const low = `0x${(amount & ((1n << 128n) - 1n)).toString(16)}`
-  const high = `0x${(amount >> 128n).toString(16)}`
+  // u256 and toFelt come from the SDK, which already splits low-first and emits
+  // canonical hex - and has tests for both. A raw fetch does not normalise felts
+  // the way starknet.js does, and the node answers a decimal entry with a bare
+  // failure that names nothing.
+  const [low, high] = u256(amount).map(toFelt)
 
   try {
     const response = await fetch(rpc, {

@@ -1,4 +1,5 @@
 import { hash, num } from 'starknet'
+import { countDepositors, type PoolEvent } from '@jalin/sdk'
 import { POOL_ADDRESS } from '@/lib/config'
 
 /**
@@ -50,8 +51,19 @@ export async function GET() {
     const head = (await rpc(rpcUrl, 'starknet_blockNumber', {})) as number
     const selector = num.toHex(hash.starknetKeccak('Deposit'))
 
-    const depositors = new Set<string>()
-    let deposits = 0
+    // Read the fee collector rather than hardcoding it, so the exclusion stays
+    // right if governance moves it.
+    const collectorResult = (await rpc(rpcUrl, 'starknet_call', {
+      block_id: 'latest',
+      request: {
+        contract_address: POOL_ADDRESS,
+        entry_point_selector: hash.getSelectorFromName('get_fee_collector'),
+        calldata: [],
+      },
+    })) as string[] | undefined
+    const feeCollector = collectorResult?.[0]
+
+    const events: PoolEvent[] = []
     let token: string | undefined
     let pages = 0
 
@@ -68,22 +80,18 @@ export async function GET() {
       })) as { events?: { keys: string[] }[]; continuation_token?: string } | undefined
 
       if (!page?.events) break
-      for (const event of page.events) {
-        deposits += 1
-        const who = event.keys[1]
-        if (who && BigInt(who) !== PAYMASTER) depositors.add(BigInt(who).toString())
-      }
+      events.push(...page.events)
       token = page.continuation_token
       pages += 1
       if (!token) break
     }
 
-    return Response.json({
-      depositors: depositors.size,
-      deposits,
-      windowBlocks: WINDOW_BLOCKS,
-      head,
+    const crowd = countDepositors(events, {
+      paymaster: num.toHex(PAYMASTER),
+      feeCollector,
     })
+
+    return Response.json({ ...crowd, windowBlocks: WINDOW_BLOCKS, head })
   } catch {
     return Response.json({ error: 'pool unreachable' }, { status: 502 })
   }
