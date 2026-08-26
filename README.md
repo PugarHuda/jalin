@@ -233,7 +233,7 @@ sh contracts/test.sh          # snforge in a pinned container
 because pinning the toolchain is worth more than saving a container. The scarb
 cache lives in a named volume, so only the first run pays for the plugin build.
 
-40 tests, two of them fuzzed at 256 runs each, covering every line of every
+43 tests, two of them fuzzed at 256 runs each, covering every line of every
 contract — `sh contracts/coverage.sh && node scripts/coverage-gate.mjs` fails if
 any line of `src/` never runs. Line coverage is a floor, not a proof: it says
 every line ran, not that it ran under the conditions that would break it. Three of them fork Starknet mainnet at a

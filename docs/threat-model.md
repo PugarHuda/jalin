@@ -129,6 +129,20 @@ costs the attacker one transfer.
   `privacy_invoke`, so a hostile ERC-20 cannot call back into `sweep` mid-plan and
   push in-flight funds to the treasury
 
+`MockAttacker` in `contracts/src/mocks.cairo` is a step target that does exactly
+that: handed control and an allowance, the first thing it does is call `sweep` on
+the router that called it. `a_hostile_target_cannot_sweep_the_funds_it_was_handed`
+asserts the plan reverts with `JALIN_SWEEP_DURING_INVOKE`, and
+`the_latch_lifts_once_the_plan_is_over` asserts the latch is not a permanent denial
+of service on the thing it protects. A second mode calls `privacy_invoke` again;
+I1 stops that one, before the latch is reached.
+
+That last test was written wrong first and passed for the wrong reason.
+`start_cheat_caller_address` spoofs the caller of *every* call into the target, so
+the re-entrant call also looked like the pool and failed later, on step count.
+`CheatSpan::TargetCalls(1)` cheats only the outer call, which is what makes the
+inner one show its real caller.
+
 ## What Jalin does not protect against
 
 Stated plainly, because a threat model that only lists wins is marketing.

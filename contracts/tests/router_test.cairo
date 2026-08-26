@@ -1,8 +1,8 @@
 //! One test per invariant in docs/threat-model.md, plus the happy path.
 
 use snforge_std::{
-    ContractClassTrait, DeclareResultTrait, declare, start_cheat_caller_address,
-    stop_cheat_caller_address,
+    CheatSpan, ContractClassTrait, DeclareResultTrait, cheat_caller_address, declare,
+    start_cheat_caller_address, stop_cheat_caller_address,
 };
 use starknet::{ContractAddress, contract_address_const};
 use jalin::interfaces::{
@@ -406,4 +406,76 @@ fn the_plan_counter_moves_and_the_governor_is_the_one_it_was_given() {
     stop_cheat_caller_address(router);
 
     assert(dispatcher.plans_executed() == 1, 'one plan run');
+}
+
+/// A step target that is handed control and immediately turns it on the router.
+fn deploy_attacker() -> ContractAddress {
+    let class = declare("MockAttacker").unwrap().contract_class();
+    let (address, _) = class.deploy(@array![pool().into()]).unwrap();
+    address
+}
+
+fn attack_step(attacker: ContractAddress, token: ContractAddress, mode: u8) -> Step {
+    Step {
+        target: attacker,
+        selector: selector!("attack"),
+        approvals: array![Approval { token, amount: IN_AMOUNT }],
+        calldata: array![mode.into(), token.into()],
+    }
+}
+
+#[test]
+#[should_panic(expected: 'JALIN_SWEEP_DURING_INVOKE')]
+fn a_hostile_target_cannot_sweep_the_funds_it_was_handed() {
+    // sweep is permissionless on purpose - a donation must not be able to wedge
+    // the router forever. That makes it the obvious way in for a target that
+    // has just been given an allowance and the router's attention.
+    let (router, _, token_in, _, _) = setup(10000, 10000);
+    let attacker = deploy_attacker();
+
+    start_cheat_caller_address(router, pool());
+    IJalinRouterDispatcher { contract_address: router }
+        .privacy_invoke(pool(), array![attack_step(attacker, token_in, 0)], array![]);
+}
+
+#[test]
+#[should_panic(expected: 'JALIN_CALLER_NOT_POOL')]
+fn a_hostile_target_cannot_start_a_second_sandwich() {
+    // I1 catches this rather than the latch: the attacker is not the pool, so
+    // the re-entrant call fails on the caller check before anything else runs.
+    //
+    // TargetCalls(1) and not start_cheat_caller_address, which would spoof the
+    // caller of *every* call into the router - including the re-entrant one.
+    // Written that way first, this test passed for the wrong reason: the inner
+    // call also looked like the pool and died later, on step count.
+    let (router, _, token_in, _, _) = setup(10000, 10000);
+    let attacker = deploy_attacker();
+
+    cheat_caller_address(router, pool(), CheatSpan::TargetCalls(1));
+    IJalinRouterDispatcher { contract_address: router }
+        .privacy_invoke(pool(), array![attack_step(attacker, token_in, 1)], array![]);
+}
+
+#[test]
+fn the_latch_lifts_once_the_plan_is_over() {
+    // A latch that never lifts is a denial of service on sweep, which is the
+    // thing sweep exists to prevent. One plan, then a donation, then a sweep.
+    let (router, _, token_in, token_out, swap) = setup(10000, 10000);
+
+    start_cheat_caller_address(router, pool());
+    IJalinRouterDispatcher { contract_address: router }
+        .privacy_invoke(
+            pool(),
+            array![swap_step(swap, token_in, IN_AMOUNT)],
+            array![Output { token: token_out, note_id: 'NOTE', min_amount: IN_AMOUNT }],
+        );
+    stop_cheat_caller_address(router);
+
+    IMockErc20Dispatcher { contract_address: token_in }.mint(router, 7);
+    IJalinRouterDispatcher { contract_address: router }.sweep(token_in);
+
+    assert(
+        IMockErc20Dispatcher { contract_address: token_in }.balance_of(treasury()) == 7,
+        'donation reached the treasury',
+    );
 }

@@ -23,6 +23,17 @@ pub trait IMockSwap<TState> {
     fn swap(ref self: TState, in_token: ContractAddress, in_amount: u256);
 }
 
+/// A target that turns on the router while the router is calling it.
+///
+/// The reentrancy latch is a security claim, and a claim with no adversary
+/// against it is a comment. This is the adversary: it is a legitimate step
+/// target, and the first thing it does with control is try to use it.
+#[starknet::interface]
+pub trait IMockAttacker<TState> {
+    /// `mode`: 0 calls `sweep`, 1 calls `privacy_invoke` again.
+    fn attack(ref self: TState, mode: u8, token: ContractAddress);
+}
+
 #[starknet::interface]
 pub trait IMockGovernor<TState> {
     fn set_paused(ref self: TState, paused: bool);
@@ -123,6 +134,46 @@ pub mod MockSwap {
             let out = pulled * self.rate_bps.read() / 10000;
             IMockErc20Dispatcher { contract_address: self.out_token.read() }
                 .transfer(caller, out);
+        }
+    }
+}
+
+#[starknet::contract]
+pub mod MockAttacker {
+    use starknet::storage::{StoragePointerReadAccess, StoragePointerWriteAccess};
+    use starknet::syscalls::call_contract_syscall;
+    use starknet::{ContractAddress, SyscallResultTrait, get_caller_address};
+
+    #[storage]
+    struct Storage {
+        pool: ContractAddress,
+    }
+
+    #[constructor]
+    fn constructor(ref self: ContractState, pool: ContractAddress) {
+        self.pool.write(pool);
+    }
+
+    #[abi(embed_v0)]
+    impl MockAttackerImpl of super::IMockAttacker<ContractState> {
+        fn attack(ref self: ContractState, mode: u8, token: ContractAddress) {
+            // The caller is the router, mid-sandwich, holding the user's funds.
+            let router = get_caller_address();
+
+            if mode == 0 {
+                // Drain what is in flight to the fee recipient. The latch is the
+                // only thing standing between a hostile target and this.
+                call_contract_syscall(router, selector!("sweep"), array![token.into()].span())
+                    .unwrap_syscall();
+            } else {
+                // Start a second sandwich from inside the first.
+                call_contract_syscall(
+                    router,
+                    selector!("privacy_invoke"),
+                    array![self.pool.read().into(), 0, 0].span(),
+                )
+                    .unwrap_syscall();
+            }
         }
     }
 }
