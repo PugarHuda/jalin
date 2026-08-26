@@ -11,9 +11,10 @@
  * Read-only, no network. External URLs are not fetched — this is about the
  * repository being consistent with itself.
  */
+import { execFileSync } from 'node:child_process'
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { join, relative, resolve, dirname } from 'node:path'
+import { join, relative, resolve, dirname, sep } from 'node:path'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
 
@@ -48,6 +49,32 @@ const MARKDOWN_LINK = /\[[^\]]*\]\(([^)\s]+)\)/g
  */
 const REPO_PATH = /(?<![\w./-])((?:docs|sdk|contracts|scripts|app|prover|e2e)\/[\w./-]+\.\w{2,5})\b/g
 
+/**
+ * Git decides what is generated.
+ *
+ * `contracts/coverage/coverage.lcov` is named by the coverage gate and exists
+ * only after a coverage run - present on a machine that has done one, absent in
+ * CI, and a broken reference in neither case. Anything gitignored is a build
+ * product, and naming one is not a claim that it is checked in.
+ */
+const NEWLINE = String.fromCharCode(10)
+
+function isGenerated(paths) {
+  if (paths.length === 0) return new Set()
+  try {
+    const out = execFileSync('git', ['check-ignore', '--stdin'], {
+      cwd: root,
+      input: paths.join(NEWLINE),
+      encoding: 'utf8',
+    })
+    return new Set(out.split(NEWLINE).filter(Boolean).map((line) => resolve(root, line.trim())))
+  } catch (error) {
+    // git exits 1 when nothing matched, which is an answer rather than a fault.
+    const out = typeof error.stdout === 'string' ? error.stdout : ''
+    return new Set(out.split(NEWLINE).filter(Boolean).map((line) => resolve(root, line.trim())))
+  }
+}
+
 const problems = []
 
 for (const file of walk(root)) {
@@ -61,7 +88,7 @@ for (const file of walk(root)) {
     try {
       statSync(target)
     } catch {
-      problems.push({ file: relative(root, file), raw })
+      problems.push({ file: relative(root, file), raw, target })
     }
   }
 
@@ -80,7 +107,12 @@ for (const file of walk(root)) {
   }
 }
 
-if (problems.length === 0) {
+// Forward slashes: git does not recognise a Windows-separated path, and every
+// entry silently came back unmatched.
+const generated = isGenerated(problems.map((p) => relative(root, p.target).split(sep).join('/')))
+const missing = problems.filter((p) => !generated.has(p.target))
+
+if (missing.length === 0) {
   console.log('Every local path this repository names exists.')
   process.exit(0)
 }
