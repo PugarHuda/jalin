@@ -37,6 +37,31 @@ jobs:
       # .next/types, which does not exist until the build has produced it.
       - run: npm run build --workspace app
 
+  e2e:
+    name: browser
+    runs-on: ubuntu-latest
+    env:
+      # A public Starknet mainnet node, so this runs on a fork with no secrets.
+      # The suite reads the chain for real - there are no fixtures in it - so
+      # without a node there is nothing to test rather than something to mock.
+      STARKNET_RPC_URL: ${{ secrets.STARKNET_RPC_URL || 'https://rpc.starknet.lava.build:443' }}
+      ROUTER_ADDRESS: '0x008498d79ca390b34a6416cc45fb375ad9b921eefd8d4531d99a2d775feb3a7e'
+      GOVERNOR_ADDRESS: '0x05bd985e794aee4c12d529ab50a68e5a40c7e28a36642b2b8e2ccdb373346984'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
   contracts:
     name: cairo
     runs-on: ubuntu-latest
@@ -80,14 +105,11 @@ jobs:
 
       - name: Deployed classes are this source
         env:
-          STARKNET_RPC_URL: ${{ secrets.STARKNET_RPC_URL }}
-        # Skipped rather than failed when no RPC secret is configured: a fork
-        # should not go red for lacking a key it was never given.
+          # Falls back to a public node rather than skipping. This check is the
+          # one that says the contracts on mainnet are the contracts you are
+          # reading, and a skipped check proves nothing.
+          STARKNET_RPC_URL: ${{ secrets.STARKNET_RPC_URL || 'https://rpc.starknet.lava.build:443' }}
         run: |
-          if [ -z "$STARKNET_RPC_URL" ]; then
-            echo "No STARKNET_RPC_URL secret; skipping the on-chain comparison."
-            exit 0
-          fi
           npm install --no-audit --no-fund
           node scripts/verify-classes.mjs
         working-directory: ${{ github.workspace }}
