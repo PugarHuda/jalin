@@ -1,6 +1,6 @@
 import 'server-only'
 import { hash, num, shortString } from 'starknet'
-import { GOVERNOR_ADDRESS } from './config'
+import { GOVERNOR_ADDRESS, ROUTER_ADDRESS, TOKENS } from './config'
 import { rpc } from './rpc'
 
 /**
@@ -48,8 +48,22 @@ export interface Proposal {
   proposedAt: number | null
 }
 
+export interface Stuck {
+  symbol: string
+  address: string
+  amount: bigint
+  decimals: number
+}
+
 export interface Governance {
   head: number
+  /**
+   * Tokens sitting on the router. Any balance here makes I4 unsatisfiable for
+   * that token, so every future plan touching it reverts until somebody sweeps.
+   * Only the tokens the app knows: a contract cannot enumerate its own
+   * balances, and neither can this.
+   */
+  stuck: Stuck[]
   params: RouterParams
   proposals: Proposal[]
   /** eta - endBlock, taken from a real proposal rather than from a config file. */
@@ -163,9 +177,38 @@ export async function readGovernance(revalidate = 60): Promise<Governance | null
     }
 
     // The first proposal, not the newest, because `proposals` is reversed below.
+    // A donation to the router wedges every future plan touching that token.
+    // The threat model describes the escape hatch; this is what makes it
+    // reachable, and reads zero when there is nothing to reach for.
+    const stuck: Stuck[] = []
+    if (ROUTER_ADDRESS) {
+      for (const token of TOKENS) {
+        try {
+          const balance = await rpc.call(
+            token.address,
+            'balanceOf',
+            [ROUTER_ADDRESS],
+            revalidate,
+          )
+          const amount = u(balance[0]) + (u(balance[1]) << 128n)
+          if (amount > 0n) {
+            stuck.push({
+              symbol: token.symbol,
+              address: token.address,
+              amount,
+              decimals: token.decimals,
+            })
+          }
+        } catch {
+          // One unreadable token must not take the whole page with it.
+        }
+      }
+    }
+
     const sample = proposals[0]
     return {
       head,
+      stuck,
       params,
       proposals: proposals.reverse(),
       timelockBlocks: sample ? sample.eta - sample.endBlock : null,

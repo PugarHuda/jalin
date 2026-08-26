@@ -128,6 +128,11 @@ costs the attacker one transfer.
 - **locked out during a plan** — a `locked` latch is held for the whole of
   `privacy_invoke`, so a hostile ERC-20 cannot call back into `sweep` mid-plan and
   push in-flight funds to the treasury
+- **reachable** — `/governance` reads the router's balance in every token the app
+  knows and offers the call when one is not zero. Permissionless is not true of a
+  function that only somebody willing to hand-encode a call can reach. The page
+  states its own blind spot: a contract cannot enumerate its own balances, so a
+  token nobody has heard of does not appear there.
 
 `MockAttacker` in `contracts/src/mocks.cairo` is a step target that does exactly
 that: handed control and an allowance, the first thing it does is call `sweep` on

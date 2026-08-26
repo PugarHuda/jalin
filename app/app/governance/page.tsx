@@ -1,8 +1,9 @@
 import Link from 'next/link'
 import { readGovernance, type Proposal, type Stage } from '@/lib/governance'
-import { GOVERNOR_ADDRESS, ROUTER_ADDRESS, label } from '@/lib/config'
+import { GOVERNOR_ADDRESS, ROUTER_ADDRESS, TOKENS, label } from '@/lib/config'
 import { Execute } from './execute'
 import { Propose } from './propose'
+import { Sweep } from './sweep'
 
 /**
  * The governor, visible at last.
@@ -194,6 +195,39 @@ export default async function Governance() {
                     proposal={proposal}
                     governor={GOVERNOR_ADDRESS}
                   />
+                ))}
+              </ul>
+            )}
+          </section>
+
+          <section className="mt-10 border-t border-thread pt-6">
+            <h2 className="font-display text-xl font-semibold">Stuck on the router</h2>
+            <p className="mt-1 max-w-2xl text-sm text-muted">
+              A plan must leave every token it touched at zero. Anyone can break that for a token
+              by transferring it straight to the router, and every later plan touching that token
+              then reverts — a denial of service costing the attacker one transfer.{' '}
+              <span className="font-mono">sweep</span> is the way out: anyone may call it, and it
+              sends to the fee recipient governance chose rather than to the caller, so calling it
+              is never profitable.
+            </p>
+
+            {governance.stuck.length === 0 ? (
+              <p className="mt-3 font-mono text-xs text-hidden">
+                Nothing stuck. Checked against the {TOKENS.length} tokens this app knows — a
+                contract cannot enumerate its own balances and neither can this page, so a token
+                it has never heard of would not show up here.
+              </p>
+            ) : (
+              <ul className="mt-3 space-y-3">
+                {governance.stuck.map((token) => (
+                  <li key={token.address} className="rounded border border-warn/40 bg-warn/10 p-3">
+                    <p className="font-mono text-xs text-warn">
+                      {(Number(token.amount) / 10 ** token.decimals).toFixed(6)} {token.symbol}{' '}
+                      sitting on the router — every plan touching {token.symbol} reverts until this
+                      is cleared.
+                    </p>
+                    <Sweep router={ROUTER_ADDRESS} token={token.address} symbol={token.symbol} />
+                  </li>
                 ))}
               </ul>
             )}

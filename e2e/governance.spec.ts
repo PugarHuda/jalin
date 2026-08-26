@@ -89,3 +89,22 @@ test('offers no execute button for a proposal that cannot execute', async ({ pag
   await expect(page.getByText(/rejected · nobody voted/)).toBeVisible()
   await expect(page.getByRole('button', { name: /^Execute #/ })).toHaveCount(0)
 })
+
+test.describe('stuck balances', () => {
+  test('reports nothing stuck, and says what it checked', async ({ page }) => {
+    await page.goto('/governance')
+
+    // The router holds nothing today. The claim has to name its own blind spot:
+    // a contract cannot enumerate its own balances, so this covers only the
+    // tokens the app knows.
+    await expect(page.getByText('Nothing stuck.')).toBeVisible()
+    await expect(page.locator('main')).toContainText(/tokens this app knows/)
+    await expect(page.getByRole('button', { name: /^Sweep / })).toHaveCount(0)
+  })
+
+  test('explains why sweeping is safe to leave open to anyone', async ({ page }) => {
+    await page.goto('/governance')
+    await expect(page.locator('main')).toContainText(/anyone may call it/i)
+    await expect(page.locator('main')).toContainText(/never profitable|not profitable/i)
+  })
+})
