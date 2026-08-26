@@ -43,7 +43,7 @@ export default defineConfig({
     // test a different page than the one that is deployed.
     command: `npm run build --workspace app && npm run start --workspace app -- --port ${PORT}`,
     url: baseURL,
-      // Never reused. A server left over from an earlier run serves HTML that
+    // Never reused. A server left over from an earlier run serves HTML that
     // names chunk files a later build has replaced, and with nosniff on, the
     // browser then refuses the stylesheet - which reads as a CSS bug in the
     // application rather than a stale process. Rebuilding costs a few seconds
