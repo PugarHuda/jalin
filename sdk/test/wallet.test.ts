@@ -147,21 +147,25 @@ test('refuses when the note count does not match the output count', () => {
   )
 })
 
-test('a shield in the same transaction comes before the withdrawal', () => {
-  // The pool applies actions in order, so a deposit placed after the withdrawal
-  // is a deposit that arrives too late to fund it.
+test('there is no way to shield and spend in one transaction', () => {
+  // Not an omission. Mainnet answers INSUFFICIENT_PRIVATE_BALANCE, and across
+  // the pool's whole life no transaction carries both a Deposit and an invoke -
+  // 342 and 247 of them respectively, zero in common. An option that builds a
+  // transaction which reverts is worse than no option.
   const actions = toWalletActions(oneOutput(), {
     router: ROUTER,
     inputs: [{ token: TOKEN_IN, amount: 1000n }],
-    deposits: [{ token: TOKEN_IN, amount: 1000n }],
     recipient: USER,
   })
 
+  assert.ok(
+    !actions.some((action) => action.type === 'deposit'),
+    'nothing here should build a deposit action',
+  )
   assert.deepEqual(
     actions.map((a) => a.type),
-    ['deposit', 'withdraw', 'transfer', 'invoke'],
+    ['withdraw', 'transfer', 'invoke'],
   )
-  assert.equal(actions[0]!.type === 'deposit' && actions[0].amount, '0x3e8')
 })
 
 test('no bigint survives into wallet calldata', () => {
@@ -190,7 +194,7 @@ test('every felt is canonical, leading zeros stripped', () => {
   const padded = '0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d'
   const actions = toWalletActions(
     { steps: [{ target: padded, selector: '0x1', approvals: [], calldata: [] }], outputs: [{ token: padded, noteId: openNote(0), minAmount: 0n }] },
-    { router: '0x008498d7', inputs: [{ token: padded, amount: 1000n }], deposits: [{ token: padded, amount: 1000n }], recipient: '0x00abc' },
+    { router: '0x008498d7', inputs: [{ token: padded, amount: 1000n }], recipient: '0x00abc' },
   )
 
   const felts = actions.flatMap((a) =>

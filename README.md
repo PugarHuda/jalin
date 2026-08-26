@@ -256,6 +256,12 @@ share, that the crowd count is bounded by the deposit count, that a real mainnet
 transaction which touched the pool without going through our router does not
 qualify. A test that asserts a fixture only proves the fixture loaded.
 
+## What we found on mainnet
+
+[`docs/what-mainnet-says.md`](./docs/what-mainnet-says.md) collects the findings
+that came from reading the chain rather than the documentation — including the
+one that removed a feature from this SDK.
+
 ## Status
 
 Built for the STRK20 Private Sprint, 14–31 August 2026. Deployed addresses,

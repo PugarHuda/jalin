@@ -54,15 +54,6 @@ export interface WalletActionArgs {
   inputs: { token: string; amount: bigint }[]
   /** Who the open notes belong to - normally the connected account. */
   recipient: string
-  /**
-   * Public funds to shield in the same transaction, before anything is spent.
-   *
-   * A plan spends notes, so a first-time user has nothing to run it with. Doing
-   * the deposit as a separate transaction would work and would also be a second
-   * public footprint for an observer to line up against the first. One
-   * transaction is both simpler and quieter.
-   */
-  deposits?: { token: string; amount: bigint }[]
 }
 
 /**
@@ -95,18 +86,14 @@ export function toWalletActions(plan: Plan, args: WalletActionArgs): Strk20Actio
 
   const actions: Strk20Action[] = []
 
-  // 0. Shield first, so the withdrawal below has something to draw on. The pool
-  // applies actions in order, so a deposit placed after the withdrawal is a
-  // deposit that arrives too late.
-  for (const deposit of args.deposits ?? []) {
-    actions.push({
-      type: 'deposit',
-      token: toFelt(deposit.token),
-      amount: toFelt(deposit.amount),
-    })
-  }
-
   // 1. Fund the router. Public, and visible as the pool paying the router.
+  //
+  // There is no deposit action here, and that is a finding rather than an
+  // omission. Shielding in the same transaction that spends the note is the
+  // obvious way to onboard somebody in one step, and it does not work: mainnet
+  // answers INSUFFICIENT_PRIVATE_BALANCE. Across the pool's whole life - 342
+  // transactions carrying a Deposit and 247 carrying an invoke - not one
+  // carries both. Shield in one transaction, spend in the next.
   for (const input of args.inputs) {
     actions.push({
       type: 'withdraw',
