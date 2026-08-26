@@ -188,6 +188,22 @@ earned.
 There is no `bridge/`. Cross-chain is not a feature of the router, it is a plan —
 which is the whole argument, and it is made in [docs/cross-chain.md](./docs/cross-chain.md).
 
+## Is the mainnet code this code?
+
+```bash
+scarb build --manifest-path contracts/Scarb.toml
+node scripts/verify-classes.mjs
+```
+
+It hashes the Sierra artifacts and compares each against the class deployed at
+the addresses in `strk20.json`. Both match, which is the only way to know that
+the source above is what runs.
+
+Worth knowing before you try it: `snforge test` overwrites the release artifact
+with a test build of the same contract. Hash that and the router does not match,
+with nothing on screen to say why — it cost a real scare here. Run `scarb build`
+after testing; the script warns when it sees test artifacts in `target/`.
+
 ## Checking your own entry
 
 ```bash
