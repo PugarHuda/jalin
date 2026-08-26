@@ -144,6 +144,14 @@ export interface Prospect {
   effectiveSet: number
   /** The effective set once this deposit is added. */
   effectiveSetAfter: number
+  /**
+   * Blocks until this cell closes and a new, empty one opens.
+   *
+   * The answer above is about the cell open right now. Sign after this many
+   * blocks and the deposit lands in the next one instead, which starts empty -
+   * so a small number here means the crowd being quoted is about to expire.
+   */
+  blocksLeftInCell: number
 }
 
 /**
@@ -159,7 +167,11 @@ export function prospectFor(
   intent: { asset: string; amount: bigint; atBlock: number },
   cellBlocks = CELL_BLOCKS,
 ): Prospect {
-  if (intent.amount <= 0n) return { headcount: 0, effectiveSet: 0, effectiveSetAfter: 0 }
+  const blocksLeftInCell = cellBlocks - (intent.atBlock % cellBlocks)
+
+  if (intent.amount <= 0n) {
+    return { headcount: 0, effectiveSet: 0, effectiveSetAfter: 0, blocksLeftInCell }
+  }
 
   const asset = BigInt(intent.asset).toString()
   const magnitude = magnitudeOf(intent.amount)
@@ -184,5 +196,6 @@ export function prospectFor(
     headcount: flows.size,
     effectiveSet: before,
     effectiveSetAfter: effectiveSet(after.values()),
+    blocksLeftInCell,
   }
 }

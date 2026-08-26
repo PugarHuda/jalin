@@ -246,7 +246,7 @@ network, and use a public node that takes no key.
 TypeScript:
 
 ```bash
-npm test                      # 69 SDK tests, no build step
+npm test                      # 71 SDK tests, no build step
 npm run test:e2e              # 95 Playwright tests against a real build
 ```
 

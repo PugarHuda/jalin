@@ -159,6 +159,26 @@ becomes sweepable dust rather than stolen funds — `sweep` sends it to the trea
 not to a caller — but it is not returned to the person whose plan produced it.
 Declare every token you expect to touch.
 
+**A redemption in flight can be front-run.** A ballot is escrowed against
+`poseidon(BALLOT_TAG, secret)` and released by presenting the secret. The release
+travels as an ordinary STRK20 invoke action, and an invoke action's target and
+calldata are public — the same fact the composer's disclosure panel states about
+every plan. So the secret is visible in the pending transaction that spends it,
+and an observer who resubmits it first takes the stake into a note of their own.
+
+The governor cannot close this. It never learns who receives the note: `note_id`
+is a placeholder the wallet resolves to a note belonging to whoever submitted the
+transaction, so there is nothing for the contract to bind the commitment to. A
+recipient chosen at cast time would bind it and would also un-anonymise the voter,
+which is the property the scheme exists for.
+
+What is left is scope. The window is one transaction wide, the amount is the
+voter's own stake rather than a pool, and a redemption that loses the race can be
+retried only by whoever still holds an unclaimed ballot — the attacker's copy
+marks it claimed, so the loss is bounded by that one stake. Treat the secret as a
+bearer instrument: it is worth exactly the stake, and it stops being worth
+anything the moment it is spent.
+
 **Malicious or broken ERC-20s.** A token that lies about `balance_of` can make the
 credited amount wrong. Since the pool pulls exactly what was approved, this harms
 the plan author. Fee-on-transfer tokens will under-deliver against `min_amount` and

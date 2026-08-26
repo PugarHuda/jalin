@@ -325,6 +325,7 @@ export default function Home() {
   const [prospect, setProspect] = useState<{
     headcount: number
     effectiveSetAfter: number
+    blocksLeftInCell: number
   } | null>(null)
 
   // The Endur run's floor comes from the vault rather than from a constant. A
@@ -892,6 +893,7 @@ export default function Home() {
                       : `${prospect.headcount} other ${prospect.headcount === 1 ? 'address is' : 'addresses are'} in the same cell — same token, same order of magnitude, same six-hour window. Your effective anonymity set would be ${prospect.effectiveSetAfter.toFixed(2)}.`,
                     'A cell, not the pool. An observer of the public leg sees the asset, the magnitude and roughly when, so only deposits agreeing on all three cover each other. The figure is a perplexity over the flow, because a cell one address dominates is not the crowd its headcount claims.',
                     'Changing the amount moves you to a different cell. Rounding to whatever your neighbours used is the cheapest privacy available here.',
+                    `This cell closes in ${prospect.blocksLeftInCell.toLocaleString()} blocks — about ${Math.round((prospect.blocksLeftInCell * 1.68) / 60)} minutes at mainnet's 1.68s. Sign after that and the deposit lands in the next one, which starts empty.`,
                   ]}
                 />
               )}
@@ -1100,8 +1102,14 @@ export default function Home() {
             Ballot secret, save it: {ballotSecret}
             <span className="mt-1 block font-sans">
               This is the only thing that redeems the stake once voting closes. It exists
-              nowhere else - not on chain, not on a server. Lose it and the stake stays in the
+              nowhere else — not on chain, not on a server. Lose it and the stake stays in the
               governor for good.
+            </span>
+            <span className="mt-2 block font-sans">
+              It is a bearer instrument. Redeeming publishes it, because an invoke action&apos;s
+              calldata is public, so whoever sees the pending transaction first can spend it
+              instead — the same window a swap has against a sandwich. It is worth exactly this
+              stake, and worth nothing once spent. Do not paste it anywhere.
             </span>
           </p>
         )}

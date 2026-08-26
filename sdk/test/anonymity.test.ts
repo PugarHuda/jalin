@@ -127,3 +127,19 @@ test('a zero deposit is not a question about crowds', () => {
   const prospect = prospectFor([], { asset: STRK, amount: 0n, atBlock: 1 })
   assert.equal(prospect.effectiveSetAfter, 0)
 })
+
+test('says how long the cell being quoted has left', () => {
+  // The crowd quoted is the one in the cell open right now. Sign after it
+  // closes and the deposit lands in an empty one, which is a different answer.
+  const early = prospectFor([], { asset: STRK, amount: 1n, atBlock: 0 })
+  assert.equal(early.blocksLeftInCell, CELL_BLOCKS)
+
+  const late = prospectFor([], { asset: STRK, amount: 1n, atBlock: CELL_BLOCKS - 1 })
+  assert.equal(late.blocksLeftInCell, 1, 'one block before the cell turns over')
+})
+
+test('the expiry is answered even when the amount is not a question', () => {
+  const none = prospectFor([], { asset: STRK, amount: 0n, atBlock: 5 })
+  assert.equal(none.effectiveSetAfter, 0)
+  assert.equal(none.blocksLeftInCell, CELL_BLOCKS - 5)
+})
