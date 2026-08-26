@@ -20,23 +20,18 @@
  */
 import { Account, RpcProvider, constants, hash, num, shortString } from 'starknet'
 import { poseidonHashMany } from '@scure/starknet'
+import { loadEnv, required } from './lib/env.mjs'
 import { readFileSync } from 'node:fs'
 import { randomBytes } from 'node:crypto'
 import { createPrivateTransfers } from '../vendor/starknet-privacy/sdk/dist/index.js'
 import { PlanBuilder, toInvokeCall } from '../sdk/src/index.ts'
 
+loadEnv(import.meta.url)
+
 // ---------------------------------------------------------------------------
 
-for (const line of readFileSync(new URL('../.env', import.meta.url), 'utf8').split('\n')) {
-  const match = /^([A-Z_]+)=(.*)$/.exec(line.trim())
-  if (match && !process.env[match[1]]) process.env[match[1]] = match[2]
-}
 
-const env = (name, required = true) => {
-  const value = process.env[name]
-  if (required && !value) throw new Error(`set ${name} in .env`)
-  return value
-}
+const env = (name, mandatory = true) => (mandatory ? required(name) : process.env[name])
 
 const [phase, ...rest] = process.argv.slice(2).filter((a) => a !== '--execute')
 const EXECUTE = process.argv.includes('--execute')

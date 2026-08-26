@@ -12,14 +12,11 @@
  * its argument means something other than "which user". Read-only either way.
  */
 import { hash, num, RpcProvider } from 'starknet'
+import { loadEnv } from './lib/env.mjs'
 import { readFileSync } from 'node:fs'
 
-try {
-  for (const line of readFileSync(new URL('../.env', import.meta.url), 'utf8').split('\n')) {
-    const match = /^([A-Z_]+)=(.*)$/.exec(line.trim())
-    if (match && !process.env[match[1]]) process.env[match[1]] = match[2]
-  }
-} catch {}
+loadEnv(import.meta.url)
+
 
 const address = process.argv[2]
 if (!address) throw new Error('usage: node scripts/check-registration.mjs 0xADDRESS')

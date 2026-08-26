@@ -13,21 +13,17 @@
  * `scarb build` after testing, or read the warning below.
  */
 import { hash, num, RpcProvider } from 'starknet'
+import { loadEnv, required } from './lib/env.mjs'
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
 
+loadEnv(import.meta.url)
+
 const root = fileURLToPath(new URL('..', import.meta.url))
 
-try {
-  for (const line of readFileSync(join(root, '.env'), 'utf8').split('\n')) {
-    const match = /^([A-Z_]+)=(.*)$/.exec(line.trim())
-    if (match && !process.env[match[1]]) process.env[match[1]] = match[2]
-  }
-} catch {}
 
-const RPC = process.env.STARKNET_RPC_URL
-if (!RPC) throw new Error('set STARKNET_RPC_URL (in .env or the environment)')
+const RPC = required('STARKNET_RPC_URL', 'any Starknet mainnet node')
 
 const targetDir = join(root, 'contracts', 'target', 'dev')
 if (!existsSync(targetDir)) {

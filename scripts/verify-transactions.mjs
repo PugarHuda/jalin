@@ -12,21 +12,15 @@
  */
 import { RpcProvider } from 'starknet'
 import { checkReceipt, describeVerdict } from '../sdk/src/index.ts'
+import { loadEnv, required } from './lib/env.mjs'
 import { readFileSync } from 'node:fs'
+
+loadEnv(import.meta.url)
 
 const root = new URL('..', import.meta.url)
 
-try {
-  for (const line of readFileSync(new URL('.env', root), 'utf8').split('\n')) {
-    const match = /^([A-Z_]+)=(.*)$/.exec(line.trim())
-    if (match && !process.env[match[1]]) process.env[match[1]] = match[2]
-  }
-} catch {
-  // Falls back to whatever is already in the environment.
-}
 
-const RPC = process.env.STARKNET_RPC_URL
-if (!RPC) throw new Error('set STARKNET_RPC_URL (in .env or the environment)')
+const RPC = required('STARKNET_RPC_URL', 'any Starknet mainnet node')
 
 const POOL =
   process.env.POOL_ADDRESS ??
