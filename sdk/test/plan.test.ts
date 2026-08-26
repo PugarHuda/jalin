@@ -3,6 +3,7 @@ import { test } from 'node:test'
 import {
   DEFAULT_LIMITS,
   PlanBuilder,
+  POOL_ADDRESS,
   encodePlan,
   openNote,
   u256,
@@ -161,4 +162,39 @@ test('says so when a portfolio has no internal anonymity', () => {
     { strategy: 'b', token: TOKEN_OUT, amount: 1n },
   ])
   assert.equal(spread.length, 2, 'each token is held by exactly one strategy')
+})
+
+test('a target that is not a felt is refused before it can be signed', () => {
+  const plan = {
+    steps: [{ target: 'not-an-address', selector: '0x1', approvals: [], calldata: [] }],
+    outputs: [],
+  }
+  assert.throws(() => validatePlan(plan as never), /step 0 target is not a felt/)
+})
+
+test('placeholders are not felts yet and are left alone', () => {
+  const plan = {
+    steps: [{ target: POOL_ADDRESS, selector: '0x1', approvals: [], calldata: [openNote(0)] }],
+    outputs: [],
+  }
+  assert.doesNotThrow(() => validatePlan(plan as never))
+})
+
+test('a value past the field prime is refused', () => {
+  const prime = 2n ** 251n + 17n * 2n ** 192n + 1n
+  const plan = {
+    steps: [{ target: '0x1', selector: '0x1', approvals: [], calldata: [prime] }],
+    outputs: [],
+  }
+  assert.throws(() => validatePlan(plan as never), /larger than the field prime/)
+})
+
+test('the field that is wrong is the field that is named', () => {
+  const plan = {
+    steps: [
+      { target: '0x1', selector: '0x1', approvals: [{ token: 'oops', amount: 1n }], calldata: [] },
+    ],
+    outputs: [],
+  }
+  assert.throws(() => validatePlan(plan as never), /step 0 approval\[0\] token/)
 })

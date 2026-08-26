@@ -305,6 +305,7 @@ export default function Home() {
   const [ballotSecret, setBallotSecret] = useState<string | null>(null)
   const [lastPayload, setLastPayload] = useState<string | null>(null)
   const [shieldHash, setShieldHash] = useState<string | null>(null)
+  const [account, setAccount] = useState<string | null>(null)
   const [verdicts, setVerdicts] = useState<Record<string, string>>({})
   const [quote, setQuote] = useState<{ shares: bigint } | null>(null)
   const [crowd, setCrowd] = useState<{ depositors: number; windowBlocks: number } | null>(null)
@@ -351,6 +352,32 @@ export default function Home() {
       return { plan: null, error: error instanceof Error ? error.message : String(error) }
     }
   }, [draft])
+
+  /**
+   * The exact wallet calls, built outside the render.
+   *
+   * It used to be built inline with `recipient: '0xYOUR_ACCOUNT'`, which is not
+   * a felt. BigInt threw during render and took the whole page down - clicking
+   * this tab on a fresh browser was a blank error screen. Two things were wrong:
+   * the stand-in, and that a throw here could reach React at all.
+   */
+  const actions = useMemo(() => {
+    if (!result.plan || !account) return null
+    try {
+      return toWalletActions(result.plan, {
+        router: ROUTER_ADDRESS,
+        inputs: [
+          {
+            token: draft.inputToken,
+            amount: toBaseUnits(draft.inputAmount, decimalsOf(draft.inputToken)),
+          },
+        ],
+        recipient: account,
+      })
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : String(error) }
+    }
+  }, [result.plan, account, draft.inputToken, draft.inputAmount])
 
   const patch = (change: Partial<Draft>) => setDraft((d) => ({ ...d, ...change }))
   const patchStep = (i: number, change: Partial<StepForm>) =>
@@ -497,6 +524,7 @@ export default function Home() {
         type: 'wallet_requestAccounts',
       })) as string[]
       if (!account) return setStatus('Wallet returned no account.')
+      setAccount(account)
 
       setStatus('Checking what this wallet supports…')
       const capability = await probe(wallet)
@@ -635,6 +663,7 @@ export default function Home() {
                 <Field label="target">
                   <input
                     value={step.target}
+                    aria-label={`Step ${i + 1} target`}
                     placeholder="0x… the DEX, market or bridge"
                     onChange={(e) => patchStep(i, { target: e.target.value })}
                     className="w-full rounded border border-thread bg-raised px-2 py-1.5 text-xs"
@@ -781,23 +810,18 @@ export default function Home() {
             </pre>
           )}
 
-          {tab === 'actions' && result.plan && (
-            <pre className="overflow-x-auto rounded border border-thread bg-raised p-3 font-mono text-xs">
-              {JSON.stringify(
-                toWalletActions(result.plan, {
-                  router: ROUTER_ADDRESS || '0xROUTER_NOT_DEPLOYED',
-                  inputs: [
-                    {
-                      token: draft.inputToken,
-                      amount: toBaseUnits(draft.inputAmount, decimalsOf(draft.inputToken)),
-                    },
-                  ],
-                  recipient: '0xYOUR_ACCOUNT',
-                }),
-                (_, v) => (typeof v === 'bigint' ? `0x${v.toString(16)}` : v),
-                2,
-              )}
-            </pre>
+          {tab === 'actions' && (
+            actions ? (
+              <pre className="overflow-x-auto rounded border border-thread bg-raised p-3 font-mono text-xs">
+                {JSON.stringify(actions, (_, v) => (typeof v === 'bigint' ? `0x${v.toString(16)}` : v), 2)}
+              </pre>
+            ) : (
+              <p className="rounded border border-thread bg-raised px-3 py-2 text-xs leading-relaxed text-muted">
+                {result.plan
+                  ? 'Connect a wallet and the exact calls appear here, recipient included. Your address is one of them, and there is no honest stand-in for it — a made-up one would show you a transaction you are not going to send. Running any of the numbered transactions below connects the wallet.'
+                  : 'Fix the plan first — the calls are derived from it.'}
+              </p>
+            )
           )}
 
           <div className="rounded border border-thread bg-raised p-4">
@@ -824,7 +848,7 @@ export default function Home() {
             )}
             <p className="mt-2 text-xs text-muted">
               {draftIncomplete
-                ? 'Fill in a target address for every step first. The presets are templates - the target is left blank on purpose, because there is no honest default for "which contract". To send something that already works, use the numbered runs below.'
+                ? 'One of the steps has no target yet. A step needs the contract it calls, and there is no honest default for which contract that is. To send something that already works, use the numbered runs below.'
                 : ROUTER_ADDRESS
                 ? 'Needs a wallet that implements wallet_strk20InvokeTransaction. Proving takes around 30 seconds.'
                 : 'The router is not deployed yet, so there is nothing to sign — but this still connects your wallet and tells you whether it implements the STRK20 methods.'}

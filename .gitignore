@@ -14,3 +14,7 @@ out/
 .vercel
 contracts/snfoundry.toml
 vendor/
+
+# Playwright
+test-results/
+playwright-report/

@@ -72,6 +72,33 @@ export interface PlanLimits {
 
 export const DEFAULT_LIMITS: PlanLimits = { maxSteps: 8, maxCalldata: 64 }
 
+/** Placeholders the wallet resolves at submit time; everything else is a felt. */
+const PLACEHOLDER = /^\$\{(?:openNoteIds\[[0-9]+\]|poolAddress)\}$/
+
+/** The Starknet field prime. A felt is a residue mod this, so 2^251+17*2^192+1. */
+const FIELD_PRIME = 2n ** 251n + 17n * 2n ** 192n + 1n
+
+/**
+ * Every value in a plan is eventually a felt on the wire.
+ *
+ * Without this a target of `not-an-address` travelled the whole way through the
+ * composer - a plan, a preview, an enabled submit button - and only failed when
+ * the wallet tried to encode it, which is after the user has been told it is
+ * ready to sign. Failing here names the field.
+ */
+function checkFelt(value: string | bigint, where: string): void {
+  if (typeof value === 'string' && PLACEHOLDER.test(value)) return
+
+  let felt: bigint
+  try {
+    felt = BigInt(value)
+  } catch {
+    throw new Error(`${where} is not a felt: ${JSON.stringify(String(value))}`)
+  }
+  if (felt < 0n) throw new Error(`${where} is negative, and a felt cannot be`)
+  if (felt >= FIELD_PRIME) throw new Error(`${where} is larger than the field prime`)
+}
+
 export function validatePlan(plan: Plan, limits: PlanLimits = DEFAULT_LIMITS): void {
   // Outputs may be empty. The pool accepts an empty Span, which is what makes
   // fire-and-forget plans expressible: bridging value off Starknet, funding an
@@ -90,10 +117,18 @@ export function validatePlan(plan: Plan, limits: PlanLimits = DEFAULT_LIMITS): v
       throw new Error(`output token ${key} is declared twice; the router rejects duplicates`)
     }
     seen.add(key)
+    checkFelt(output.token, `output ${key} token`)
     if (output.minAmount < 0n) throw new Error('minAmount cannot be negative')
   }
 
   for (const [i, step] of plan.steps.entries()) {
+    checkFelt(step.target, `step ${i} target`)
+    checkFelt(step.selector, `step ${i} selector`)
+    step.calldata.forEach((felt, j) => checkFelt(felt, `step ${i} calldata[${j}]`))
+    step.approvals.forEach((approval, j) => {
+      checkFelt(approval.token, `step ${i} approval[${j}] token`)
+    })
+
     if (step.calldata.length > limits.maxCalldata) {
       throw new Error(
         `step ${i} has ${step.calldata.length} felts of calldata, the router allows ${limits.maxCalldata}`,

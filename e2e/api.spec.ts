@@ -1,0 +1,96 @@
+import { expect, test } from '@playwright/test'
+
+/**
+ * The three read routes, against the live chain.
+ *
+ * A real, permanent mainnet transaction that deposited into the STRK20 pool
+ * without going through any contract of ours. It is the case that catches
+ * people: successful, genuinely touched the pool, and still would not score.
+ */
+const POOL_TX_NOT_OURS = '0x6abbe003a51a29b634d8615517d231d469f3e009b4a1289a0e701efef057779'
+
+/** Well-formed felt, no such transaction. Nothing can ever mine into it. */
+const ABSENT_TX = '0x' + 'a'.repeat(63) + '1'
+
+test.describe('/api/quote', () => {
+  test('quotes a deposit from the Endur vault itself', async ({ request }) => {
+    const response = await request.get('/api/quote?assets=1000000000000000000')
+    expect(response.status()).toBe(200)
+
+    const body = await response.json()
+    expect(body.assets).toBe('1000000000000000000')
+
+    const shares = BigInt(body.shares)
+    // xSTRK appreciates against STRK, so a share is worth more than an asset and
+    // one STRK must buy strictly fewer than one share. Asserting a number would
+    // assert today's exchange rate; asserting the invariant survives tomorrow.
+    expect(shares).toBeGreaterThan(0n)
+    expect(shares).toBeLessThan(10n ** 18n)
+    expect(shares).toBeGreaterThan(5n * 10n ** 17n)
+  })
+
+  test('rejects a missing amount', async ({ request }) => {
+    const response = await request.get('/api/quote')
+    expect(response.status()).toBe(400)
+    expect((await response.json()).error).toContain('assets')
+  })
+
+  test('rejects a non-integer amount', async ({ request }) => {
+    for (const bad of ['abc', '1.5', '-1', '0x10', '1e18', ' 1']) {
+      const response = await request.get(`/api/quote?assets=${encodeURIComponent(bad)}`)
+      expect(response.status(), `assets=${bad} should be refused`).toBe(400)
+    }
+  })
+
+  test('a zero quote is a real question, not an error', async ({ request }) => {
+    const response = await request.get('/api/quote?assets=0')
+    expect(response.status()).toBe(200)
+    expect((await response.json()).shares).toBe('0')
+  })
+})
+
+test.describe('/api/tx', () => {
+  test('a pool transaction that missed our router does not qualify', async ({ request }) => {
+    const response = await request.get(`/api/tx?hash=${POOL_TX_NOT_OURS}`)
+    expect(response.status()).toBe(200)
+
+    const verdict = await response.json()
+    expect(verdict.exists).toBe(true)
+    expect(verdict.succeeded).toBe(true)
+    expect(verdict.touchedPool).toBe(true)
+    expect(verdict.throughOurs).toBe(false)
+    expect(verdict.qualifies).toBe(false)
+    expect(verdict.summary).toMatch(/not through a contract of ours/)
+  })
+
+  test('a transaction that is not on chain reads as not found', async ({ request }) => {
+    const response = await request.get(`/api/tx?hash=${ABSENT_TX}`)
+    expect(response.status()).toBe(200)
+
+    const verdict = await response.json()
+    expect(verdict.exists).toBe(false)
+    expect(verdict.qualifies).toBe(false)
+  })
+
+  test('rejects anything that is not a felt', async ({ request }) => {
+    for (const bad of ['', 'nope', '0x', '0x' + 'f'.repeat(65), '123']) {
+      const response = await request.get(`/api/tx?hash=${encodeURIComponent(bad)}`)
+      expect(response.status(), `hash=${bad} should be refused`).toBe(400)
+    }
+  })
+})
+
+test.describe('/api/crowd', () => {
+  test('counts the people already in the pool', async ({ request }) => {
+    const response = await request.get('/api/crowd')
+    expect(response.status()).toBe(200)
+
+    const crowd = await response.json()
+    expect(typeof crowd.depositors).toBe('number')
+    // The crowd grows; the assertion is that it is a plausible count read from
+    // events, not a placeholder and not the whole event list counted twice.
+    expect(crowd.depositors).toBeGreaterThan(0)
+    expect(crowd.depositors).toBeLessThanOrEqual(crowd.deposits)
+    expect(crowd.head).toBeGreaterThan(13_000_000)
+  })
+})

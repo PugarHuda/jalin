@@ -9,9 +9,14 @@
     "test": "npm test --workspace @jalin/sdk",
     "test:contracts": "sh contracts/test.sh",
     "dev": "npm run dev --workspace app",
-    "build": "npm run build --workspace app"
+    "build": "npm run build --workspace app",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
     "@scure/starknet": "^2.3.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1"
   }
 }
