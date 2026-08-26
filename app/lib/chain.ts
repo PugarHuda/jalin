@@ -1,6 +1,7 @@
 import 'server-only'
 import { hash } from 'starknet'
 import { GOVERNOR_ADDRESS, ROUTER_ADDRESS } from './config'
+import { readCrowd } from './crowd-source'
 
 /**
  * Live contract state, read on the server.
@@ -54,31 +55,16 @@ export interface ChainState {
   reachable: boolean
 }
 
-/**
- * The crowd is measured by the same route the composer uses, rather than by a
- * second copy of the counting rules here. One place decides what a depositor is.
- */
-async function readCrowd(base: string): Promise<number | null> {
-  try {
-    const response = await fetch(`${base}/api/crowd`, { next: { revalidate: 300 } })
-    if (!response.ok) return null
-    const body = (await response.json()) as { depositors?: number }
-    return typeof body.depositors === 'number' ? body.depositors : null
-  } catch {
-    return null
-  }
-}
-
-export async function readChainState(base: string): Promise<ChainState> {
-  const [plans, proposals, depositors] = await Promise.all([
+export async function readChainState(): Promise<ChainState> {
+  const [plans, proposals, crowd] = await Promise.all([
     call(ROUTER_ADDRESS, 'plans_executed'),
     call(GOVERNOR_ADDRESS, 'proposal_count'),
-    readCrowd(base),
+    readCrowd(),
   ])
   return {
     plansExecuted: plans?.[0] ? Number(BigInt(plans[0])) : null,
     proposalCount: proposals?.[0] ? Number(BigInt(proposals[0])) : null,
-    depositors,
+    depositors: crowd?.depositors ?? null,
     reachable: plans !== null || proposals !== null,
   }
 }

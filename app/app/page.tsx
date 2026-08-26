@@ -1,6 +1,5 @@
 import Link from 'next/link'
 import { GOVERNOR_ADDRESS, ROUTER_ADDRESS } from '@/lib/config'
-import { headers } from 'next/headers'
 import { readChainState } from '@/lib/chain'
 
 const REPO = 'https://github.com/PugarHuda/jalin'
@@ -174,8 +173,7 @@ function Address({ label, value }: { label: string; value: string }) {
 }
 
 export default async function Landing() {
-  const host = (await headers()).get('host') ?? 'jalin-five.vercel.app'
-  const chain = await readChainState(`https://${host}`)
+  const chain = await readChainState()
 
   return (
     <main>

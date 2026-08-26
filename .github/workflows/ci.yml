@@ -1,0 +1,92 @@
+name: tests
+
+# The suite is the claim. Running it here means the claim is checked on a machine
+# that has none of this developer's state, on every push, and anyone reading the
+# repository can see whether it currently holds.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  sdk:
+    name: sdk
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      # The SDK ships TypeScript with explicit .ts specifiers so node runs it
+      # with no build step. That is the property under test as much as the logic.
+      - run: npm install --no-audit --no-fund
+      - run: npm test
+
+  app:
+    name: app builds
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install --no-audit --no-fund
+      - run: npx tsc --noEmit -p app/tsconfig.json
+      - run: npm run build --workspace app
+
+  contracts:
+    name: cairo
+    runs-on: ubuntu-latest
+    env:
+      SCARB_VERSION: 2.20.0
+      FOUNDRY_VERSION: 0.63.0
+      USC_VERSION: 2.10.0
+    steps:
+      - uses: actions/checkout@v4
+
+      # Pinned to the same versions as contracts/Dockerfile. A class hash is a
+      # function of the compiler, so an unpinned toolchain would quietly produce
+      # a different contract from the one deployed.
+      - name: Install scarb
+        run: |
+          curl -fsSL "https://github.com/software-mansion/scarb/releases/download/v${SCARB_VERSION}/scarb-v${SCARB_VERSION}-x86_64-unknown-linux-gnu.tar.gz" | tar xz -C /opt
+          echo "/opt/scarb-v${SCARB_VERSION}-x86_64-unknown-linux-gnu/bin" >> "$GITHUB_PATH"
+
+      - name: Install starknet-foundry
+        run: |
+          curl -fsSL "https://github.com/foundry-rs/starknet-foundry/releases/download/v${FOUNDRY_VERSION}/starknet-foundry-v${FOUNDRY_VERSION}-x86_64-unknown-linux-gnu.tar.gz" | tar xz -C /opt
+          echo "/opt/starknet-foundry-v${FOUNDRY_VERSION}-x86_64-unknown-linux-gnu/bin" >> "$GITHUB_PATH"
+
+      # snforge shells out to this to compile Sierra for the test runner.
+      - name: Install universal-sierra-compiler
+        run: |
+          curl -fsSL "https://github.com/software-mansion/universal-sierra-compiler/releases/download/v${USC_VERSION}/universal-sierra-compiler-v${USC_VERSION}-x86_64-unknown-linux-gnu.tar.gz" | tar xz -C /opt
+          find /opt -name universal-sierra-compiler -type f -exec dirname {} \; | head -1 >> "$GITHUB_PATH"
+
+      - run: scarb build
+        working-directory: contracts
+
+      - run: snforge test
+        working-directory: contracts
+
+      # scarb build last, because snforge overwrites the release artifact with a
+      # test build of the same contract - which is how a class hash computed
+      # after testing stops matching what was declared.
+      - run: scarb build
+        working-directory: contracts
+
+      - name: Deployed classes are this source
+        env:
+          STARKNET_RPC_URL: ${{ secrets.STARKNET_RPC_URL }}
+        # Skipped rather than failed when no RPC secret is configured: a fork
+        # should not go red for lacking a key it was never given.
+        run: |
+          if [ -z "$STARKNET_RPC_URL" ]; then
+            echo "No STARKNET_RPC_URL secret; skipping the on-chain comparison."
+            exit 0
+          fi
+          npm install --no-audit --no-fund
+          node scripts/verify-classes.mjs
+        working-directory: ${{ github.workspace }}
