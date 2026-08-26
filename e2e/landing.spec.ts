@@ -84,3 +84,30 @@ test('navigation between pages does not reload the document', async ({ page }) =
   )
   expect(survived, 'the document was replaced, so these were full page loads').toBe(true)
 })
+
+test('the trend plots time, not sample order', async ({ page }) => {
+  await page.goto('/')
+  await settled(page)
+
+  // Windows with no deposits are absent from the series. Spacing points evenly
+  // would draw those quiet stretches as if no time passed - the one thing a
+  // chart about a trend over time must not do.
+  const spacing = await page.evaluate(() => {
+    const path = document.querySelector('figure svg path')
+    if (!path) return null
+
+    const xs = (path.getAttribute('d') ?? '')
+      .split(/[ML]\s*/)
+      .filter(Boolean)
+      .map((pair) => Number(pair.trim().split(/\s+/)[0]))
+
+    const gaps = xs.slice(1).map((value, i) => Number((value - xs[i]!).toFixed(1)))
+    return { points: xs.length, distinct: new Set(gaps).size }
+  })
+
+  expect(spacing, 'the chart should be on the page').not.toBeNull()
+  expect(spacing!.points).toBeGreaterThan(3)
+  // Evenly spaced points would give exactly one distinct gap. Real data has
+  // two missing windows in forty-four, so there is more than one.
+  expect(spacing!.distinct).toBeGreaterThan(1)
+})

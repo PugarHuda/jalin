@@ -73,15 +73,31 @@ function Trend({
   const pad = { top: 12, right: 8, bottom: 20, left: 28 }
   const ceiling = Math.max(2, ...periods.map((period) => period.bestEffectiveSet))
 
-  const x = (index: number) =>
-    pad.left + (index / (periods.length - 1)) * (width - pad.left - pad.right)
+  /**
+   * Positioned by block, not by index.
+   *
+   * Slots with no deposits are absent from the series - a day nobody shielded
+   * is not a day the anonymity set was zero. Spacing the points evenly then
+   * draws those quiet stretches as if no time passed, which is the one thing a
+   * chart about a trend over time must not do. Today's data has two such gaps
+   * in forty-four points.
+   */
+  const first = periods[0]!.fromBlock
+  const span = Math.max(1, periods.at(-1)!.fromBlock - first)
+  const x = (fromBlock: number) =>
+    pad.left + ((fromBlock - first) / span) * (width - pad.left - pad.right)
   // 1 is the floor, not 0: a deposit alone in its cell is a crowd of one, and
   // there is no such thing as a crowd of zero.
   const y = (value: number) =>
     height - pad.bottom - ((value - 1) / (ceiling - 1)) * (height - pad.top - pad.bottom)
 
   const path = (pick: (period: (typeof periods)[number]) => number) =>
-    periods.map((period, index) => `${index === 0 ? 'M' : 'L'} ${x(index)} ${y(pick(period))}`).join(' ')
+    periods
+      .map(
+        (period, index) =>
+          `${index === 0 ? 'M' : 'L'} ${x(period.fromBlock).toFixed(1)} ${y(pick(period)).toFixed(1)}`,
+      )
+      .join(' ')
 
   return (
     <figure className="mt-5">
