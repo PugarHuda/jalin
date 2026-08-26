@@ -21,6 +21,15 @@ export interface Disclosure {
   warnings: string[]
 }
 
+/**
+ * A felt too large to be an amount is almost certainly an address.
+ *
+ * Starknet addresses run to 2^251; token amounts, even eighteen decimals of a
+ * whale's position, do not reach 2^160. There is no ambiguity in practice, and
+ * the cost of a false positive here is one sentence of caution.
+ */
+const ADDRESS_SHAPED = 2n ** 160n
+
 /** Amounts that look chosen rather than drawn from a crowd. */
 function isDistinctive(amount: bigint): boolean {
   if (amount === 0n) return false
@@ -39,7 +48,7 @@ export function describeDisclosure(plan: Plan): Disclosure {
 
   const visible = [
     'That the pool transferred tokens to the Jalin router, and how much.',
-    'Every contract this plan calls, and the selector it calls.',
+    'Every contract this plan calls, the selector it calls, and every felt of calldata it is called with. An invoke action carries all three in the clear.',
     'The amount credited back into a note, because the pool pulls it by allowance.',
   ]
 
@@ -68,6 +77,40 @@ export function describeDisclosure(plan: Plan): Disclosure {
         `Output ${output.token} accepts any amount above zero. A route that returns almost nothing would still succeed; set a floor.`,
       )
     }
+  }
+
+  // Calldata is public. An address sitting in it that is not one of the
+  // contracts already named is a party to the plan the plan is naming out loud,
+  // and if it is the author's own account then the pool hid nothing.
+  const named = new Set(
+    [
+      ...plan.steps.map((step) => String(BigInt(step.target))),
+      ...plan.steps.flatMap((step) => step.approvals.map((a) => String(BigInt(a.token)))),
+      ...plan.outputs.map((output) => String(BigInt(output.token))),
+    ],
+  )
+
+  const strangers = new Set<string>()
+  for (const step of plan.steps) {
+    for (const felt of step.calldata) {
+      // Placeholders are resolved by the wallet, so there is nothing to leak.
+      if (typeof felt === 'string' && felt.startsWith('${')) continue
+      let value: bigint
+      try {
+        value = BigInt(felt)
+      } catch {
+        continue
+      }
+      if (value < ADDRESS_SHAPED) continue
+      if (named.has(String(value))) continue
+      strangers.add(`0x${value.toString(16)}`)
+    }
+  }
+
+  if (strangers.size > 0) {
+    warnings.push(
+      `Calldata carries ${[...strangers].slice(0, 3).join(', ')}, which ${strangers.size === 1 ? 'is an address' : 'are addresses'} this plan does not otherwise name. Calldata is public. If one of them is your own account, the plan says so in the clear and the pool hid nothing.`,
+    )
   }
 
   const amounts = plan.steps.flatMap((step) => step.approvals.map((a) => a.amount))

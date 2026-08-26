@@ -162,3 +162,22 @@ test.describe('what governance owns', () => {
     await expect(page.locator('main')).not.toContainText('has the router paused')
   })
 })
+
+test('typing an address does not fire a request per keystroke', async ({ page }) => {
+  const calls: string[] = []
+  page.on('request', (request) => {
+    if (request.url().includes('/api/params')) calls.push(request.url())
+  })
+
+  await page.goto('/compose')
+  await page.waitForLoadState('networkidle')
+  const before = calls.length
+
+  // Every prefix of a felt is a felt, so an undebounced read fires on each of
+  // these characters.
+  await page.getByLabel('Step 1 target').fill('')
+  await page.getByLabel('Step 1 target').pressSequentially('0x28d709c875c0ceac', { delay: 30 })
+  await page.waitForTimeout(1200)
+
+  expect(calls.length - before).toBeLessThanOrEqual(3)
+})

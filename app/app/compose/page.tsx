@@ -408,14 +408,21 @@ export default function Home() {
 
   useEffect(() => {
     let cancelled = false
-    fetch(`/api/params?targets=${encodeURIComponent(targets)}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((body) => {
-        if (!cancelled && typeof body?.maxSteps === 'number') setParams(body)
-      })
-      .catch(() => {})
+
+    // Debounced, because every prefix of an address being typed is itself a
+    // valid felt - so without this it was one node call per keystroke.
+    const timer = setTimeout(() => {
+      fetch(`/api/params?targets=${encodeURIComponent(targets)}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((body) => {
+          if (!cancelled && typeof body?.maxSteps === 'number') setParams(body)
+        })
+        .catch(() => {})
+    }, 300)
+
     return () => {
       cancelled = true
+      clearTimeout(timer)
     }
   }, [targets])
 

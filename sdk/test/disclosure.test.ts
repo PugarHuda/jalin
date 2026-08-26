@@ -68,3 +68,69 @@ test('says out loud when a plan sends value away for good', () => {
   assert.ok(visible.some((v) => /left entirely/.test(v)))
   assert.ok(warnings.some((w) => /away for good/.test(w)))
 })
+
+test('an address hiding in calldata is called out, because calldata is public', () => {
+  const stranger = '0x0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef'
+  const plan = {
+    steps: [
+      {
+        target: '0x28d709c875c0ceac3dce7065bec5328186dc89fe254527084d1689910954b0a',
+        selector: '0x1',
+        approvals: [],
+        calldata: [1000n, 0n, stranger],
+      },
+    ],
+    outputs: [],
+  }
+
+  const warning = describeDisclosure(plan as never).warnings.find((line) =>
+    line.includes('Calldata carries'),
+  )
+  assert.ok(warning, 'the stranger should be named')
+  assert.ok(warning!.includes('0x123456789abcdef'), 'and named canonically')
+})
+
+test('the receiver being a contract the plan already names is not a stranger', () => {
+  // deposit(assets, receiver) with the receiver set to the vault itself. It is
+  // already listed as visible; repeating it as a warning would be noise.
+  const vault = '0x28d709c875c0ceac3dce7065bec5328186dc89fe254527084d1689910954b0a'
+  const plan = {
+    steps: [{ target: vault, selector: '0x1', approvals: [], calldata: [1000n, 0n, vault] }],
+    outputs: [],
+  }
+
+  const warnings = describeDisclosure(plan as never).warnings
+  assert.ok(!warnings.some((line) => line.includes('Calldata carries')))
+})
+
+test('a placeholder is not an address leak', () => {
+  const plan = {
+    steps: [
+      { target: '0x1', selector: '0x2', approvals: [], calldata: ['${poolAddress}'] },
+    ],
+    outputs: [],
+  }
+  const warnings = describeDisclosure(plan as never).warnings
+  assert.ok(!warnings.some((line) => line.includes('Calldata carries')))
+})
+
+test('an amount is never mistaken for an address', () => {
+  // Ten million tokens at eighteen decimals. Nowhere near 2^160.
+  const plan = {
+    steps: [
+      { target: '0x1', selector: '0x2', approvals: [], calldata: [10_000_000n * 10n ** 18n] },
+    ],
+    outputs: [],
+  }
+  const warnings = describeDisclosure(plan as never).warnings
+  assert.ok(!warnings.some((line) => line.includes('Calldata carries')))
+})
+
+test('calldata is named as public, not only the target and selector', () => {
+  const plan = {
+    steps: [{ target: '0x1', selector: '0x2', approvals: [], calldata: [] }],
+    outputs: [],
+  }
+  const visible = describeDisclosure(plan as never).visible.join(' ')
+  assert.ok(visible.includes('calldata'), 'the thing that leaked a ballot secret')
+})
