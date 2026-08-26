@@ -311,7 +311,8 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
   // shared plan rather than a preset replaced a tick later. That also removes
   // the hydration mismatch: both sides render the same thing.
   const [draft, setDraft] = useState<Draft>(shared ?? PRESETS[0]!.draft)
-  const [copied, setCopied] = useState<string | null>(null)
+  const [share, setShare] = useState<{ url: string; copied: boolean } | null>(null)
+  const [shareError, setShareError] = useState<string | null>(null)
   const [tab, setTab] = useState<'reveals' | 'calldata' | 'actions'>('reveals')
   const [status, setStatus] = useState<string | null>(null)
   const [wallets, setWallets] = useState<StarknetWindowObject[]>([])
@@ -751,13 +752,29 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
         ))}
 
         <button
-          onClick={() => {
+          onClick={async () => {
+            setShare(null)
+            setShareError(null)
+
+            let url: string
             try {
-              const url = `${window.location.origin}/compose?plan=${encodeDraft(draft)}`
-              void navigator.clipboard.writeText(url)
-              setCopied(url)
+              url = `${window.location.origin}/compose?plan=${encodeDraft(draft)}`
             } catch (error) {
-              setCopied(error instanceof Error ? error.message : String(error))
+              // The only way this throws is a plan too long to be a link, and
+              // encodeDraft says so in as many words.
+              setShareError(error instanceof Error ? error.message : String(error))
+              return
+            }
+
+            // Awaited, not fired and forgotten. `void` on this promise swallowed
+            // a denied clipboard and the page said "copied" when nothing was -
+            // and the one thing worse than a link you have to copy by hand is
+            // being told you already have it.
+            try {
+              await navigator.clipboard.writeText(url)
+              setShare({ url, copied: true })
+            } catch {
+              setShare({ url, copied: false })
             }
           }}
           className="rounded border border-dashed border-strand px-3 py-1.5 text-sm text-muted hover:border-gold"
@@ -766,12 +783,19 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
         </button>
       </div>
 
-      {copied && (
-        <p className="mt-2 break-all font-mono text-xs text-muted">
-          {copied.startsWith('http')
-            ? `copied · ${copied}`
-            : copied}
+      {shareError && (
+        <p className="mt-2 rounded border border-warn/40 bg-warn/10 px-3 py-2 text-xs text-warn">
+          {shareError}
         </p>
+      )}
+
+      {share && (
+        <div className="mt-2">
+          <p className="font-mono text-xs text-muted">
+            {share.copied ? 'copied ·' : 'the clipboard was refused, so here it is to copy ·'}
+          </p>
+          <p className="mt-1 break-all font-mono text-xs text-cloth select-all">{share.url}</p>
+        </div>
       )}
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">

@@ -159,3 +159,24 @@ test.describe('/api/crowd with an intent', () => {
     expect(crowd.cells.aloneShare).toBeLessThanOrEqual(1)
   })
 })
+
+/**
+ * Three states, and one of them is not needed here.
+ *
+ * A loading boundary renders when a segment suspends on a reader's request.
+ * Every page in this app is prerendered with ISR, so a reader is served
+ * generated HTML immediately and revalidation happens behind them - there is no
+ * moment at which anything is waiting. A `loading.tsx` was written, measured,
+ * found never to render, and deleted rather than left as decoration.
+ *
+ * The other two are real and asserted below and throughout: an empty state in
+ * words rather than a blank area, and an error boundary in app/app/error.tsx.
+ */
+test.describe('the states every page needs', () => {
+  test('every page has an empty state rather than a blank area', async ({ page }) => {
+    await page.goto('/governance')
+    // No proposal has ever been executed and nothing is stuck; both say so in
+    // words instead of rendering an empty list.
+    await expect(page.getByText('Nothing stuck.')).toBeVisible()
+  })
+})

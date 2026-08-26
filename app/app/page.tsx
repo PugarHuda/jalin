@@ -285,6 +285,12 @@ function Address({ label, value }: { label: string; value: string }) {
  * Stated rather than inherited. Without it the route's cache life came from
  * whichever fetch happened to be shortest, and one uncacheable call was enough
  * to prerender this page with no chain state on it at all.
+ *
+ * It is also why there is no loading.tsx. A loading boundary renders when a
+ * segment suspends on a reader's request; with ISR the reader gets generated
+ * HTML at once and revalidation happens behind them, so the boundary never
+ * renders. One was written, measured against a deliberately delayed
+ * navigation, and deleted.
  */
 export const revalidate = 60
 
