@@ -131,3 +131,73 @@ export function countDistinct(hashes: string[]): number {
   }
   return seen.size
 }
+
+export interface Manifest {
+  transactions: string[]
+  contracts: string[]
+  demoVideo: string
+  demoUrl: string
+}
+
+export type ManifestResult =
+  | { ok: true; manifest: Manifest }
+  | { ok: false; reason: string }
+
+/**
+ * Reads a strk20.json, or says why it cannot.
+ *
+ * Shared by the offline checker and the web one so a team gets the same answer
+ * whichever they use. Pure, because these branches only run when a file is
+ * already wrong, and that is exactly where untested code rots.
+ *
+ * The null case is not hypothetical: `JSON.parse('null')` succeeds and returns
+ * null, so reading a property off the result is a TypeError - a crash for a
+ * file anybody can commit and hand to a public endpoint.
+ */
+export function parseManifest(
+  text: string,
+  limits: { transactions: number; contracts: number } = { transactions: 20, contracts: 16 },
+): ManifestResult {
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(text)
+  } catch {
+    return { ok: false, reason: 'that file is not JSON' }
+  }
+
+  // A string, a number and an array all survive property access and would read
+  // as an empty manifest. Only an object is one.
+  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+    return { ok: false, reason: 'strk20.json must be a JSON object' }
+  }
+
+  const raw = parsed as Record<string, unknown>
+
+  const felts = (value: unknown, limit: number, field: string): string[] | string => {
+    if (value === undefined || value === null) return []
+    if (!Array.isArray(value)) return `${field} must be an array`
+    if (value.length > limit) return `${field} lists more than ${limit} entries`
+    for (const entry of value) {
+      if (typeof entry !== 'string' || !/^0x[0-9a-fA-F]{1,64}$/.test(entry)) {
+        return `${field} contains something that is not a felt`
+      }
+    }
+    return value as string[]
+  }
+
+  const transactions = felts(raw.transactions, limits.transactions, 'transactions')
+  if (typeof transactions === 'string') return { ok: false, reason: transactions }
+
+  const contracts = felts(raw.contracts, limits.contracts, 'contracts')
+  if (typeof contracts === 'string') return { ok: false, reason: contracts }
+
+  return {
+    ok: true,
+    manifest: {
+      transactions,
+      contracts,
+      demoVideo: typeof raw.demo_video === 'string' ? raw.demo_video : '',
+      demoUrl: typeof raw.demo_url === 'string' ? raw.demo_url : '',
+    },
+  }
+}

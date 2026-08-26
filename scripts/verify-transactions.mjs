@@ -11,7 +11,13 @@
  * Read-only. It sends nothing and needs no key.
  */
 import { RpcProvider } from 'starknet'
-import { checkReceipt, countDistinct, describeVerdict, findDuplicates } from '../sdk/src/index.ts'
+import {
+  checkReceipt,
+  countDistinct,
+  describeVerdict,
+  findDuplicates,
+  parseManifest,
+} from '../sdk/src/index.ts'
 import { loadEnv, required } from './lib/env.mjs'
 import { readFileSync } from 'node:fs'
 
@@ -29,8 +35,17 @@ const POOL =
 // A path argument lets this be pointed at somebody else's manifest, which is
 // also how its own positive and negative paths were checked.
 const manifestPath = process.argv[2] ?? new URL('strk20.json', root)
-const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
-const ours = manifest.contracts ?? []
+// The same rule the web checker applies, so a team gets one answer whichever
+// they run. It also refuses `null`, which JSON.parse accepts and every read
+// after would turn into a stack trace instead of a sentence.
+const read = parseManifest(readFileSync(manifestPath, 'utf8'))
+if (!read.ok) {
+  console.error(`${manifestPath}: ${read.reason}`)
+  process.exit(1)
+}
+
+const manifest = read.manifest
+const ours = manifest.contracts
 const provider = new RpcProvider({ nodeUrl: RPC })
 
 const short = (v) => `${String(v).slice(0, 12)}…${String(v).slice(-6)}`
@@ -42,10 +57,10 @@ async function check(hash) {
   } catch {
     // Absent is a verdict, not an error.
   }
-  return { hash, ...checkReceipt(receipt, { pool: POOL, ours: manifest.contracts ?? [] }) }
+  return { hash, ...checkReceipt(receipt, { pool: POOL, ours }) }
 }
 
-const hashes = manifest.transactions ?? []
+const hashes = manifest.transactions
 
 console.log(`pool      ${short(POOL)}`)
 console.log(`contracts ${ours.length ? ours.map(short).join(', ') : 'none declared'}`)
@@ -84,7 +99,7 @@ const good = results.filter((r) => r.qualifies).length
 
 console.log(`\n${good} of ${results.length} qualify.`)
 
-if (!manifest.demo_video) console.log('demo_video is empty, and it is needed to be scored.')
-if (!manifest.demo_url) console.log('demo_url is empty; the hub can also detect it from the repository.')
+if (!manifest.demoVideo) console.log('demo_video is empty, and it is needed to be scored.')
+if (!manifest.demoUrl) console.log('demo_url is empty; the hub can also detect it from the repository.')
 
 process.exit(good >= 3 ? 0 : 1)

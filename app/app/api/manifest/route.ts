@@ -3,6 +3,7 @@ import {
   countDistinct,
   describeVerdict,
   findDuplicates,
+  parseManifest,
   type Verdict,
 } from '@jalin/sdk'
 import { RpcError, rpc } from '@/lib/rpc'
@@ -35,24 +36,6 @@ const MAX_TRANSACTIONS = 20
 /** A manifest is a small JSON file; anything larger is not one. */
 const MAX_BYTES = 64 * 1024
 
-interface Manifest {
-  transactions?: unknown
-  contracts?: unknown
-  demo_video?: unknown
-  demo_url?: unknown
-}
-
-function felts(value: unknown, limit: number): string[] | null {
-  if (!Array.isArray(value)) return null
-  if (value.length > limit) return null
-  const out: string[] = []
-  for (const entry of value) {
-    if (typeof entry !== 'string' || !/^0x[0-9a-fA-F]{1,64}$/.test(entry)) return null
-    out.push(entry)
-  }
-  return out
-}
-
 export async function GET(request: Request) {
   const params = new URL(request.url).searchParams
   const owner = params.get('owner')?.trim() ?? ''
@@ -68,7 +51,7 @@ export async function GET(request: Request) {
 
   const source = `https://raw.githubusercontent.com/${owner}/${repo}/${ref}/strk20.json`
 
-  let manifest: Manifest
+  let text: string
   try {
     const response = await fetch(source, {
       headers: { accept: 'application/json' },
@@ -86,27 +69,26 @@ export async function GET(request: Request) {
       return Response.json({ error: `GitHub answered ${response.status}`, source }, { status: 502 })
     }
 
-    const text = await response.text()
+    text = await response.text()
     if (text.length > MAX_BYTES) {
       return Response.json({ error: 'that file is too large to be a manifest' }, { status: 413 })
     }
-    manifest = JSON.parse(text) as Manifest
   } catch (error) {
     const timedOut = error instanceof Error && error.name === 'TimeoutError'
     return Response.json(
-      { error: timedOut ? 'GitHub did not answer in time' : 'that file is not JSON', source },
+      { error: timedOut ? 'GitHub did not answer in time' : 'could not reach GitHub', source },
       { status: 502 },
     )
   }
 
-  const transactions = felts(manifest.transactions ?? [], MAX_TRANSACTIONS)
-  const contracts = felts(manifest.contracts ?? [], 16)
-  if (!transactions || !contracts) {
-    return Response.json(
-      { error: 'transactions and contracts must be arrays of felts', source },
-      { status: 422 },
-    )
+  // Shape checking lives in the SDK, shared with the offline checker, so a team
+  // gets the same answer whichever they run.
+  const read = parseManifest(text, { transactions: MAX_TRANSACTIONS, contracts: 16 })
+  if (!read.ok) {
+    return Response.json({ error: read.reason, source }, { status: 422 })
   }
+
+  const { transactions, contracts } = read.manifest
 
   // A manifest naming the same transaction three times has one transaction in
   // it. Answering "3 of 3 would count" tells a team exactly the thing that gets
@@ -147,7 +129,7 @@ export async function GET(request: Request) {
     duplicates,
     /** The sprint asks for three that count. */
     enough: counted >= 3,
-    hasDemoVideo: typeof manifest.demo_video === 'string' && manifest.demo_video.length > 0,
+    hasDemoVideo: read.manifest.demoVideo.length > 0,
     results,
   })
 }
