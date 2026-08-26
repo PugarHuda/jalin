@@ -347,10 +347,12 @@ export default async function Landing() {
               {chain.depositors !== null && (
                 <div>
                   <div className="font-display text-3xl font-semibold tabular-nums">
-                    {chain.depositors}
+                    {chain.depositorsAreAFloor ? `${chain.depositors}+` : chain.depositors}
                   </div>
                   <div className="mt-1 font-mono text-xs text-muted">
-                    addresses in the crowd, counted from the pool&apos;s own deposits
+                    {chain.depositorsAreAFloor
+                      ? 'addresses in the crowd — at least, the count stopped at the page cap'
+                      : "addresses in the crowd, counted from the pool's own deposits"}
                   </div>
                 </div>
               )}

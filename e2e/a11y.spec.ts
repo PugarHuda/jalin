@@ -57,8 +57,15 @@ for (const path of ['/', '/compose']) {
 /**
  * Deque's axe, the same engine behind most accessibility audits. The hand-written
  * checks above encode what this project got wrong before; axe covers the long
- * tail nobody thinks to check — contrast ratios, ARIA that contradicts itself,
- * landmarks, form associations.
+ * tail nobody thinks to check — ARIA that contradicts itself, landmarks, form
+ * associations, links distinguished only by colour.
+ *
+ * `color-contrast` is off here and measured in contrast.spec.ts instead. The
+ * content sits over `.warp`, a fixed layer of masked gradient stripes, and axe
+ * cannot resolve that to one opaque background: it answered `incomplete` on one
+ * machine and `violation` on another for the same pixels. Neither is a
+ * measurement. The replacement reads the palette off the live page and puts
+ * every pair through the WCAG formula, worst case included.
  */
 for (const path of ['/', '/compose']) {
   test(`${path} passes axe at WCAG 2.1 AA`, async ({ page }) => {
@@ -68,6 +75,7 @@ for (const path of ['/', '/compose']) {
     const { default: AxeBuilder } = await import('@axe-core/playwright')
     const results = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+      .disableRules(['color-contrast'])
       .analyze()
 
     // Named rather than counted: a number tells you it broke, the list tells you

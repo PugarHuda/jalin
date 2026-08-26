@@ -102,7 +102,7 @@ jobs:
 
       # The fork tests read mainnet through a public node, so this needs network
       # but no key.
-      - run: snforge test --coverage
+      - run: snforge test --coverage --profile coverage
         working-directory: contracts
 
       - name: Every contract line runs

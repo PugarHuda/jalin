@@ -26,6 +26,12 @@ const MAX_PAGES = 10
 export interface CrowdReading extends Crowd {
   windowBlocks: number
   head: number
+  /**
+   * True when the page cap was reached and there were still events left. The
+   * count is then a floor, not a total, and the page has to say so - a silent
+   * cap reads as "we counted everything" when it did not.
+   */
+  truncated: boolean
 }
 
 export async function readCrowd(revalidate = 300): Promise<CrowdReading | null> {
@@ -60,13 +66,14 @@ export async function readCrowd(revalidate = 300): Promise<CrowdReading | null> 
       pages += 1
       if (!token) break
     }
+    const truncated = Boolean(token)
 
     const crowd = countDepositors(events, {
       paymaster: num.toHex(PAYMASTER),
       feeCollector: collector?.[0],
     })
 
-    return { ...crowd, windowBlocks: CROWD_WINDOW_BLOCKS, head }
+    return { ...crowd, windowBlocks: CROWD_WINDOW_BLOCKS, head, truncated }
   } catch {
     return null
   }

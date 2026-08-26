@@ -633,7 +633,7 @@ export default function Home() {
             key={preset.name}
             onClick={() => setDraft(preset.draft)}
             title={preset.blurb}
-            className="rounded border border-thread bg-raised px-3 py-1.5 text-sm hover:border-gold"
+            className="rounded border border-strand bg-raised px-3 py-1.5 text-sm hover:border-gold"
           >
             {preset.name}
           </button>
@@ -712,7 +712,7 @@ export default function Home() {
                 ],
               })
             }
-            className="rounded border border-dashed border-thread px-3 py-1.5 text-sm text-muted hover:border-gold"
+            className="rounded border border-dashed border-strand px-3 py-1.5 text-sm text-muted hover:border-gold"
           >
             + step
           </button>
@@ -828,7 +828,7 @@ export default function Home() {
             <button
               onClick={() => pickWallet(null)}
               disabled={!result.plan || draftIncomplete}
-              className="rounded-sm px-4 py-2 text-sm font-medium transition-colors enabled:bg-gold enabled:text-ground enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:border disabled:border-thread disabled:text-muted"
+              className="rounded-sm px-4 py-2 text-sm font-medium transition-colors enabled:bg-gold enabled:text-ground enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:border disabled:border-strand disabled:text-muted"
             >
               {ROUTER_ADDRESS ? 'Sign and submit' : 'Check wallet support'}
             </button>
@@ -838,7 +838,7 @@ export default function Home() {
                   <li key={wallet.id}>
                     <button
                       onClick={() => execute(wallet)}
-                      className="w-full rounded border border-thread px-3 py-2 text-left text-sm hover:border-gold"
+                      className="w-full rounded border border-strand px-3 py-2 text-left text-sm hover:border-gold"
                     >
                       {wallet.name}
                     </button>
@@ -909,7 +909,7 @@ export default function Home() {
             <button
               onClick={() => pickWallet(-1)}
               disabled={!ROUTER_ADDRESS}
-              className="shrink-0 rounded border border-thread px-3 py-1 text-xs hover:border-gold disabled:opacity-40"
+              className="shrink-0 rounded border border-strand px-3 py-1 text-xs hover:border-gold disabled:opacity-40"
             >
               {shieldHash ? 'shield again' : `shield · ${Number(SHIELD.amount) / 1e18} STRK`}
             </button>
@@ -940,7 +940,7 @@ export default function Home() {
                 <button
                   onClick={() => pickWallet(i)}
                   disabled={!ROUTER_ADDRESS}
-                  className="shrink-0 rounded border border-thread px-3 py-1 text-xs hover:border-gold disabled:opacity-40"
+                  className="shrink-0 rounded border border-strand px-3 py-1 text-xs hover:border-gold disabled:opacity-40"
                 >
                   {hashes[i] ? 'run again' : `run · ${Number(run.amount) / 1e18} STRK`}
                 </button>

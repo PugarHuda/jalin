@@ -68,6 +68,12 @@ input,
 select,
 textarea {
   color: var(--cloth);
+  /* WCAG 1.4.11: a control's boundary is a UI component and needs 3:1 against
+     what is behind it. --thread is 1.47 against the ground - fine for a rule
+     between two paragraphs, invisible as the edge of a text field. --strand
+     is 3.6, and is already the colour the diagram uses for a thread you are
+     meant to see. */
+  border-color: var(--strand);
 }
 
 ::placeholder {

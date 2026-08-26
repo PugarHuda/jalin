@@ -21,7 +21,13 @@ test = "snforge test"
 # What cairo-coverage needs to map Sierra back to lines of Cairo. Inlining is
 # avoided rather than disabled: an inlined function has no line of its own, so
 # coverage would report it as never run.
-[profile.dev.cairo]
+#
+# Its own profile, because these settings change the compiled output. Putting
+# them on `dev` changed every class hash, and the check that says the contracts
+# on mainnet are the contracts in this repository started failing - correctly,
+# because they no longer were. Coverage runs as `snforge test --coverage -P
+# coverage`; everything else stays on the profile the deployed classes came from.
+[profile.coverage.cairo]
 unstable-add-statements-code-locations-debug-info = true
 unstable-add-statements-functions-debug-info = true
 inlining-strategy = "avoid"

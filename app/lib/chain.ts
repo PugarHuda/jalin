@@ -26,6 +26,8 @@ export interface ChainState {
   plansExecuted: number | null
   proposalCount: number | null
   depositors: number | null
+  /** The crowd count hit the page cap, so it is a floor rather than a total. */
+  depositorsAreAFloor: boolean
   reachable: boolean
 }
 
@@ -39,6 +41,7 @@ export async function readChainState(): Promise<ChainState> {
     plansExecuted: plans?.[0] ? Number(BigInt(plans[0])) : null,
     proposalCount: proposals?.[0] ? Number(BigInt(proposals[0])) : null,
     depositors: crowd?.depositors ?? null,
+    depositorsAreAFloor: crowd?.truncated ?? false,
     reachable: plans !== null || proposals !== null,
   }
 }
