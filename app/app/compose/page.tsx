@@ -306,6 +306,7 @@ export default function Home() {
   const [lastPayload, setLastPayload] = useState<string | null>(null)
   const [shieldHash, setShieldHash] = useState<string | null>(null)
   const [quote, setQuote] = useState<{ shares: bigint } | null>(null)
+  const [crowd, setCrowd] = useState<{ depositors: number; windowBlocks: number } | null>(null)
 
   // The Endur run's floor comes from the vault rather than from a constant. A
   // constant cannot know the share price moved, so it is either too loose to
@@ -318,6 +319,21 @@ export default function Home() {
       .then((r) => (r.ok ? r.json() : null))
       .then((body) => {
         if (!cancelled && body?.shares) setQuote({ shares: BigInt(body.shares) })
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  // The size of the crowd is the one privacy number every tool asks you to
+  // assume. It is on chain, so it is measured rather than asserted.
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/crowd')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((body) => {
+        if (!cancelled && typeof body?.depositors === 'number') setCrowd(body)
       })
       .catch(() => {})
     return () => {
@@ -725,6 +741,16 @@ export default function Home() {
               <Group title="Visible" colour="text-visible" items={disclosure.visible} />
               {disclosure.warnings.length > 0 && (
                 <Group title="Gives it back" colour="text-warn" items={disclosure.warnings} />
+              )}
+              {crowd && (
+                <Group
+                  title="The crowd"
+                  colour="text-hidden"
+                  items={[
+                    `${crowd.depositors} distinct addresses shielded into the pool in the last ${crowd.windowBlocks.toLocaleString()} blocks. That is the set you are standing in, counted from Deposit events rather than assumed.`,
+                    'Withdrawals are not counted. Most of them name the fee collector or the paymaster that relays gas, and a withdrawal only means someone left if its destination is a person.',
+                  ]}
+                />
               )}
             </div>
           )}
