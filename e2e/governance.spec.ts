@@ -7,6 +7,14 @@ test.describe('governance', () => {
     await page.goto('/governance')
   })
 
+  test('is not serving the failure fallback', async ({ page }) => {
+    // This page once shipped "could not be read" as its prerendered HTML: a
+    // blanket catch swallowed Next's dynamic-usage signal, so the route was
+    // built static with the failure branch baked in.
+    await expect(page.locator('main')).not.toContainText('could not be read')
+    await expect(page.getByText('What the router is running on')).toBeVisible()
+  })
+
   test('shows the parameters the router is actually running on', async ({ page }) => {
     // Read from the governor, not from a config file — so the page has to agree
     // with what the contract answers.

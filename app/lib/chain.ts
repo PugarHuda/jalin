@@ -1,4 +1,5 @@
 import 'server-only'
+import { unstable_rethrow } from 'next/navigation'
 import { GOVERNOR_ADDRESS, ROUTER_ADDRESS } from './config'
 import { readCrowd } from './crowd-source'
 import { rpc } from './rpc'
@@ -17,7 +18,8 @@ async function read(contract: string, entrypoint: string): Promise<string[] | nu
   if (!contract) return null
   try {
     return await rpc.call(contract, entrypoint, [], 60)
-  } catch {
+  } catch (error) {
+    unstable_rethrow(error)
     return null
   }
 }

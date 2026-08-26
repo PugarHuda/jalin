@@ -187,6 +187,13 @@ function Address({ label, value }: { label: string; value: string }) {
   )
 }
 
+/**
+ * Stated rather than inherited. Without it the route's cache life came from
+ * whichever fetch happened to be shortest, and one uncacheable call was enough
+ * to prerender this page with no chain state on it at all.
+ */
+export const revalidate = 60
+
 export default async function Landing() {
   const chain = await readChainState()
 

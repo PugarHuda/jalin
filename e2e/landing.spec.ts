@@ -30,6 +30,15 @@ test.describe('landing', () => {
     await expect(page.locator('body')).toContainText('hides in')
   })
 
+  test('carries chain state rather than an empty shell', async ({ page }) => {
+    await page.goto('/')
+
+    // The whole block is conditional on the chain being reachable, so its
+    // absence is how a page that failed to read looks - and it looks fine.
+    await expect(page.getByText('plans executed, read from the router')).toBeVisible()
+    await expect(page.getByText('governance proposals, read from the governor')).toBeVisible()
+  })
+
   test('leads to the composer', async ({ page }) => {
     await page.goto('/')
     await page.getByRole('link', { name: /compose|open|try|composer/i }).first().click()

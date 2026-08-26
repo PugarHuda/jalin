@@ -1,4 +1,5 @@
 import 'server-only'
+import { unstable_rethrow } from 'next/navigation'
 import { hash, num } from 'starknet'
 import {
   countDepositors,
@@ -66,7 +67,7 @@ export interface DepositReading {
 /** Every Deposit in the window, read once so callers do not each fetch them. */
 export async function readDeposits(revalidate = 300): Promise<DepositReading | null> {
   try {
-    const head = await rpc.blockNumber()
+    const head = await rpc.blockNumber(revalidate)
     const selector = num.toHex(hash.starknetKeccak('Deposit'))
 
     // Read the fee collector rather than hardcoding it, so the exclusion stays
@@ -99,7 +100,12 @@ export async function readDeposits(revalidate = 300): Promise<DepositReading | n
     const truncated = Boolean(token)
 
     return { events, head, truncated, feeCollector: collector?.[0] }
-  } catch {
+  } catch (error) {
+    // Next signals "this route is dynamic" by throwing. Swallowing that leaves
+    // it thinking the page is static, and it ships this function's failure
+    // fallback as the prerendered HTML - which is how /governance shipped
+    // "could not be read" to every first visitor.
+    unstable_rethrow(error)
     return null
   }
 }

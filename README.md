@@ -246,11 +246,11 @@ network, and use a public node that takes no key.
 TypeScript:
 
 ```bash
-npm test                      # 76 SDK tests, no build step
+npm test                      # 84 SDK tests, no build step
 npm run typecheck             # tsc over the whole SDK, imported or not
 npm run lint                  # eslint over the app
 npm run check:links           # every path this repository names
-npm run test:e2e              # 102 Playwright tests against a real build
+npm run test:e2e              # 104 Playwright tests against a real build
 ```
 
 The browser suite has no fixtures in it. It reads the live chain, so it asserts

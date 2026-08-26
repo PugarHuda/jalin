@@ -1,5 +1,6 @@
 import 'server-only'
 import { hash } from 'starknet'
+import { interpretRpc } from '@jalin/sdk'
 
 /**
  * One place that talks to a Starknet node.
@@ -19,6 +20,12 @@ import { hash } from 'starknet'
  */
 const TIMEOUT_MS = 15_000
 
+/** Any URL, gone. An endpoint in a log is an endpoint in a screenshot. */
+function redact(value: unknown): string {
+  const text = value instanceof Error ? `${value.name}: ${value.message}` : String(value)
+  return text.replace(/https?:\/\/\S+/g, '<rpc endpoint>')
+}
+
 export class RpcError extends Error {
   constructor(
     message: string,
@@ -36,9 +43,14 @@ function endpoint(): string {
 }
 
 async function send<T>(method: string, params: unknown, revalidate?: number): Promise<T> {
+  // Resolved before the try. Inside it, the "no endpoint configured" error was
+  // caught by the transport handler and rethrown as a transport failure, so a
+  // route that distinguishes 503 from 502 answered the wrong one.
+  const url = endpoint()
+
   let response: Response
   try {
-    response = await fetch(endpoint(), {
+    response = await fetch(url, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ id: 1, jsonrpc: '2.0', method, params }),
@@ -46,26 +58,39 @@ async function send<T>(method: string, params: unknown, revalidate?: number): Pr
       ...(revalidate === undefined ? { cache: 'no-store' } : { next: { revalidate } }),
     })
   } catch (cause) {
-    const timedOut = cause instanceof Error && cause.name === 'TimeoutError'
+    // Neither the response nor the log may carry the endpoint: it holds an API
+    // key. Next's own DynamicServerError quotes the whole fetch URL in its
+    // message, so redacting on the way to the log is not optional - this logged
+    // the key once before it was caught.
+    console.error('[jalin] rpc transport failure', method, redact(cause))
     throw new RpcError(
-      timedOut
+      cause instanceof Error && cause.name === 'TimeoutError'
         ? `the node did not answer within ${TIMEOUT_MS / 1000}s`
-        : `could not reach the node: ${String(cause)}`,
+        : 'could not reach the node',
       'transport',
     )
   }
 
-  const body = (await response.json()) as { result?: T; error?: { message?: string } }
-  if (body.error || body.result === undefined) {
-    // Carry the node's own message. "vault call failed" told us nothing for two
+  // Read as text and interpret. `.json()` on a node that answered "Must be
+  // authenticated!" throws a SyntaxError about an unexpected token, outside the
+  // catch above, and the status code that explains it never reaches anyone.
+  const outcome = interpretRpc<T>(response.status, await response.text(), method)
+  if (!outcome.ok) {
+    // The node's own message. "vault call failed" told us nothing for two
     // deploys while the real answer was sitting in this field.
-    throw new RpcError(body.error?.message ?? `${method} returned no result`, 'node')
+    throw new RpcError(outcome.message, outcome.kind)
   }
-  return body.result
+  return outcome.result
 }
 
 export const rpc = {
-  blockNumber: () => send<number>('starknet_blockNumber', {}),
+  /**
+   * Takes a revalidate like every other read here, and did not until now. A
+   * no-store fetch inside a page render makes the route dynamic, which Next
+   * signals by throwing during prerender - so the one call that could not be
+   * cached decided the caching of every page that reads the chain.
+   */
+  blockNumber: (revalidate?: number) => send<number>('starknet_blockNumber', {}, revalidate),
 
   /**
    * Calldata is normalised to canonical hex here. starknet.js does this for you

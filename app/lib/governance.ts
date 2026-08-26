@@ -1,4 +1,5 @@
 import 'server-only'
+import { unstable_rethrow } from 'next/navigation'
 import { hash, num, shortString } from 'starknet'
 import { GOVERNOR_ADDRESS, ROUTER_ADDRESS, TOKENS } from './config'
 import { rpc } from './rpc'
@@ -100,7 +101,7 @@ export async function readGovernance(revalidate = 60): Promise<Governance | null
 
   try {
     const [head, rawParams, rawCount] = await Promise.all([
-      rpc.blockNumber(),
+      rpc.blockNumber(revalidate),
       rpc.call(GOVERNOR_ADDRESS, 'params', [], revalidate),
       rpc.call(GOVERNOR_ADDRESS, 'proposal_count', [], revalidate),
     ])
@@ -214,7 +215,12 @@ export async function readGovernance(revalidate = 60): Promise<Governance | null
       timelockBlocks: sample ? sample.eta - sample.endBlock : null,
       votingBlocks: sample?.proposedAt ? sample.endBlock - sample.proposedAt : null,
     }
-  } catch {
+  } catch (error) {
+    // Next signals "this route is dynamic" by throwing. Swallowing that leaves
+    // it thinking the page is static, and it ships this function's failure
+    // fallback as the prerendered HTML - which is how /governance shipped
+    // "could not be read" to every first visitor.
+    unstable_rethrow(error)
     return null
   }
 }
@@ -224,7 +230,12 @@ function readShortString(felt: string): string | null {
   try {
     const decoded = shortString.decodeShortString(felt)
     return /^[\x20-\x7e]+$/.test(decoded) ? decoded : null
-  } catch {
+  } catch (error) {
+    // Next signals "this route is dynamic" by throwing. Swallowing that leaves
+    // it thinking the page is static, and it ships this function's failure
+    // fallback as the prerendered HTML - which is how /governance shipped
+    // "could not be read" to every first visitor.
+    unstable_rethrow(error)
     return null
   }
 }
