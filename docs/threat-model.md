@@ -193,8 +193,13 @@ revert, which is the correct outcome rather than a silent loss.
 action. It does not hide that an action happened. The pool's withdraw leg to the
 router and the router's calls to a DEX are public, and amounts are public. Timing
 correlation between a shield and a plan is a real deanonymisation route, and the
-size of the anonymity set is a property of the pool, not of this contract. See
-`docs/privacy-notes.md`.
+size of the anonymity set is a property of the pool, not of this contract.
+
+How large that set actually is, measured rather than assumed, is in
+[what-mainnet-says.md](./what-mainnet-says.md): the median deposit lands in a cell
+whose effective anonymity set is 1.00. The composer says so for your specific
+amount before you sign, because a privacy tool that lets you believe otherwise is
+worse than none.
 
 **Governance capture.** Ballot weight is stake routed through the pool. Enough stake
 buys a fee change or a deny-list entry, bounded by the timelock and by `fee_bps`

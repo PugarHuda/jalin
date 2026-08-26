@@ -24,6 +24,11 @@ jobs:
       - run: npm install --no-audit --no-fund
       - run: npm test
 
+      # Every path this repository names, checked against the repository. A
+      # comment pointing at a document nobody wrote sends the reader looking for
+      # an explanation that does not exist; two were live before this ran.
+      - run: npm run check:links
+
   app:
     name: app builds
     runs-on: ubuntu-latest

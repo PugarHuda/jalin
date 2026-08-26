@@ -11,7 +11,8 @@
     "dev": "npm run dev --workspace app",
     "build": "npm run build --workspace app",
     "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui"
+    "test:e2e:ui": "playwright test --ui",
+    "check:links": "node scripts/check-links.mjs"
   },
   "dependencies": {
     "@scure/starknet": "^2.3.0"

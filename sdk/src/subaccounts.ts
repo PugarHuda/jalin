@@ -11,7 +11,8 @@
  * `transfers.build().subaccounts(dappName).invoke(...)`, backed by the
  * `sub_account_anonymizer` package. The Wallet API route does not exist yet, so
  * this path requires holding a viewing key rather than delegating to a wallet.
- * See docs/keys.md for how the demo keeps that key in the browser.
+ * The demo does not hold one: it goes through the Wallet API, so the key never
+ * leaves the wallet. That is why this module is tested and not wired in.
  */
 
 export const MIN_SDK_VERSION = '0.14.3-rc.4'
