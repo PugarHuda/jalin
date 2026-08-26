@@ -5,7 +5,10 @@ use snforge_std::{
     stop_cheat_caller_address,
 };
 use starknet::{ContractAddress, contract_address_const};
-use jalin::interfaces::{IJalinRouterDispatcher, IJalinRouterDispatcherTrait};
+use jalin::interfaces::{
+    IJalinRouterDispatcher, IJalinRouterDispatcherTrait, IJalinRouterSafeDispatcher,
+    IJalinRouterSafeDispatcherTrait,
+};
 use jalin::mocks::{
     IMockErc20Dispatcher, IMockErc20DispatcherTrait, IMockGovernorDispatcher,
     IMockGovernorDispatcherTrait,
@@ -321,4 +324,64 @@ fn sweep_sends_a_donation_to_the_treasury() {
     assert(swept == IN_AMOUNT.into(), 'donation cleared to treasury');
     let left = IMockErc20Dispatcher { contract_address: token_in }.balance_of(router);
     assert(left == 0, 'router is empty again');
+}
+
+// -- fuzzed ------------------------------------------------------------------
+// Every test above pins one amount. An invariant checked at one point is an
+// invariant that has not been checked; these run the same paths over values
+// snforge picks.
+
+#[test]
+#[fuzzer]
+fn fee_never_loses_value(seed: u128) {
+    // The fee is taken out of the credit, so fee plus credit has to be the whole
+    // balance for every amount. Rounding that drops a unit is rounding that takes
+    // it from somebody, and at u128 scale a fixed-value test would never see it.
+    let extra: u128 = 1 + (seed % 1_000_000_000_000_000);
+    let (router, governor, token_in, token_out, swap) = setup(10000, 10000);
+    IMockGovernorDispatcher { contract_address: governor }.set_fee(100, treasury());
+
+    // setup() already put IN_AMOUNT on the router, and the step has to move all
+    // of it: anything left of a touched token trips the residue rule.
+    IMockErc20Dispatcher { contract_address: token_in }.mint(router, extra.into());
+    let moving: u128 = IN_AMOUNT + extra;
+    IMockErc20Dispatcher { contract_address: token_out }.mint(swap, moving.into());
+
+    start_cheat_caller_address(router, pool());
+    let deposits = IJalinRouterDispatcher { contract_address: router }
+        .privacy_invoke(
+            pool(),
+            array![swap_step(swap, token_in, moving)],
+            array![Output { token: token_out, note_id: 'OUT', min_amount: 0 }],
+        );
+    stop_cheat_caller_address(router);
+
+    // The target pays one for one, so the router received exactly `moving`.
+    let credited = *deposits.at(0).amount;
+    let taken = IMockErc20Dispatcher { contract_address: token_out }.balance_of(treasury());
+    assert(credited.into() + taken == moving.into(), 'fee plus credit is the whole');
+    assert(taken == (moving / 100).into(), 'one percent, no more');
+}
+
+#[test]
+#[fuzzer]
+fn i5_rejects_every_amount_under_its_floor(seed: u128) {
+    // Whatever the size, a floor above what comes back must stop the plan.
+    let amount: u128 = 1_000_000 + (seed % 1_000_000_000_000);
+    let (router, _, token_in, token_out, swap) = setup(5000, 10000); // pays back half
+    IMockErc20Dispatcher { contract_address: token_in }.mint(router, amount.into());
+
+    start_cheat_caller_address(router, pool());
+    let call = IJalinRouterSafeDispatcher { contract_address: router }
+        .privacy_invoke(
+            pool(),
+            array![swap_step(swap, token_in, amount)],
+            array![Output { token: token_out, note_id: 'OUT', min_amount: amount }],
+        );
+    stop_cheat_caller_address(router);
+
+    match call {
+        Result::Ok(_) => panic!("a floor above the payout must not pass"),
+        Result::Err(_) => (),
+    }
 }
