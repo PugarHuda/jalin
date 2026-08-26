@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { StarknetWindowObject } from 'get-starknet-core'
 import { hash, shortString } from 'starknet'
 import {
@@ -164,7 +164,11 @@ function proofOfMechanism(stepCount: number): Plan {
  * The floor is set below the quoted rate rather than at it, because the share
  * price moves between quoting and proving and a proof takes about half a minute.
  */
-function endurStake(assets: bigint): Plan {
+function endurStake(assets: bigint, quotedShares?: bigint): Plan {
+  // With a live quote the floor sits just under what the vault says it will pay,
+  // which is a real slippage guard. Without one it falls back to a fraction of
+  // assets - deliberately loose, because a tight guess reverts for no reason.
+  const floor = quotedShares ? (quotedShares * 96n) / 100n : (assets * 78n) / 100n
   return {
     // depositStep is the SDK recipe for exactly this shape, so the product uses
     // it rather than restating the calldata layout in a second place.
@@ -177,7 +181,7 @@ function endurStake(assets: bigint): Plan {
         receiver: ROUTER_ADDRESS,
       }),
     ],
-    outputs: [{ token: ENDUR_VAULT, noteId: openNote(0), minAmount: (assets * 78n) / 100n }],
+    outputs: [{ token: ENDUR_VAULT, noteId: openNote(0), minAmount: floor }],
   }
 }
 
@@ -301,6 +305,25 @@ export default function Home() {
   const [ballotSecret, setBallotSecret] = useState<string | null>(null)
   const [lastPayload, setLastPayload] = useState<string | null>(null)
   const [shieldHash, setShieldHash] = useState<string | null>(null)
+  const [quote, setQuote] = useState<{ shares: bigint } | null>(null)
+
+  // The Endur run's floor comes from the vault rather than from a constant. A
+  // constant cannot know the share price moved, so it is either too loose to
+  // protect anything or tight enough to revert for no reason.
+  useEffect(() => {
+    let cancelled = false
+    const assets = RUNS.find((r) => r.plan && r.title.includes('Endur'))?.amount
+    if (!assets) return
+    fetch(`/api/quote?assets=${assets.toString()}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((body) => {
+        if (!cancelled && body?.shares) setQuote({ shares: BigInt(body.shares) })
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const result = useMemo(() => {
     try {
@@ -413,7 +436,12 @@ export default function Home() {
       ]
     }
 
-    return toWalletActions(run.plan!, {
+    const plan =
+      run.title.includes('Endur') && quote
+        ? endurStake(run.amount, quote.shares)
+        : run.plan!
+
+    return toWalletActions(plan, {
       router: ROUTER_ADDRESS,
       inputs: [{ token: strk, amount: run.amount }],
       recipient: account,
@@ -845,6 +873,13 @@ export default function Home() {
                 </button>
               </div>
               <p className="mt-1 max-w-2xl text-xs leading-relaxed text-muted">{run.note}</p>
+              {run.title.includes('Endur') && quote && (
+                <p className="mt-1 font-mono text-[11px] text-gold">
+                  vault quotes {(Number(quote.shares) / 1e18).toFixed(6)} xSTRK for{' '}
+                  {Number(run.amount) / 1e18} STRK · floor{' '}
+                  {(Number((quote.shares * 96n) / 100n) / 1e18).toFixed(6)}
+                </p>
+              )}
               {hashes[i] && (
                 <a
                   className="mt-1 block break-all font-mono text-[11px] text-gold"
