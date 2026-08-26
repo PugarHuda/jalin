@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-for (const path of ['/', '/compose', '/verify']) {
+for (const path of ['/', '/compose', '/verify', '/governance']) {
   test(`${path} shows where the keyboard is`, async ({ page }) => {
     await page.goto(path)
     await page.keyboard.press('Tab')
@@ -86,7 +86,7 @@ for (const path of ['/', '/compose', '/verify']) {
  * measurement. The replacement reads the palette off the live page and puts
  * every pair through the WCAG formula, worst case included.
  */
-for (const path of ['/', '/compose', '/verify']) {
+for (const path of ['/', '/compose', '/verify', '/governance']) {
   test(`${path} passes axe at WCAG 2.1 AA`, async ({ page }) => {
     await page.goto(path)
     await page.waitForLoadState('networkidle')

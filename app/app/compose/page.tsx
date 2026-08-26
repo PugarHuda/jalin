@@ -653,6 +653,9 @@ export default function Home() {
             jalin
           </a>
           <nav className="flex gap-5 font-mono text-xs text-muted">
+            <a href="/governance" className="hover:text-gold">
+              governance
+            </a>
             <a href="/verify" className="hover:text-gold">
               verify
             </a>

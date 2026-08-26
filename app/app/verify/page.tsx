@@ -80,9 +80,14 @@ export default function Verify() {
           <a href="/" className="font-display text-lg font-extrabold tracking-tight hover:text-gold">
             jalin
           </a>
-          <a href="/compose" className="font-mono text-xs text-muted hover:text-gold">
-            composer
-          </a>
+          <nav className="flex gap-5 font-mono text-xs text-muted">
+            <a href="/compose" className="hover:text-gold">
+              composer
+            </a>
+            <a href="/governance" className="hover:text-gold">
+              governance
+            </a>
+          </nav>
         </div>
         <h1 className="mt-6 font-display text-3xl font-semibold tracking-tight">
           Will these transactions count?

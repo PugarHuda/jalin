@@ -186,6 +186,9 @@ export default async function Landing() {
           <Link className="hover:text-gold" href="/verify">
             verify
           </Link>
+          <Link className="hover:text-gold" href="/governance">
+            governance
+          </Link>
           <a className="hover:text-gold" href={REPO} target="_blank" rel="noreferrer">
             source
           </a>
