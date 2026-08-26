@@ -10,7 +10,7 @@ import {
   validatePlan,
   type Plan,
 } from '../src/plan.ts'
-import { bridgeAway, bridgeStep, swapThenBridge } from '../src/recipes.ts'
+import { callStep, oneWay } from '../src/recipes.ts'
 import { aggregate, linkabilityWarnings, strategyLabel } from '../src/subaccounts.ts'
 
 const TOKEN_IN = '0x111'
@@ -73,17 +73,16 @@ test('rejects a plan with no steps, which would do nothing at all', () => {
 test('accepts a plan with no outputs, so value may leave without returning', () => {
   // Bridging, escrow funding and ballots all credit nothing back. The pool
   // accepts an empty Span; the residue rule is what keeps it honest.
-  const away = bridgeAway(
-    bridgeStep({
-      bridge: DEX,
+  const away = oneWay(
+    callStep({
+      target: DEX,
       selector: SWAP,
-      token: TOKEN_IN,
-      amount: 1000n,
+      spend: { token: TOKEN_IN, amount: 1000n },
       calldata: [TOKEN_OUT],
     }),
   )
   assert.doesNotThrow(() => validatePlan(away))
-  assert.deepEqual(unclaimedTokens(away), [TOKEN_IN], 'the bridge must take all of it')
+  assert.deepEqual(unclaimedTokens(away), [TOKEN_IN], 'the target must take all of it')
 
   const encoded = encodePlan(away, '0xPOOL')
   assert.equal(encoded.at(-1), 0n, 'outputs.len is zero')

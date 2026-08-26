@@ -1,13 +1,17 @@
 /**
  * Plan recipes.
  *
- * These are conveniences, not capabilities. The router has no idea what a swap
- * or a bridge is - every one of these produces the same `Step` any other call
- * would, which is the point: a protocol does not need a Jalin adapter to be
- * reachable from inside a private transaction, it just needs an ABI.
+ * These are conveniences, not capabilities. The router has no idea what a
+ * deposit is - every one of these produces the same `Step` any other call would,
+ * which is the point: a protocol does not need a Jalin adapter to be reachable
+ * from inside a private transaction, it just needs an ABI.
+ *
+ * Only shapes checked against a live mainnet contract live here. A recipe that
+ * encodes a guessed argument order is worse than no recipe: it reads as
+ * supported, and it fails after a proof has already been paid for.
  */
 
-import { PlanBuilder, u256, type Felt, type Plan, type Step } from './plan.ts'
+import { u256, type Felt, type Plan, type Step } from './plan.ts'
 
 export interface CallStep {
   /** Contract to call. */
@@ -20,7 +24,10 @@ export interface CallStep {
   calldata: Felt[]
 }
 
-/** The general case. Everything below is this with the calldata pre-shaped. */
+/**
+ * The general case, and the one to reach for. Anything with an ABI is reachable
+ * through it, including every venue that has no recipe here.
+ */
 export function callStep({ target, selector, spend, calldata }: CallStep): Step {
   return {
     target,
@@ -31,36 +38,15 @@ export function callStep({ target, selector, spend, calldata }: CallStep): Step 
 }
 
 /**
- * A swap against an AMM whose entry point takes
- * `(token_in, token_out, amount_in: u256, min_out: u256)`.
+ * A deposit into an ERC-4626 vault: `deposit(assets: u256, receiver: ContractAddress)`.
  *
- * Check the venue's real ABI - argument order and `u256` versus `u128` differ
- * between venues, and a wrong shape reverts after you have paid for a proof.
- */
-export function swapStep(args: {
-  dex: Felt
-  selector: Felt
-  tokenIn: Felt
-  tokenOut: Felt
-  amountIn: bigint
-  minOut?: bigint
-}): Step {
-  return callStep({
-    target: args.dex,
-    selector: args.selector,
-    spend: { token: args.tokenIn, amount: args.amountIn },
-    calldata: [
-      args.tokenIn,
-      args.tokenOut,
-      ...u256(args.amountIn),
-      ...u256(args.minOut ?? 0n),
-    ],
-  })
-}
-
-/**
- * A deposit into a vault or lending market that takes `(assets: u256, receiver)`
- * and hands back a share token.
+ * Verified against Endur's xSTRK vault on Starknet mainnet
+ * (`0x28d709c875c0ceac3dce7065bec5328186dc89fe254527084d1689910954b0a`), whose
+ * `asset()` is STRK. ERC-4626 fixes the argument order, which is why this shape
+ * is safe to encode once and reuse - unlike a swap, where every venue differs.
+ *
+ * `receiver` should be the router: the shares have to land somewhere the pool can
+ * pull them from, and the router holds nothing after the transaction ends.
  */
 export function depositStep(args: {
   market: Felt
@@ -78,56 +64,14 @@ export function depositStep(args: {
 }
 
 /**
- * A bridge leg. Value leaves Starknet, so this step usually credits nothing
- * back - see `bridgeAway` and docs/cross-chain.md for why that is allowed and
- * what it costs you in privacy on the far side.
- */
-export function bridgeStep(args: {
-  bridge: Felt
-  selector: Felt
-  token: Felt
-  amount: bigint
-  /** Everything the bridge needs beyond the amount: destination domain, recipient, fees. */
-  calldata: Felt[]
-}): Step {
-  return callStep({
-    target: args.bridge,
-    selector: args.selector,
-    spend: { token: args.token, amount: args.amount },
-    calldata: args.calldata,
-  })
-}
-
-/**
- * Bridge the whole input and credit nothing back.
+ * A plan that credits nothing back.
  *
- * A plan with no outputs is legal: the pool accepts an empty `Span` and the
- * router still requires every token a step could move to end at zero, so
- * "everything left the chain" is provable rather than assumed. If the bridge
- * takes less than it was approved, the residue check reverts the whole thing
- * instead of stranding the remainder.
+ * Legal, and not an oversight: the pool accepts an empty `Span`, which is what
+ * makes bridging value off Starknet, funding an escrow, or casting a ballot
+ * expressible at all. Invariant I4 is what keeps it honest - every token a step
+ * could move must still end the transaction at zero, so "it all left" is checked
+ * rather than assumed.
  */
-export function bridgeAway(step: Step): Plan {
+export function oneWay(step: Step): Plan {
   return { steps: [step], outputs: [] }
-}
-
-/**
- * Swap, then bridge the proceeds, in one private transaction.
- *
- * This is the composition the protocol otherwise forbids. One `invoke` per pool
- * transaction means swap-then-bridge would normally be two transactions with two
- * public footprints, and the gap between them is the correlation an observer
- * needs. Here it is one.
- */
-export function swapThenBridge(args: {
-  swap: Step
-  bridge: Step
-  /** Any change the venue leaves behind, credited back rather than stranded. */
-  change?: { token: Felt; noteId: Felt; minAmount?: bigint }
-}): Plan {
-  let builder = PlanBuilder.create().call(args.swap).call(args.bridge)
-  if (args.change) {
-    builder = builder.creditTo(args.change.token, args.change.noteId, args.change.minAmount ?? 0n)
-  }
-  return builder.build()
 }

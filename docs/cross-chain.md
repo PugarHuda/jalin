@@ -30,18 +30,24 @@ With Jalin it is one transaction, because composition happens inside the invoke
 rather than across invokes:
 
 ```ts
-import { swapThenBridge, swapStep, bridgeStep, openNote } from '@jalin/sdk'
+import { callStep, oneWay } from '@jalin/sdk'
 
-const plan = swapThenBridge({
-  swap: swapStep({ dex, selector: SWAP, tokenIn: USDC, tokenOut: ETH, amountIn, minOut }),
-  bridge: bridgeStep({ bridge, selector: DEPOSIT_FOR_BURN, token: ETH, amount, calldata }),
-  change: { token: USDC, noteId: openNote(0) },   // whatever the venue did not take
-})
+const plan = oneWay(
+  callStep({
+    target: bridge,                 // whatever the bridge is
+    selector: DEPOSIT_FOR_BURN,     // whatever it calls the entry point
+    spend: { token: USDC, amount },
+    calldata: [...],                // whatever it needs
+  }),
+)
 ```
 
-The router has no bridge-specific code. `bridgeStep` is `callStep` with the
-arguments named after what they mean; a bridge is reachable for the same reason a
-DEX is, because it is a contract with an ABI.
+The router has no bridge-specific code, and neither does the SDK. There is no
+`bridgeStep`, on purpose: a recipe that encodes a guessed argument order reads as
+supported and fails after a proof has been paid for. `callStep` takes the shape
+the bridge actually documents. The only recipe with a fixed shape is
+`depositStep`, because ERC-4626 fixes the order and it was checked against a live
+vault.
 
 ## Plans that credit nothing back
 
@@ -54,8 +60,8 @@ That is only safe because of invariant I4: every token a step was allowed to mov
 must end the transaction at zero. So "it all went to the bridge" is checked, not
 assumed. If the bridge takes less than it was approved — a fee change, a cap, a
 partial fill — the residue check reverts the whole plan rather than leaving the
-remainder sitting on the router. Use the `change` output when a partial take is
-expected behaviour rather than a fault.
+remainder sitting on the router. Declare a change output when a partial take is expected behaviour rather than a
+fault.
 
 ## Hidden and visible
 
