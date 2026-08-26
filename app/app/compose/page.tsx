@@ -893,7 +893,7 @@ export default function Home() {
           step, once per account, and it needs no STRK20 wallet support - the key comes from an
           ordinary signature. Do it at{' '}
           <a
-            className="text-gold"
+            className="text-gold underline underline-offset-2"
             href="https://strk20.starknet.io/app"
             target="_blank"
             rel="noreferrer"
@@ -983,7 +983,7 @@ export default function Home() {
       </section>
 
       <footer className="mt-12 border-t border-thread pt-6 text-xs text-muted">
-        <a className="text-gold" href="https://github.com/PugarHuda/jalin">
+        <a className="text-gold underline underline-offset-2" href="https://github.com/PugarHuda/jalin">
           github.com/PugarHuda/jalin
         </a>{' '}
         · MIT · unaudited, written during the STRK20 Private Sprint

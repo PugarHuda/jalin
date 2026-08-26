@@ -69,6 +69,7 @@ jobs:
       SCARB_VERSION: 2.20.0
       FOUNDRY_VERSION: 0.63.0
       USC_VERSION: 2.10.0
+      COVERAGE_VERSION: 0.6.1
     steps:
       - uses: actions/checkout@v4
 
@@ -94,8 +95,18 @@ jobs:
       - run: scarb build
         working-directory: contracts
 
-      - run: snforge test
+      - name: Install cairo-coverage
+        run: |
+          curl -fsSL "https://github.com/software-mansion/cairo-coverage/releases/download/v${COVERAGE_VERSION}/cairo-coverage-v${COVERAGE_VERSION}-x86_64-unknown-linux-gnu.tar.gz" | tar xz -C /opt
+          find /opt -name cairo-coverage -type f -exec dirname {} \; | head -1 >> "$GITHUB_PATH"
+
+      # The fork tests read mainnet through a public node, so this needs network
+      # but no key.
+      - run: snforge test --coverage
         working-directory: contracts
+
+      - name: Every contract line runs
+        run: node scripts/coverage-gate.mjs
 
       # scarb build last, because snforge overwrites the release artifact with a
       # test build of the same contract - which is how a class hash computed

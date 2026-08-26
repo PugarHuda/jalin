@@ -211,3 +211,139 @@ fn the_fee_cap_holds_even_against_a_carried_vote() {
     start_cheat_block_number_global(START_BLOCK + VOTING_BLOCKS + TIMELOCK_BLOCKS + 1);
     IJalinGovernanceDispatcher { contract_address: governor }.execute(proposal_id);
 }
+
+/// Carries a proposal: one yes ballot at full weight, then past the timelock,
+/// then executed. Every kind below reaches `apply` this way, which is the only
+/// way router parameters can move at all.
+fn carry(governor: ContractAddress, proposal_id: u64, secret: felt252) {
+    let dispatcher = IJalinGovernanceDispatcher { contract_address: governor };
+    cast(governor, proposal_id, 1, dispatcher.ballot_commitment(secret), WEIGHT);
+    start_cheat_block_number_global(START_BLOCK + VOTING_BLOCKS + TIMELOCK_BLOCKS + 1);
+    dispatcher.execute(proposal_id);
+}
+
+#[test]
+fn a_carried_vote_can_pause_the_router() {
+    let (governor, _) = setup();
+    let params = IJalinGovernorDispatcher { contract_address: governor };
+    assert(!params.params().paused, 'starts running');
+
+    let proposal_id = IJalinGovernanceDispatcher { contract_address: governor }
+        .propose(kinds::PAUSE, treasury(), 1, 0);
+    carry(governor, proposal_id, 'pause');
+
+    assert(params.params().paused, 'the circuit is open');
+}
+
+#[test]
+fn a_carried_vote_can_move_the_limits() {
+    let (governor, _) = setup();
+    let params = IJalinGovernorDispatcher { contract_address: governor };
+
+    let proposal_id = IJalinGovernanceDispatcher { contract_address: governor }
+        .propose(kinds::LIMITS, treasury(), 3, 16);
+    carry(governor, proposal_id, 'limits');
+
+    let after = params.params();
+    assert(after.max_steps == 3, 'steps tightened');
+    assert(after.max_calldata == 16, 'calldata tightened');
+    // Tightening the bounds must not quietly reset anything else.
+    assert(!after.paused, 'still running');
+}
+
+#[test]
+#[should_panic(expected: 'GOV_ZERO_LIMIT')]
+fn a_limit_of_zero_would_brick_the_router_and_is_refused() {
+    let (governor, _) = setup();
+    let proposal_id = IJalinGovernanceDispatcher { contract_address: governor }
+        .propose(kinds::LIMITS, treasury(), 0, 16);
+    carry(governor, proposal_id, 'zero');
+}
+
+#[test]
+fn a_carried_vote_can_deny_one_target_and_lift_it_again() {
+    let (governor, _) = setup();
+    let params = IJalinGovernorDispatcher { contract_address: governor };
+    let bad = contract_address_const::<'BAD'>();
+    let governance = IJalinGovernanceDispatcher { contract_address: governor };
+
+    assert(!params.is_denied(bad), 'nothing denied by default');
+    carry(governor, governance.propose(kinds::DENY, bad, 1, 0), 'deny');
+    assert(params.is_denied(bad), 'target denied');
+
+    // A deny list that cannot be undone is a whitelist with extra steps.
+    let lift = governance.propose(kinds::DENY, bad, 0, 0);
+    cast(governor, lift, 1, governance.ballot_commitment('lift'), WEIGHT);
+    start_cheat_block_number_global(START_BLOCK + 2 * (VOTING_BLOCKS + TIMELOCK_BLOCKS) + 2);
+    governance.execute(lift);
+    assert(!params.is_denied(bad), 'target allowed again');
+}
+
+#[test]
+fn a_carried_vote_can_label_a_target() {
+    let (governor, _) = setup();
+    let target = contract_address_const::<'ENDUR'>();
+
+    let proposal_id = IJalinGovernanceDispatcher { contract_address: governor }
+        .propose(kinds::LABEL, target, 'endur xSTRK', 0);
+    carry(governor, proposal_id, 'label');
+
+    // A label is the honest alternative to a whitelist: it says what a contract
+    // is without deciding for you whether you may call it.
+    assert(
+        IJalinGovernorDispatcher { contract_address: governor }.label_of(target) == 'endur xSTRK',
+        'label recorded',
+    );
+}
+
+#[test]
+fn votes_against_are_counted_and_can_sink_a_proposal() {
+    let (governor, _) = setup();
+    let governance = IJalinGovernanceDispatcher { contract_address: governor };
+    let proposal_id = propose_fee_change(governor, 50);
+
+    cast(governor, proposal_id, 0, governance.ballot_commitment('against'), WEIGHT);
+
+    let proposal = governance.get_proposal(proposal_id);
+    assert(proposal.no == WEIGHT, 'weight counted against');
+    assert(proposal.yes == 0, 'nothing in favour');
+}
+
+#[test]
+#[should_panic(expected: 'GOV_REJECTED')]
+fn a_proposal_the_vote_rejected_cannot_be_executed() {
+    let (governor, _) = setup();
+    let governance = IJalinGovernanceDispatcher { contract_address: governor };
+    let proposal_id = propose_fee_change(governor, 50);
+
+    cast(governor, proposal_id, 0, governance.ballot_commitment('against'), WEIGHT);
+    start_cheat_block_number_global(START_BLOCK + VOTING_BLOCKS + TIMELOCK_BLOCKS + 1);
+    governance.execute(proposal_id);
+}
+
+#[test]
+#[should_panic(expected: 'GOV_UNKNOWN_OP')]
+fn the_pool_cannot_ask_for_an_operation_that_does_not_exist() {
+    let (governor, _) = setup();
+    start_cheat_caller_address(governor, pool());
+    IJalinGovernanceDispatcher { contract_address: governor }
+        .privacy_invoke(pool(), 7, 1, 1, 'c', 0, WEIGHT, 0);
+}
+
+#[test]
+#[should_panic(expected: 'GOV_UNKNOWN_KIND')]
+fn a_proposal_of_an_unknown_kind_is_refused_at_the_door() {
+    let (governor, _) = setup();
+    IJalinGovernanceDispatcher { contract_address: governor }.propose(9, treasury(), 0, 0);
+}
+
+#[test]
+fn proposals_are_numbered_in_the_order_they_arrive() {
+    let (governor, _) = setup();
+    let governance = IJalinGovernanceDispatcher { contract_address: governor };
+    assert(governance.proposal_count() == 0, 'starts empty');
+
+    assert(propose_fee_change(governor, 10) == 1, 'first is one');
+    assert(propose_fee_change(governor, 20) == 2, 'second is two');
+    assert(governance.proposal_count() == 2, 'both counted');
+}

@@ -53,3 +53,30 @@ for (const path of ['/', '/compose']) {
     expect(unnamed).toEqual([])
   })
 }
+
+/**
+ * Deque's axe, the same engine behind most accessibility audits. The hand-written
+ * checks above encode what this project got wrong before; axe covers the long
+ * tail nobody thinks to check — contrast ratios, ARIA that contradicts itself,
+ * landmarks, form associations.
+ */
+for (const path of ['/', '/compose']) {
+  test(`${path} passes axe at WCAG 2.1 AA`, async ({ page }) => {
+    await page.goto(path)
+    await page.waitForLoadState('networkidle')
+
+    const { default: AxeBuilder } = await import('@axe-core/playwright')
+    const results = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+      .analyze()
+
+    // Named rather than counted: a number tells you it broke, the list tells you
+    // what and where.
+    const violations = results.violations.map((v) => ({
+      rule: v.id,
+      impact: v.impact,
+      nodes: v.nodes.map((n) => n.target.join(' ')).slice(0, 3),
+    }))
+    expect(violations).toEqual([])
+  })
+}

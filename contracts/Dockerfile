@@ -8,6 +8,7 @@ FROM rust:1-slim-bookworm
 ARG SCARB_VERSION=2.20.0
 ARG FOUNDRY_VERSION=0.63.0
 ARG USC_VERSION=2.10.0
+ARG COVERAGE_VERSION=0.6.1
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends curl ca-certificates git \
@@ -26,6 +27,10 @@ RUN curl -fsSL "https://github.com/foundry-rs/starknet-foundry/releases/download
 RUN curl -fsSL "https://github.com/software-mansion/universal-sierra-compiler/releases/download/v${USC_VERSION}/universal-sierra-compiler-v${USC_VERSION}-x86_64-unknown-linux-gnu.tar.gz" \
       | tar xz -C /opt \
  && find /opt -name universal-sierra-compiler -type f -exec ln -s {} /usr/local/bin/universal-sierra-compiler \;
+
+# snforge --coverage shells out to this. Coverage over Sierra needs the debug
+# info that the cairo profile flags in Scarb.toml turn on.
+RUN curl -fsSL "https://github.com/software-mansion/cairo-coverage/releases/download/v${COVERAGE_VERSION}/cairo-coverage-v${COVERAGE_VERSION}-x86_64-unknown-linux-gnu.tar.gz"       | tar xz -C /opt  && find /opt -name cairo-coverage -type f -exec ln -s {} /usr/local/bin/cairo-coverage \;
 
 WORKDIR /work
 CMD ["snforge", "test"]

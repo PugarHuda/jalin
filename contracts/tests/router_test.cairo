@@ -385,3 +385,25 @@ fn i5_rejects_every_amount_under_its_floor(seed: u128) {
         Result::Err(_) => (),
     }
 }
+
+#[test]
+fn the_plan_counter_moves_and_the_governor_is_the_one_it_was_given() {
+    // Both of these are read off-chain - the counter is the number on the landing
+    // page, and the governor is what a reader checks to see who owns the params.
+    let (router, governor, token_in, token_out, swap) = setup(10000, 10000);
+    let dispatcher = IJalinRouterDispatcher { contract_address: router };
+
+    assert(dispatcher.governor() == governor, 'points at its governor');
+    assert(dispatcher.plans_executed() == 0, 'nothing run yet');
+
+    start_cheat_caller_address(router, pool());
+    dispatcher
+        .privacy_invoke(
+            pool(),
+            array![swap_step(swap, token_in, IN_AMOUNT)],
+            array![Output { token: token_out, note_id: 'NOTE', min_amount: IN_AMOUNT }],
+        );
+    stop_cheat_caller_address(router);
+
+    assert(dispatcher.plans_executed() == 1, 'one plan run');
+}

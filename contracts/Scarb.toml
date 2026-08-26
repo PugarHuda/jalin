@@ -18,6 +18,14 @@ casm = true
 [scripts]
 test = "snforge test"
 
+# What cairo-coverage needs to map Sierra back to lines of Cairo. Inlining is
+# avoided rather than disabled: an inlined function has no line of its own, so
+# coverage would report it as never run.
+[profile.dev.cairo]
+unstable-add-statements-code-locations-debug-info = true
+unstable-add-statements-functions-debug-info = true
+inlining-strategy = "avoid"
+
 # Mainnet, pinned. A fork test that follows the chain head is a test whose
 # result changes for reasons that have nothing to do with this repository.
 # The node is public and needs no key, so this runs on a fork of the repo too.

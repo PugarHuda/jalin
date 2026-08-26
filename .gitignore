@@ -18,3 +18,7 @@ vendor/
 # Playwright
 test-results/
 playwright-report/
+
+# Cairo coverage output
+contracts/coverage/
+contracts/snfoundry_trace/
