@@ -102,7 +102,7 @@ test('every colour pair on the page meets WCAG AA', async ({ page }) => {
  * borders the browser actually computed rather than asserting a token, so
  * putting a control back on the decorative `--thread` fails here.
  */
-for (const path of ['/', '/compose']) {
+for (const path of ['/', '/compose', '/verify']) {
   test(`${path} draws every control's edge visibly`, async ({ page }) => {
     await page.goto(path)
     await page.waitForLoadState('networkidle')

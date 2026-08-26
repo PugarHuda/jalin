@@ -183,6 +183,9 @@ export default async function Landing() {
           <Link className="hover:text-gold" href="/compose">
             composer
           </Link>
+          <Link className="hover:text-gold" href="/verify">
+            verify
+          </Link>
           <a className="hover:text-gold" href={REPO} target="_blank" rel="noreferrer">
             source
           </a>

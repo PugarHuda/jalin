@@ -5,7 +5,7 @@ import { expect, test } from '@playwright/test'
  * child with min-width auto, a flex row that would not wrap, and an unbreakable
  * 66-character hex string — none of which were visible at desktop width.
  */
-for (const path of ['/', '/compose']) {
+for (const path of ['/', '/compose', '/verify']) {
   test(`${path} does not scroll sideways on a phone`, async ({ page }) => {
     await page.goto(path)
     await page.waitForLoadState('networkidle')

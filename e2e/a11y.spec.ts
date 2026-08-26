@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-for (const path of ['/', '/compose']) {
+for (const path of ['/', '/compose', '/verify']) {
   test(`${path} shows where the keyboard is`, async ({ page }) => {
     await page.goto(path)
     await page.keyboard.press('Tab')
@@ -39,11 +39,30 @@ for (const path of ['/', '/compose']) {
   test(`${path} names every control`, async ({ page }) => {
     await page.goto(path)
 
+    // Stricter than axe on purpose: axe accepts a placeholder as a name, and a
+    // placeholder disappears the moment you type. Everything else here is the
+    // ordinary accessible-name computation - aria-label, aria-labelledby, a
+    // wrapping <label>, a <label for>, title, then the element's own text.
     const unnamed = await page.evaluate(() =>
-      [...document.querySelectorAll('button, input, select, a')]
+      [...document.querySelectorAll('button, input, select, textarea, a')]
         .filter((el) => {
+          const labelledBy = el.getAttribute('aria-labelledby')
+          const referenced = labelledBy
+            ? labelledBy
+                .split(/\s+/)
+                .map((id) => document.getElementById(id)?.textContent ?? '')
+                .join(' ')
+            : ''
+          const wrapping = el.closest('label')?.textContent ?? ''
+          const bound = el.id
+            ? (document.querySelector(`label[for="${el.id}"]`)?.textContent ?? '')
+            : ''
+
           const name =
             el.getAttribute('aria-label') ||
+            referenced ||
+            wrapping ||
+            bound ||
             el.getAttribute('title') ||
             (el as HTMLElement).innerText
           return !name?.trim()
@@ -67,7 +86,7 @@ for (const path of ['/', '/compose']) {
  * measurement. The replacement reads the palette off the live page and puts
  * every pair through the WCAG formula, worst case included.
  */
-for (const path of ['/', '/compose']) {
+for (const path of ['/', '/compose', '/verify']) {
   test(`${path} passes axe at WCAG 2.1 AA`, async ({ page }) => {
     await page.goto(path)
     await page.waitForLoadState('networkidle')

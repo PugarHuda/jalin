@@ -608,12 +608,14 @@ export default function Home() {
           <a href="/" className="font-display text-lg font-extrabold tracking-tight hover:text-gold">
             jalin
           </a>
-          <a
-            href="/"
-            className="font-mono text-xs text-muted hover:text-gold"
-          >
-            what this is
-          </a>
+          <nav className="flex gap-5 font-mono text-xs text-muted">
+            <a href="/verify" className="hover:text-gold">
+              verify
+            </a>
+            <a href="/" className="hover:text-gold">
+              what this is
+            </a>
+          </nav>
         </div>
         <h1 className="mt-6 font-display text-3xl font-semibold tracking-tight">Composer</h1>
         <p className="mt-2 max-w-2xl text-sm text-muted">

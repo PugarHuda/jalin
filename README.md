@@ -247,7 +247,7 @@ TypeScript:
 
 ```bash
 npm test                      # 53 SDK tests, no build step
-npm run test:e2e              # 40 Playwright tests against a real build
+npm run test:e2e              # 61 Playwright tests against a real build
 ```
 
 The browser suite has no fixtures in it. It reads the live chain, so it asserts
