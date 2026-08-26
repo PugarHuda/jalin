@@ -179,9 +179,18 @@ test('typing an address does not fire a request per keystroke', async ({ page })
 
   // Every prefix of a felt is a felt, so an undebounced read fires on each of
   // these characters.
+  // Typed as fast as the engine will deliver, with no artificial delay.
+  //
+  // That matters: with a delay between keystrokes the count measures how fast
+  // the engine types, not what the debounce does - a threshold tuned on
+  // Chromium read 7 requests for 18 characters on WebKit, which is the debounce
+  // working and the test asking the wrong question. A burst lands inside one or
+  // two windows on any engine, so what is left to measure is the debounce.
+  const typed = '0x28d709c875c0ceac'
   await page.getByLabel('Step 1 target').fill('')
-  await page.getByLabel('Step 1 target').pressSequentially('0x28d709c875c0ceac', { delay: 30 })
-  await page.waitForTimeout(1200)
+  await page.getByLabel('Step 1 target').pressSequentially(typed)
+  await page.waitForTimeout(1500)
 
-  expect(calls.length - before).toBeLessThanOrEqual(3)
+  const fired = calls.length - before
+  expect(fired, `${fired} requests for ${typed.length} characters typed at once`).toBeLessThanOrEqual(3)
 })

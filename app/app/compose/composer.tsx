@@ -306,6 +306,18 @@ function buildPlan(draft: Draft): Plan {
   }
 }
 
+/**
+ * Swallows the rejection an abort produces, and only that one.
+ *
+ * `.catch(() => {})` hid every failure equally - a cancelled request and a
+ * broken route looked the same, which is how a route that had started answering
+ * 502 could go unnoticed.
+ */
+function ignoreAbort(error: unknown): void {
+  if (error instanceof DOMException && error.name === 'AbortError') return
+  console.error('[jalin] background read failed', error)
+}
+
 export function Composer({ shared }: { shared: SharedDraft | null }) {
   // The server already read `?plan=` and decoded it, so the first render is the
   // shared plan rather than a preset replaced a tick later. That also removes
@@ -340,33 +352,43 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
   // constant cannot know the share price moved, so it is either too loose to
   // protect anything or tight enough to revert for no reason.
   useEffect(() => {
-    let cancelled = false
     const assets = RUNS.find((r) => r.plan && r.title.includes('Endur'))?.amount
     if (!assets) return
-    fetch(`/api/quote?assets=${assets.toString()}`)
+
+    /**
+     * Aborted on cleanup, not merely ignored.
+     *
+     * A flag stops a stale answer being written to state and leaves the request
+     * itself running - the browser finishes downloading something nobody will
+     * read, and when the page navigates away mid-flight WebKit logs the
+     * abandoned fetch as an error. Handing the signal to fetch cancels the work
+     * rather than the interest in it.
+     */
+    const stop = new AbortController()
+
+    fetch(`/api/quote?assets=${assets.toString()}`, { signal: stop.signal })
       .then((r) => (r.ok ? r.json() : null))
       .then((body) => {
-        if (!cancelled && body?.shares) setQuote({ shares: BigInt(body.shares) })
+        if (body?.shares) setQuote({ shares: BigInt(body.shares) })
       })
-      .catch(() => {})
-    return () => {
-      cancelled = true
-    }
+      .catch(ignoreAbort)
+
+    return () => stop.abort()
   }, [])
 
   // The size of the crowd is the one privacy number every tool asks you to
   // assume. It is on chain, so it is measured rather than asserted.
   useEffect(() => {
-    let cancelled = false
-    fetch('/api/crowd')
+    const stop = new AbortController()
+
+    fetch('/api/crowd', { signal: stop.signal })
       .then((r) => (r.ok ? r.json() : null))
       .then((body) => {
-        if (!cancelled && typeof body?.depositors === 'number') setCrowd(body)
+        if (typeof body?.depositors === 'number') setCrowd(body)
       })
-      .catch(() => {})
-    return () => {
-      cancelled = true
-    }
+      .catch(ignoreAbort)
+
+    return () => stop.abort()
   }, [])
 
   /**
@@ -376,7 +398,6 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
    * changes, because changing it moves you to a different cell.
    */
   useEffect(() => {
-    let cancelled = false
     let amount = 0n
     try {
       amount = toBaseUnits(draft.inputAmount, decimalsOf(draft.inputToken))
@@ -384,27 +405,29 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
       return
     }
 
+    const stop = new AbortController()
+
     // Clearing runs on the same timer as asking. Calling setState straight out
     // of an effect body forces a second render pass before paint, and doing it
     // only on the empty-amount branch meant one path was debounced and the
     // other was not.
     const timer = setTimeout(() => {
       if (amount <= 0n) {
-        if (!cancelled) setProspect(null)
+        setProspect(null)
         return
       }
 
       const query = new URLSearchParams({ asset: draft.inputToken, amount: amount.toString() })
-      fetch(`/api/crowd?${query}`)
+      fetch(`/api/crowd?${query}`, { signal: stop.signal })
         .then((r) => (r.ok ? r.json() : null))
         .then((body) => {
-          if (!cancelled && typeof body?.effectiveSetAfter === 'number') setProspect(body)
+          if (typeof body?.effectiveSetAfter === 'number') setProspect(body)
         })
-        .catch(() => {})
+        .catch(ignoreAbort)
     }, 300)
 
     return () => {
-      cancelled = true
+      stop.abort()
       clearTimeout(timer)
     }
   }, [draft.inputToken, draft.inputAmount])
@@ -420,21 +443,21 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
     .join(',')
 
   useEffect(() => {
-    let cancelled = false
+    const stop = new AbortController()
 
     // Debounced, because every prefix of an address being typed is itself a
     // valid felt - so without this it was one node call per keystroke.
     const timer = setTimeout(() => {
-      fetch(`/api/params?targets=${encodeURIComponent(targets)}`)
+      fetch(`/api/params?targets=${encodeURIComponent(targets)}`, { signal: stop.signal })
         .then((r) => (r.ok ? r.json() : null))
         .then((body) => {
-          if (!cancelled && typeof body?.maxSteps === 'number') setParams(body)
+          if (typeof body?.maxSteps === 'number') setParams(body)
         })
-        .catch(() => {})
+        .catch(ignoreAbort)
     }, 300)
 
     return () => {
-      cancelled = true
+      stop.abort()
       clearTimeout(timer)
     }
   }, [targets])
