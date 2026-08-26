@@ -335,6 +335,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
   const [lastPayload, setLastPayload] = useState<string | null>(null)
   const [shieldHash, setShieldHash] = useState<string | null>(null)
   const [account, setAccount] = useState<string | null>(null)
+  const [connected, setConnected] = useState<string | null>(null)
   const [params, setParams] = useState<LiveParams | null>(null)
   const [verdicts, setVerdicts] = useState<Record<string, string>>({})
   const [quote, setQuote] = useState<{ shares: bigint } | null>(null)
@@ -513,15 +514,81 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
   const patchStep = (i: number, change: Partial<StepForm>) =>
     patch({ steps: draft.steps.map((s, j) => (i === j ? { ...s, ...change } : s)) })
 
+  /**
+   * Reconnects the wallet that was already authorised, without asking again.
+   *
+   * `getAuthorizedWallets` returns the ones that granted access on a previous
+   * visit, and reads nothing the user has not already agreed to - no prompt,
+   * no popup. Without it every visit began by picking from a list, and the
+   * actions preview stayed empty until somebody clicked through a run.
+   */
+  useEffect(() => {
+    let cancelled = false
+
+    void (async () => {
+      try {
+        const { default: getStarknet } = await import('get-starknet-core')
+        const authorised = await getStarknet.getAuthorizedWallets()
+        const last = await getStarknet.getLastConnectedWallet()
+
+        // The one they used last if it is still authorised, otherwise the only
+        // authorised one. Two authorised wallets and no memory is a genuine
+        // choice, so it stays a choice.
+        const remembered =
+          (last && authorised.find((wallet) => wallet.id === last.id)) ??
+          (authorised.length === 1 ? authorised[0] : undefined)
+        if (!remembered || cancelled) return
+
+        const [address] = (await remembered.request({
+          type: 'wallet_requestAccounts',
+          params: { silent_mode: true },
+        })) as string[]
+
+        if (!cancelled && address) {
+          setAccount(address)
+          setConnected(remembered.name ?? remembered.id ?? 'a wallet')
+        }
+      } catch {
+        // A wallet that refuses a silent reconnect is not an error to report;
+        // the person can still pick one.
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   async function pickWallet(runIndex: number | null = null) {
     setPendingRun(runIndex)
     const { default: getStarknet } = await import('get-starknet-core')
     const available = await getStarknet.getAvailableWallets()
+
     if (available.length === 0) {
-      setStatus('No Starknet wallet found in this browser.')
+      // A dead end otherwise, and this is exactly the person arriving on a
+      // fresh profile. The list comes from the library rather than from a
+      // hardcoded one here, so it does not go stale.
+      const installable = await getStarknet.getDiscoveryWallets()
+      const names = installable.map((wallet) => wallet.name).slice(0, 4).join(', ')
+      setStatus(
+        installable.length > 0
+          ? `No Starknet wallet in this browser. Ready and Braavos implement the STRK20 methods; ${names} are the ones this page can see.`
+          : 'No Starknet wallet found in this browser.',
+      )
       return
     }
+
     setWallets(available)
+    setStatus(null)
+  }
+
+  /** Forgets the wallet here and in the library, so the next visit asks again. */
+  async function disconnectWallet() {
+    const { default: getStarknet } = await import('get-starknet-core')
+    await getStarknet.disconnect({ clearLastWallet: true })
+    setAccount(null)
+    setConnected(null)
+    setWallets([])
     setStatus(null)
   }
 
@@ -666,6 +733,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
       })) as string[]
       if (!account) return setStatus('Wallet returned no account.')
       setAccount(account)
+      setConnected(wallet.name ?? wallet.id ?? 'a wallet')
 
       setStatus('Checking what this wallet supports…')
       const capability = await probe(wallet)
@@ -786,6 +854,21 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
           </button>
         ))}
 
+        {connected && account && (
+          <span className="ml-auto flex items-center gap-2 font-mono text-xs text-muted">
+            <span className="text-hidden">●</span>
+            {connected} · {label(account)}
+            <button
+              onClick={disconnectWallet}
+              className="rounded border border-strand px-2 py-1 hover:border-gold"
+            >
+              disconnect
+            </button>
+          </span>
+        )}
+      </div>
+
+      <div className="mt-2 flex flex-wrap items-center gap-2">
         <button
           onClick={async () => {
             setShare(null)

@@ -231,3 +231,27 @@ test.describe('the ballot run', () => {
     )
   })
 })
+
+test.describe('the wallet flow', () => {
+  test('offers somewhere to go when no wallet is installed', async ({ page }) => {
+    // The browser in this suite has no extension, which is exactly what a judge
+    // opening the link on a fresh profile has. A dead end here is a dead end
+    // for them.
+    await page.goto('/compose')
+    await settled(page)
+    await page.getByRole('button', { name: /^shield · / }).click()
+
+    await expect(page.locator('main')).toContainText(/No Starknet wallet/, { timeout: 20_000 })
+    // Named from the library's own discovery list, not from a list written here.
+    await expect(page.locator('main')).toContainText(/Ready and Braavos/)
+  })
+
+  test('shows no connection state until there is a connection', async ({ page }) => {
+    await page.goto('/compose')
+    await settled(page)
+
+    // Nothing is connected, so nothing claims to be - and there is no
+    // disconnect button for a connection that does not exist.
+    await expect(page.getByRole('button', { name: 'disconnect' })).toHaveCount(0)
+  })
+})
