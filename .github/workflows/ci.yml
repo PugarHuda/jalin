@@ -33,7 +33,8 @@ jobs:
         with:
           node-version: '24'
       - run: npm install --no-audit --no-fund
-      - run: npx tsc --noEmit -p app/tsconfig.json
+      # next build runs TypeScript itself. A separate tsc step would also need
+      # .next/types, which does not exist until the build has produced it.
       - run: npm run build --workspace app
 
   contracts:
