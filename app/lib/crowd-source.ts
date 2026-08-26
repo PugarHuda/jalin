@@ -31,7 +31,7 @@ import { rpc } from './rpc'
  * like whoever happened to be around this afternoon. All of it fits in one
  * page: 343 deposits so far.
  */
-export const CROWD_WINDOW_BLOCKS = 600_000
+const CROWD_WINDOW_BLOCKS = 600_000
 
 /** Relays gasless pool transactions; its deposits are not a person arriving. */
 const PAYMASTER = BigInt('0x127021a1b5a52d3174c2ab077c2b043c80369250d29428cee956d76ee51584f')

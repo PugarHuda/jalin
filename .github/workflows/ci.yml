@@ -33,6 +33,11 @@ jobs:
       # published. tsc is the only thing that reads the files nobody imports.
       - run: npm run typecheck
 
+      # Unused files, unused exports, and imports of packages no manifest
+      # declares. It found five scripts importing starknet that only resolved
+      # because the app workspace hoisted it.
+      - run: npm run check:dead
+
   app:
     name: app builds
     runs-on: ubuntu-latest

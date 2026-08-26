@@ -1,7 +1,7 @@
 import 'server-only'
 import { unstable_rethrow } from 'next/navigation'
 import { hash, num, shortString } from 'starknet'
-import { GOVERNOR_ADDRESS, ROUTER_ADDRESS, TOKENS } from './config'
+import { GOVERNOR_ADDRESS, KINDS, ROUTER_ADDRESS, TOKENS } from './config'
 import { rpc } from './rpc'
 
 /**
@@ -12,10 +12,9 @@ import { rpc } from './rpc'
  * way to: the contract was deployed, governed and invisible.
  */
 
-export const KINDS = ['pause', 'limits', 'fee', 'deny', 'label'] as const
-export type Kind = (typeof KINDS)[number]
+type Kind = (typeof KINDS)[number]
 
-export interface RouterParams {
+interface RouterParams {
   paused: boolean
   maxSteps: number
   maxCalldata: number
@@ -49,7 +48,7 @@ export interface Proposal {
   proposedAt: number | null
 }
 
-export interface Stuck {
+interface Stuck {
   symbol: string
   address: string
   amount: bigint

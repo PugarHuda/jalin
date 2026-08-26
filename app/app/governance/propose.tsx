@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { hash, shortString } from 'starknet'
+import { KINDS as KIND_NAMES } from '@/lib/config'
 
 /**
  * Submits a real `propose` call.
@@ -11,13 +12,24 @@ import { hash, shortString } from 'starknet'
  * while a plan still waits on a proving service.
  */
 
-const KINDS = [
-  { code: 0, name: 'pause', a: 'paused', b: null, hint: '1 to pause every plan, 0 to resume' },
-  { code: 1, name: 'limits', a: 'max steps', b: 'max calldata', hint: 'both must be non-zero' },
-  { code: 2, name: 'fee', a: 'fee in bps', b: null, hint: 'target is the recipient · capped at 1000' },
-  { code: 3, name: 'deny', a: 'denied', b: null, hint: '1 to deny the target, 0 to allow it again' },
-  { code: 4, name: 'label', a: 'label text', b: null, hint: 'up to 31 characters' },
-] as const
+/**
+ * What each kind asks for. The names and their order come from
+ * `lib/governance`, which is also what the contract's `kinds` module numbers -
+ * a second list here meant the page could offer a kind the reader labels
+ * differently, and nothing would have said so.
+ */
+const FIELDS: Record<
+  (typeof KIND_NAMES)[number],
+  { a: string; b: string | null; hint: string }
+> = {
+  pause: { a: 'paused', b: null, hint: '1 to pause every plan, 0 to resume' },
+  limits: { a: 'max steps', b: 'max calldata', hint: 'both must be non-zero' },
+  fee: { a: 'fee in bps', b: null, hint: 'target is the recipient · capped at 1000' },
+  deny: { a: 'denied', b: null, hint: '1 to deny the target, 0 to allow it again' },
+  label: { a: 'label text', b: null, hint: 'up to 31 characters' },
+}
+
+const KINDS = KIND_NAMES.map((name, code) => ({ code, name, ...FIELDS[name] }))
 
 /** Text for a label, a plain number for everything else. */
 function encodeValue(kind: number, raw: string): string {
@@ -35,7 +47,7 @@ export function Propose({ governor, router }: { governor: string; router: string
   const [status, setStatus] = useState<string | null>(null)
   const [sent, setSent] = useState<string | null>(null)
 
-  const spec = KINDS[KINDS.findIndex((entry) => entry.code === kind)]!
+  const spec = KINDS[kind]!
 
   const call = useMemo(() => {
     try {

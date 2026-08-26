@@ -1,0 +1,40 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "workspaces": {
+    ".": {
+      "entry": [
+        "e2e/*.spec.ts",
+        "scripts/*.mjs",
+        "contracts/*.mjs"
+      ],
+      "project": [
+        "e2e/**/*.ts",
+        "scripts/**/*.mjs",
+        "contracts/*.mjs"
+      ]
+    },
+    "sdk": {
+      "entry": [
+        "test/*.test.ts"
+      ],
+      "project": [
+        "src/**/*.ts",
+        "test/**/*.ts"
+      ]
+    },
+    "app": {
+      "entry": [
+        "app/**/{page,layout,route,error,not-found,robots,sitemap,opengraph-image}.{ts,tsx}"
+      ],
+      "project": [
+        "app/**/*.{ts,tsx}",
+        "lib/**/*.ts",
+        "app/**/*.css"
+      ]
+    }
+  },
+  "ignoreExportsUsedInFile": true,
+  "ignoreDependencies": [
+    "postcss"
+  ]
+}

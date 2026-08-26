@@ -1,6 +1,17 @@
 /** Where this is served. One place, so robots, sitemap and metadata agree. */
 export const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://jalin-five.vercel.app'
 
+/**
+ * Proposal kinds, in the order the governor numbers them - index is the `kind`
+ * felt, matching `types::kinds` in the contract.
+ *
+ * Here rather than in lib/governance.ts because the propose form is a client
+ * component, and lib/governance.ts is `server-only`: importing it from the
+ * client pulls a server module into the browser bundle and the build refuses,
+ * correctly. A constant both sides read belongs with the other chain constants.
+ */
+export const KINDS = ['pause', 'limits', 'fee', 'deny', 'label'] as const
+
 /** The STRK20 pool on Starknet mainnet. */
 export const POOL_ADDRESS =
   '0x040337b1af3c663e86e333bab5a4b28da8d4652a15a69beee2b677776ffe812a'
