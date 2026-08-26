@@ -134,7 +134,6 @@ ${ROUTER_ADDRESS}`,
 
 const ONE = 10n ** 18n
 const BALLOT_TAG = 'JALIN_BALLOT:V1'
-const PROPOSAL_ID = 1n
 
 /**
  * A plan whose steps are real external calls that move nothing: `approve(router, 0)`
@@ -227,7 +226,7 @@ const RUNS: MainnetRun[] = [
   },
   {
     title: 'Private ballot',
-    note: 'A vote on proposal 1 through JalinGovernor, which is an anonymizer helper in its own right. The weight is public, the voter is not.',
+    note: 'A vote through JalinGovernor, which is an anonymizer helper in its own right: the weight is public and the voter is not. It votes on whichever proposal is currently open — a proposal takes votes for about an hour, so if none is, make one on the governance page first.',
     amount: ONE / 10n,
     ballot: true,
   },
@@ -282,6 +281,8 @@ interface LiveParams {
   maxCalldata: number
   feeBps: number
   denied: Record<string, boolean>
+  /** The newest proposal still taking votes, or null when none is. */
+  openProposal: { id: number; endBlock: number; blocksLeft: number } | null
 }
 
 function buildPlan(draft: Draft): Plan {
@@ -572,6 +573,17 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
     }
 
     if (run.ballot) {
+      // Never a compiled-in id. A proposal takes votes for 2000 blocks - under
+      // an hour - so a constant here is a run that points at a closed vote for
+      // the rest of the contract's life, and finds out after paying to prove.
+      if (!params?.openProposal) {
+        throw new Error(
+          'No proposal is taking votes right now. Make one at /governance - it is an ordinary ' +
+            'public transaction, and voting stays open for about an hour after it lands.',
+        )
+      }
+      const proposalId = BigInt(params.openProposal.id)
+
       // The secret is what redeems the stake once voting closes, and it is only
       // ever held here. Losing it locks the stake in the governor for good, so
       // it is shown rather than kept quietly in memory.
@@ -598,7 +610,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
           calldata: feltsToStrings([
             '${poolAddress}',
             0n,
-            PROPOSAL_ID,
+            proposalId,
             1n,
             commitment,
             0n,
@@ -1155,13 +1167,35 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
                 </span>
                 <button
                   onClick={() => pickWallet(i)}
-                  disabled={!ROUTER_ADDRESS}
+                  // A ballot with no open proposal is a transaction that reverts
+                  // after it has been paid for and proved. Offering the button
+                  // anyway would be charging somebody to find that out.
+                  disabled={!ROUTER_ADDRESS || (run.ballot && !params?.openProposal)}
                   className="shrink-0 rounded border border-strand px-3 py-1 text-xs hover:border-gold disabled:opacity-40"
                 >
                   {hashes[i] ? 'run again' : `run · ${Number(run.amount) / 1e18} STRK`}
                 </button>
               </div>
               <p className="mt-1 max-w-2xl text-xs leading-relaxed text-muted">{run.note}</p>
+
+              {run.ballot &&
+                params &&
+                (params.openProposal ? (
+                  <p className="mt-1 font-mono text-[11px] text-gold">
+                    voting on proposal {params.openProposal.id} · closes in{' '}
+                    {params.openProposal.blocksLeft.toLocaleString()} blocks, about{' '}
+                    {Math.max(1, Math.round((params.openProposal.blocksLeft * 1.68) / 60))} minutes
+                  </p>
+                ) : (
+                  <p className="mt-1 rounded border border-warn/40 bg-warn/10 px-2 py-1 font-mono text-[11px] leading-relaxed text-warn">
+                    No proposal is taking votes. Make one on the{' '}
+                    <a className="underline underline-offset-2" href="/governance">
+                      governance page
+                    </a>{' '}
+                    — it needs no STRK20 support and no proving service — then come back within the
+                    hour.
+                  </p>
+                ))}
               {run.title.includes('Endur') && quote && (
                 <p className="mt-1 font-mono text-[11px] text-gold">
                   vault quotes {(Number(quote.shares) / 1e18).toFixed(6)} xSTRK for{' '}

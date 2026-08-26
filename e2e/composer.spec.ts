@@ -194,3 +194,40 @@ test('typing an address does not fire a request per keystroke', async ({ page })
   const fired = calls.length - before
   expect(fired, `${fired} requests for ${typed.length} characters typed at once`).toBeLessThanOrEqual(3)
 })
+
+test.describe('the ballot run', () => {
+  test('is refused while no proposal is taking votes', async ({ page }) => {
+    await page.goto('/compose')
+    await settled(page)
+
+    // A proposal takes votes for about an hour. Offering the button outside
+    // that window charges somebody to discover a revert after proving.
+    const params = await json<ParamsResponse>(await page.request.get('/api/params'))
+    const ballot = page.getByRole('button', { name: /^run · 0\.1 STRK/ })
+
+    if (params.openProposal === null) {
+      await expect(ballot).toBeDisabled()
+      await expect(page.locator('main')).toContainText('No proposal is taking votes')
+      await expect(page.getByRole('link', { name: 'governance page' })).toBeVisible()
+    } else {
+      await expect(ballot).toBeEnabled()
+      await expect(page.locator('main')).toContainText(
+        `voting on proposal ${params.openProposal.id}`,
+      )
+    }
+  })
+
+  test('never names a proposal the chain does not have open', async ({ page }) => {
+    await page.goto('/compose')
+    await settled(page)
+
+    const params = await json<ParamsResponse>(await page.request.get('/api/params'))
+    if (params.openProposal === null) return
+
+    // Whatever it names has to be a proposal whose window is still open.
+    expect(params.openProposal.blocksLeft).toBeGreaterThan(0)
+    await expect(page.locator('main')).toContainText(
+      `closes in ${params.openProposal.blocksLeft.toLocaleString()} blocks`,
+    )
+  })
+})

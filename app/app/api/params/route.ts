@@ -11,6 +11,11 @@ import { GOVERNOR_ADDRESS } from '@/lib/config'
  *
  * `denied` answers the same question for specific targets, because the router
  * refuses a denied target and nothing in the composer could see that either.
+ *
+ * `openProposal` is the same problem one layer up. A ballot is only castable
+ * while its proposal's voting window is open, and the composer used to name a
+ * proposal id compiled into it - which closed after 2000 blocks and left the
+ * run pointing at a certain revert, thirty seconds of proving later.
  */
 export const revalidate = 30
 
@@ -33,7 +38,11 @@ export async function GET(request: Request) {
   if (bad) return Response.json({ error: `${bad} is not a felt` }, { status: 400 })
 
   try {
-    const raw = await rpc.call(GOVERNOR_ADDRESS, 'params', [], revalidate)
+    const [raw, head, rawCount] = await Promise.all([
+      rpc.call(GOVERNOR_ADDRESS, 'params', [], revalidate),
+      rpc.blockNumber(revalidate),
+      rpc.call(GOVERNOR_ADDRESS, 'proposal_count', [], revalidate),
+    ])
 
     const denied: Record<string, boolean> = {}
     for (const target of asked) {
@@ -41,8 +50,30 @@ export async function GET(request: Request) {
       denied[target] = BigInt(answer[0] ?? '0x0') !== 0n
     }
 
+    /**
+     * The newest proposal still taking votes, searched newest first.
+     *
+     * Bounded to the last few: a ballot is worth casting on something current,
+     * and walking the whole history to find one would be a request per
+     * proposal for an answer nobody wants.
+     */
+    const count = Number(BigInt(rawCount[0] ?? '0x0'))
+    let openProposal: { id: number; endBlock: number; blocksLeft: number } | null = null
+
+    for (let id = count; id > 0 && id > count - 5; id -= 1) {
+      const proposal = await rpc.call(GOVERNOR_ADDRESS, 'get_proposal', [BigInt(id)], revalidate)
+      const endBlock = Number(BigInt(proposal[4] ?? '0x0'))
+
+      // end_block of zero means no such proposal; the contract uses it as the
+      // existence check too.
+      if (endBlock === 0 || head > endBlock) continue
+      openProposal = { id, endBlock, blocksLeft: endBlock - head }
+      break
+    }
+
     return Response.json({
       paused: BigInt(raw[0] ?? '0x0') !== 0n,
+      openProposal,
       maxSteps: Number(BigInt(raw[1] ?? '0x0')),
       maxCalldata: Number(BigInt(raw[2] ?? '0x0')),
       feeBps: Number(BigInt(raw[3] ?? '0x0')),

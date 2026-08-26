@@ -32,6 +32,7 @@ export type ProspectResponse = Prospect
 
 export interface ParamsResponse {
   paused: boolean
+  openProposal: { id: number; endBlock: number; blocksLeft: number } | null
   maxSteps: number
   maxCalldata: number
   feeBps: number
