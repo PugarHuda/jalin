@@ -188,6 +188,22 @@ earned.
 There is no `bridge/`. Cross-chain is not a feature of the router, it is a plan —
 which is the whole argument, and it is made in [docs/cross-chain.md](./docs/cross-chain.md).
 
+## Checking your own entry
+
+```bash
+node scripts/verify-transactions.mjs                    # this repository
+node scripts/verify-transactions.mjs ../other/strk20.json
+```
+
+The sprint rules say a listed transaction must exist, have succeeded, have
+touched the pool, and — if you deployed contracts — have run through one of
+yours. All four are checkable, so there is no reason to discover on 31 August
+that a hash does not qualify.
+
+It is read-only and takes any manifest, which is also how it was checked: against
+a transaction known to touch the pool, one known not to, and a hash that does not
+exist. Point it at your own entry if it is useful.
+
 ## Building and testing
 
 Cairo:
