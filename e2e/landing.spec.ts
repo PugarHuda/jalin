@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { settled } from './settled'
 
 test.describe('landing', () => {
   test('states the thesis and names the pool it plugs into', async ({ page }) => {
@@ -53,7 +54,8 @@ test.describe('landing', () => {
     })
     page.on('pageerror', (error) => errors.push(String(error)))
 
-    await page.goto('/', { waitUntil: 'networkidle' })
+    await page.goto('/')
+    await settled(page)
     expect(errors).toEqual([])
   })
 

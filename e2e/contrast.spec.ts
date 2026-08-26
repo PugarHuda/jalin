@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { settled } from './settled'
 
 /**
  * Contrast, computed rather than guessed.
@@ -105,7 +106,7 @@ test('every colour pair on the page meets WCAG AA', async ({ page }) => {
 for (const path of ['/', '/compose', '/verify', '/governance']) {
   test(`${path} draws every control's edge visibly`, async ({ page }) => {
     await page.goto(path)
-    await page.waitForLoadState('networkidle')
+    await settled(page)
 
     const borders = await page.evaluate(() =>
       [...document.querySelectorAll('input, select, textarea, button')]

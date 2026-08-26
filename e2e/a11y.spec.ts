@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { settled } from './settled'
 
 for (const path of ['/', '/compose', '/verify', '/governance']) {
   test(`${path} shows where the keyboard is`, async ({ page }) => {
@@ -89,7 +90,7 @@ for (const path of ['/', '/compose', '/verify', '/governance']) {
 for (const path of ['/', '/compose', '/verify', '/governance']) {
   test(`${path} passes axe at WCAG 2.1 AA`, async ({ page }) => {
     await page.goto(path)
-    await page.waitForLoadState('networkidle')
+    await settled(page)
 
     const { default: AxeBuilder } = await import('@axe-core/playwright')
     const results = await new AxeBuilder({ page })

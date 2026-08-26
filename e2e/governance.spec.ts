@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { settled } from './settled'
 
 const ROUTER = '0x008498d79ca390b34a6416cc45fb375ad9b921eefd8d4531d99a2d775feb3a7e'
 
@@ -83,7 +84,8 @@ test.describe('governance', () => {
     })
     page.on('pageerror', (e) => errors.push(String(e)))
 
-    await page.reload({ waitUntil: 'networkidle' })
+    await page.reload()
+    await settled(page)
     await page.getByRole('button', { name: 'deny', exact: true }).click()
     expect(errors).toEqual([])
   })

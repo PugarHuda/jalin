@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { settled } from './settled'
 
 const ENDUR_VAULT = '0x28d709c875c0ceac3dce7065bec5328186dc89fe254527084d1689910954b0a'
 
@@ -115,7 +116,8 @@ test.describe('composer', () => {
     })
     page.on('pageerror', (e) => errors.push(String(e)))
 
-    await page.reload({ waitUntil: 'networkidle' })
+    await page.reload()
+    await settled(page)
     await page.getByRole('button', { name: 'Two deposits, one invoke' }).click()
     expect(errors).toEqual([])
   })
@@ -170,7 +172,7 @@ test('typing an address does not fire a request per keystroke', async ({ page })
   })
 
   await page.goto('/compose')
-  await page.waitForLoadState('networkidle')
+  await settled(page)
   const before = calls.length
 
   // Every prefix of a felt is a felt, so an undebounced read fires on each of

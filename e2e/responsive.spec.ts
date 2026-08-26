@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { settled } from './settled'
 
 /**
  * Nothing may scroll sideways. This caught three separate causes once — a grid
@@ -8,7 +9,7 @@ import { expect, test } from '@playwright/test'
 for (const path of ['/', '/compose', '/verify', '/governance']) {
   test(`${path} does not scroll sideways on a phone`, async ({ page }) => {
     await page.goto(path)
-    await page.waitForLoadState('networkidle')
+    await settled(page)
 
     const width = await page.evaluate(() => ({
       scroll: document.documentElement.scrollWidth,
@@ -19,7 +20,7 @@ for (const path of ['/', '/compose', '/verify', '/governance']) {
 
   test(`${path} keeps every element inside the viewport`, async ({ page }) => {
     await page.goto(path)
-    await page.waitForLoadState('networkidle')
+    await settled(page)
 
     const strays = await page.evaluate(() => {
       const width = document.documentElement.clientWidth
