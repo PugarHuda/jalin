@@ -66,7 +66,10 @@ jobs:
         with:
           node-version: '24'
       - run: npm install --no-audit --no-fund
-      - run: npx playwright install --with-deps chromium
+      # Three engines. Chromium alone cannot see a Gecko or WebKit layout
+      # difference, and this page leans on grid, color-mix, mask-image and a
+      # masked SVG - all places the three disagree.
+      - run: npx playwright install --with-deps chromium firefox webkit
       - run: npm run test:e2e
       - uses: actions/upload-artifact@v4
         if: failure()
