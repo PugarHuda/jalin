@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { readGovernance, type Proposal, type Stage } from '@/lib/governance'
 import { GOVERNOR_ADDRESS, ROUTER_ADDRESS, label } from '@/lib/config'
+import { Execute } from './execute'
 import { Propose } from './propose'
 
 /**
@@ -42,7 +43,7 @@ function StageBadge({ stage }: { stage: Stage }) {
   return <span className={`font-mono text-xs ${colour}`}>{text}</span>
 }
 
-function ProposalCard({ proposal }: { proposal: Proposal }) {
+function ProposalCard({ proposal, governor }: { proposal: Proposal; governor: string }) {
   const total = proposal.yes + proposal.no
   const forShare = total === 0n ? 0 : Number((proposal.yes * 1000n) / total) / 10
 
@@ -76,6 +77,10 @@ function ProposalCard({ proposal }: { proposal: Proposal }) {
         <dt className="text-muted">executable from</dt>
         <dd>block {proposal.eta.toLocaleString()}</dd>
       </dl>
+
+      {proposal.stage.name === 'executable' && (
+        <Execute governor={governor} proposalId={proposal.id} />
+      )}
     </li>
   )
 }
@@ -184,7 +189,11 @@ export default async function Governance() {
             ) : (
               <ul className="mt-2">
                 {governance.proposals.map((proposal) => (
-                  <ProposalCard key={proposal.id} proposal={proposal} />
+                  <ProposalCard
+                    key={proposal.id}
+                    proposal={proposal}
+                    governor={GOVERNOR_ADDRESS}
+                  />
                 ))}
               </ul>
             )}

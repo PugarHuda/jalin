@@ -27,6 +27,13 @@ interface Row {
   error: string | null
 }
 
+/**
+ * Each hash is one node call on a shared key. The sprint asks for three; twenty
+ * is room to check a whole manifest twice over. Without a cap this page reads
+ * whatever it is handed, and what a public text box gets handed is a phone book.
+ */
+const MAX_HASHES = 20
+
 const RULES = [
   ['exists', 'The transaction is on chain.'],
   ['succeeded', 'It did not revert.'],
@@ -39,6 +46,7 @@ export default function Verify() {
   const [contracts, setContracts] = useState('')
   const [rows, setRows] = useState<Row[] | null>(null)
   const [busy, setBusy] = useState(false)
+  const [tooMany, setTooMany] = useState<number | null>(null)
 
   async function check() {
     const list = hashes
@@ -47,6 +55,12 @@ export default function Verify() {
       .filter(Boolean)
 
     if (list.length === 0) return
+    if (list.length > MAX_HASHES) {
+      setRows(null)
+      setTooMany(list.length)
+      return
+    }
+    setTooMany(null)
     setBusy(true)
 
     // Sequential rather than parallel: this reads a public node, and a burst of
@@ -132,6 +146,15 @@ export default function Verify() {
           {busy ? 'reading the chain…' : 'Check'}
         </button>
       </div>
+
+      {tooMany !== null && (
+        <p className="mt-4 rounded border border-warn/40 bg-warn/10 px-3 py-2 text-xs leading-relaxed text-warn">
+          {tooMany} hashes at once, and this checks at most {MAX_HASHES}. Each one is a call to a
+          Starknet node on a shared key. Check them in batches, or run{' '}
+          <span className="font-mono">node scripts/verify-transactions.mjs</span> against your own
+          node with no limit at all.
+        </p>
+      )}
 
       {rows && rows.length > 0 && (
         <section className="mt-8">

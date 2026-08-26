@@ -80,3 +80,12 @@ test.describe('governance', () => {
     expect(errors).toEqual([])
   })
 })
+
+test('offers no execute button for a proposal that cannot execute', async ({ page }) => {
+  await page.goto('/governance')
+
+  // Proposal 1 was rejected — nobody voted — so there is nothing to execute and
+  // no button should be offered for it.
+  await expect(page.getByText(/rejected · nobody voted/)).toBeVisible()
+  await expect(page.getByRole('button', { name: /^Execute #/ })).toHaveCount(0)
+})

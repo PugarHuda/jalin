@@ -12,6 +12,13 @@ import { hash } from 'starknet'
  * a key anyone can lift and spend.
  */
 
+/**
+ * Long enough for an event scan over half a million blocks, short enough that a
+ * node which has stopped answering fails the page instead of holding it open
+ * until the platform kills the function. Without it there was no ceiling at all.
+ */
+const TIMEOUT_MS = 15_000
+
 export class RpcError extends Error {
   constructor(
     message: string,
@@ -35,10 +42,17 @@ async function send<T>(method: string, params: unknown, revalidate?: number): Pr
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ id: 1, jsonrpc: '2.0', method, params }),
+      signal: AbortSignal.timeout(TIMEOUT_MS),
       ...(revalidate === undefined ? { cache: 'no-store' } : { next: { revalidate } }),
     })
   } catch (cause) {
-    throw new RpcError(`could not reach the node: ${String(cause)}`, 'transport')
+    const timedOut = cause instanceof Error && cause.name === 'TimeoutError'
+    throw new RpcError(
+      timedOut
+        ? `the node did not answer within ${TIMEOUT_MS / 1000}s`
+        : `could not reach the node: ${String(cause)}`,
+      'transport',
+    )
   }
 
   const body = (await response.json()) as { result?: T; error?: { message?: string } }

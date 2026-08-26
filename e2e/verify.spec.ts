@@ -46,3 +46,25 @@ test.describe('verify', () => {
     await expect(page.getByText('3 of 3 would count')).toBeVisible({ timeout: 30_000 })
   })
 })
+
+test('refuses a batch larger than it will read', async ({ page }) => {
+  await page.goto('/verify')
+
+  // Each hash is a node call on a shared key. A public text box with no cap on
+  // it is a public text box that gets handed a phone book.
+  const many = Array.from({ length: 25 }, () => POOL_TX).join('\n')
+  await page.getByLabel('transaction hashes').fill(many)
+  await page.getByRole('button', { name: 'Check' }).click()
+
+  await expect(page.getByText(/25 hashes at once/)).toBeVisible()
+  // And nothing was sent.
+  await expect(page.getByText(/would count/)).toHaveCount(0)
+})
+
+test('a batch at the cap still runs', async ({ page }) => {
+  await page.goto('/verify')
+  await page.getByLabel('transaction hashes').fill(Array.from({ length: 20 }, () => POOL_TX).join('\n'))
+  await page.getByRole('button', { name: 'Check' }).click()
+
+  await expect(page.getByText('20 of 20 would count')).toBeVisible({ timeout: 60_000 })
+})
