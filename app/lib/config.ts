@@ -1,3 +1,6 @@
+/** Where this is served. One place, so robots, sitemap and metadata agree. */
+export const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://jalin-five.vercel.app'
+
 /** The STRK20 pool on Starknet mainnet. */
 export const POOL_ADDRESS =
   '0x040337b1af3c663e86e333bab5a4b28da8d4652a15a69beee2b677776ffe812a'

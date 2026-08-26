@@ -62,14 +62,20 @@ export const POOL_ADDRESS = '${poolAddress}'
 
 /**
  * The router bounds step count and calldata length on chain, and those bounds
- * are governed rather than fixed. These are the deployed defaults, checked here
- * so a plan fails in the caller rather than after a proof has been generated.
+ * are governed rather than fixed - so anything that has read the governor
+ * should pass what it read. Checking here means a plan fails in the caller
+ * rather than after a proof has been generated.
  */
 export interface PlanLimits {
   maxSteps: number
   maxCalldata: number
 }
 
+/**
+ * What the governor held at deployment. A fallback for callers with no way to
+ * read it, and wrong the moment a vote moves it - which is the whole point of
+ * `limits` being an argument everywhere below.
+ */
 export const DEFAULT_LIMITS: PlanLimits = { maxSteps: 8, maxCalldata: 64 }
 
 /** Placeholders the wallet resolves at submit time; everything else is a felt. */
@@ -158,8 +164,12 @@ export function unclaimedTokens(plan: Plan): string[] {
  * Flattens a plan into router calldata, leaving placeholder strings intact so
  * the wallet can resolve them.
  */
-export function encodePlan(plan: Plan, poolAddress: Felt = POOL_ADDRESS): Felt[] {
-  validatePlan(plan)
+export function encodePlan(
+  plan: Plan,
+  poolAddress: Felt = POOL_ADDRESS,
+  limits: PlanLimits = DEFAULT_LIMITS,
+): Felt[] {
+  validatePlan(plan, limits)
 
   const calldata: Felt[] = [poolAddress, BigInt(plan.steps.length)]
 

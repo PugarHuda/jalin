@@ -198,3 +198,27 @@ test('the field that is wrong is the field that is named', () => {
   }
   assert.throws(() => validatePlan(plan as never), /step 0 approval\[0\] token/)
 })
+
+test('encodePlan checks against the limits it is given, not a constant', () => {
+  const step = { target: '0x1', selector: '0x2', approvals: [], calldata: [] }
+  const plan = { steps: [step, step, step], outputs: [] }
+
+  // Fine under the deployed defaults, and refused once governance tightens
+  // max_steps to two. Encoding against a stale constant is how a plan gets a
+  // proof generated for it and then reverts on chain.
+  assert.doesNotThrow(() => encodePlan(plan as never))
+  assert.throws(
+    () => encodePlan(plan as never, undefined, { maxSteps: 2, maxCalldata: 64 }),
+    /the router allows 2/,
+  )
+})
+
+test('a loosened bound is honoured too', () => {
+  const step = { target: '0x1', selector: '0x2', approvals: [], calldata: [] }
+  const plan = { steps: Array.from({ length: 12 }, () => step), outputs: [] }
+
+  assert.throws(() => encodePlan(plan as never), /the router allows 8/)
+  assert.doesNotThrow(() =>
+    encodePlan(plan as never, undefined, { maxSteps: 16, maxCalldata: 64 }),
+  )
+})

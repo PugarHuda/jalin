@@ -135,3 +135,30 @@ test.describe('without a wallet installed', () => {
     expect(crashes).toEqual([])
   })
 })
+
+test.describe('what governance owns', () => {
+  test('the plan is checked against the bounds the chain reports', async ({ page }) => {
+    await page.goto('/compose')
+    const params = await (await page.request.get('/api/params')).json()
+
+    // Add steps until one over the live bound, then the composer has to refuse
+    // with the number it read rather than a number compiled into the SDK.
+    await page.getByRole('button', { name: 'Stake on Endur' }).click()
+    for (let i = 1; i <= params.maxSteps; i += 1) {
+      await page.getByRole('button', { name: '+ step' }).click()
+    }
+
+    await expect(page.locator('main')).toContainText(`the router allows ${params.maxSteps}`)
+  })
+
+  test('a denied target would be reported, and none is denied today', async ({ page }) => {
+    await page.goto('/compose')
+    const params = await (await page.request.get('/api/params')).json()
+    expect(params.paused).toBe(false)
+
+    // Nothing is denied on mainnet right now, so the warning must be absent —
+    // a warning that shows unconditionally teaches people to ignore it.
+    await expect(page.locator('main')).not.toContainText('Governance has denied')
+    await expect(page.locator('main')).not.toContainText('has the router paused')
+  })
+})

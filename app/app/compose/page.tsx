@@ -273,6 +273,14 @@ function parseCalldata(raw: string, approveAmount: bigint): (string | bigint)[] 
     })
 }
 
+interface LiveParams {
+  paused: boolean
+  maxSteps: number
+  maxCalldata: number
+  feeBps: number
+  denied: Record<string, boolean>
+}
+
 function buildPlan(draft: Draft): Plan {
   return {
     steps: draft.steps.map((step) => {
@@ -306,6 +314,7 @@ export default function Home() {
   const [lastPayload, setLastPayload] = useState<string | null>(null)
   const [shieldHash, setShieldHash] = useState<string | null>(null)
   const [account, setAccount] = useState<string | null>(null)
+  const [params, setParams] = useState<LiveParams | null>(null)
   const [verdicts, setVerdicts] = useState<Record<string, string>>({})
   const [quote, setQuote] = useState<{ shares: bigint } | null>(null)
   const [crowd, setCrowd] = useState<{
@@ -386,15 +395,48 @@ export default function Home() {
     }
   }, [draft.inputToken, draft.inputAmount])
 
+  /**
+   * The bounds a plan is checked against belong to governance, so they are read
+   * rather than compiled in. Same call answers whether any target has been
+   * denied - the router refuses those and nothing here could see it.
+   */
+  const targets = draft.steps
+    .map((step) => step.target.trim())
+    .filter((target) => /^0x[0-9a-fA-F]{1,64}$/.test(target))
+    .join(',')
+
+  useEffect(() => {
+    let cancelled = false
+    fetch(`/api/params?targets=${encodeURIComponent(targets)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((body) => {
+        if (!cancelled && typeof body?.maxSteps === 'number') setParams(body)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [targets])
+
   const result = useMemo(() => {
     try {
       const plan = buildPlan(draft)
-      encodePlan(plan) // validates
+      // Falls back to the SDK's deployed defaults only while the governor has
+      // not been read yet. Once it has, the chain's own numbers win.
+      encodePlan(
+        plan,
+        undefined,
+        params ? { maxSteps: params.maxSteps, maxCalldata: params.maxCalldata } : undefined,
+      )
       return { plan, error: null as string | null }
     } catch (error) {
       return { plan: null, error: error instanceof Error ? error.message : String(error) }
     }
-  }, [draft])
+  }, [draft, params])
+
+  const deniedTargets = draft.steps
+    .map((step) => step.target.trim())
+    .filter((target) => params?.denied[target])
 
   /**
    * The exact wallet calls, built outside the render.
@@ -890,7 +932,9 @@ export default function Home() {
           <div className="rounded border border-thread bg-raised p-4">
             <button
               onClick={() => pickWallet(null)}
-              disabled={!result.plan || draftIncomplete}
+              disabled={
+                !result.plan || draftIncomplete || params?.paused || deniedTargets.length > 0
+              }
               className="rounded-sm px-4 py-2 text-sm font-medium transition-colors enabled:bg-gold enabled:text-ground enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:border disabled:border-strand disabled:text-muted"
             >
               {ROUTER_ADDRESS ? 'Sign and submit' : 'Check wallet support'}
@@ -908,6 +952,23 @@ export default function Home() {
                   </li>
                 ))}
               </ul>
+            )}
+            {params?.paused && (
+              <p className="mt-2 rounded border border-warn/40 bg-warn/10 px-3 py-2 text-xs leading-relaxed text-warn">
+                Governance has the router paused, so every plan reverts. Nothing here can override
+                it — that is the point of it. See{' '}
+                <a className="underline underline-offset-2" href="/governance">
+                  governance
+                </a>
+                .
+              </p>
+            )}
+            {deniedTargets.length > 0 && (
+              <p className="mt-2 rounded border border-warn/40 bg-warn/10 px-3 py-2 text-xs leading-relaxed text-warn break-all">
+                Governance has denied {deniedTargets.join(', ')}. The router refuses a denied
+                target, so this plan would revert. The deny list is a circuit breaker, not an
+                allow list — everything not on it stays callable.
+              </p>
             )}
             <p className="mt-2 text-xs text-muted">
               {draftIncomplete

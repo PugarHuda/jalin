@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Bricolage_Grotesque, IBM_Plex_Mono, IBM_Plex_Sans } from 'next/font/google'
 import './globals.css'
+import { SITE } from '@/lib/config'
 
 // Bricolage reads as assembled rather than drawn, which is the right register for
 // something whose whole idea is composition. Plex carries the engineering voice
@@ -33,7 +34,7 @@ const DESCRIPTION =
  * link that carries this submission would arrive as a bare grey rectangle.
  */
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'https://jalin-five.vercel.app'),
+  metadataBase: new URL(SITE),
   title: { default: 'Jalin', template: '%s · Jalin' },
   description: DESCRIPTION,
   applicationName: 'Jalin',
