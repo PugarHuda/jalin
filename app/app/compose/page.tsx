@@ -305,6 +305,7 @@ export default function Home() {
   const [ballotSecret, setBallotSecret] = useState<string | null>(null)
   const [lastPayload, setLastPayload] = useState<string | null>(null)
   const [shieldHash, setShieldHash] = useState<string | null>(null)
+  const [verdicts, setVerdicts] = useState<Record<string, string>>({})
   const [quote, setQuote] = useState<{ shares: bigint } | null>(null)
   const [crowd, setCrowd] = useState<{ depositors: number; windowBlocks: number } | null>(null)
 
@@ -464,6 +465,24 @@ export default function Home() {
     })
   }
 
+  /**
+   * The rules the panel will apply, applied here. Polls because a receipt does
+   * not exist the instant a transaction is accepted.
+   */
+  async function judge(hash: string) {
+    for (let attempt = 0; attempt < 12; attempt += 1) {
+      try {
+        const response = await fetch(`/api/tx?hash=${hash}`)
+        if (response.ok) {
+          const body = (await response.json()) as { exists?: boolean; summary?: string }
+          if (body.summary) setVerdicts((v) => ({ ...v, [hash]: body.summary! }))
+          if (body.exists) return
+        }
+      } catch {}
+      await new Promise((resolve) => setTimeout(resolve, 5000))
+    }
+  }
+
   async function execute(wallet: StarknetWindowObject) {
     const run =
       pendingRun === null ? null : pendingRun === -1 ? SHIELD : RUNS[pendingRun]!
@@ -518,6 +537,7 @@ export default function Home() {
       })
 
       setStatus(`Submitted: ${response.transaction_hash}`)
+      judge(response.transaction_hash)
       if (pendingRun === -1) {
         setShieldHash(response.transaction_hash)
       } else if (pendingRun !== null) {
@@ -881,6 +901,9 @@ export default function Home() {
               {shieldHash}
             </a>
           )}
+          {shieldHash && verdicts[shieldHash] && (
+            <p className="mt-1 text-[11px] text-muted">{verdicts[shieldHash]}</p>
+          )}
         </div>
 
         <ol className="mt-4">
@@ -915,6 +938,9 @@ export default function Home() {
                 >
                   {hashes[i]}
                 </a>
+              )}
+              {hashes[i] && verdicts[hashes[i]!] && (
+                <p className="mt-1 text-[11px] text-muted">{verdicts[hashes[i]!]}</p>
               )}
             </li>
           ))}

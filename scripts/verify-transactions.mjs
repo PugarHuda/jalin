@@ -11,6 +11,7 @@
  * Read-only. It sends nothing and needs no key.
  */
 import { RpcProvider } from 'starknet'
+import { checkReceipt, describeVerdict } from '../sdk/src/index.ts'
 import { readFileSync } from 'node:fs'
 
 const root = new URL('..', import.meta.url)
@@ -35,35 +36,25 @@ const POOL =
 // also how its own positive and negative paths were checked.
 const manifestPath = process.argv[2] ?? new URL('strk20.json', root)
 const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
-const ours = (manifest.contracts ?? []).map((c) => BigInt(c))
+const ours = manifest.contracts ?? []
 const provider = new RpcProvider({ nodeUrl: RPC })
 
-const same = (a, b) => BigInt(a) === BigInt(b)
 const short = (v) => `${String(v).slice(0, 12)}…${String(v).slice(-6)}`
 
 async function check(hash) {
-  const result = { hash, exists: false, succeeded: false, touchedPool: false, throughOurs: null }
-  let receipt
+  let receipt = null
   try {
     receipt = await provider.getTransactionReceipt(hash)
   } catch {
-    return result
+    // Absent is a verdict, not an error.
   }
-  result.exists = true
-  result.succeeded = (receipt.execution_status ?? receipt.finality_status) === 'SUCCEEDED'
-
-  const emitters = (receipt.events ?? []).map((e) => e.from_address)
-  result.touchedPool = emitters.some((a) => same(a, POOL))
-  // Only asserted when contracts are declared: the rule is conditional on having
-  // deployed any, and a project with none is judged on the pool alone.
-  result.throughOurs = ours.length === 0 ? null : emitters.some((a) => ours.some((o) => same(a, o)))
-  return result
+  return { hash, ...checkReceipt(receipt, { pool: POOL, ours: manifest.contracts ?? [] }) }
 }
 
 const hashes = manifest.transactions ?? []
 
 console.log(`pool      ${short(POOL)}`)
-console.log(`contracts ${ours.length ? ours.map((o) => short('0x' + o.toString(16))).join(', ') : 'none declared'}`)
+console.log(`contracts ${ours.length ? ours.map(short).join(', ') : 'none declared'}`)
 console.log(`listed    ${hashes.length} transaction${hashes.length === 1 ? '' : 's'}\n`)
 
 if (hashes.length === 0) {
@@ -75,15 +66,10 @@ const results = []
 for (const hash of hashes) {
   const r = await check(hash)
   results.push(r)
-  const mark = (ok) => (ok ? 'yes' : 'NO ')
-  console.log(short(hash))
-  console.log(`  exists ${mark(r.exists)}   succeeded ${mark(r.succeeded)}   touched pool ${mark(r.touchedPool)}` +
-    (r.throughOurs === null ? '' : `   through ours ${mark(r.throughOurs)}`))
+  console.log(`${short(hash)}  ${describeVerdict(r)}`)
 }
 
-const qualifies = (r) =>
-  r.exists && r.succeeded && r.touchedPool && (r.throughOurs === null || r.throughOurs)
-const good = results.filter(qualifies).length
+const good = results.filter((r) => r.qualifies).length
 
 console.log(`\n${good} of ${results.length} qualify.`)
 
