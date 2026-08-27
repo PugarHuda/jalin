@@ -146,6 +146,22 @@ export async function readGovernance(revalidate = 60): Promise<Governance | null
       cursor = page.continuation_token
       pages += 1
       if (!cursor) break
+
+      /**
+       * Every proposal has been dated, so the pages after this one hold nothing
+       * this loop wants.
+       *
+       * Without it the walk runs to the end of a 600,000 block range whatever it
+       * has already found, and over a range that sparse most of those requests
+       * come back empty with a continuation token - the shape the comment above
+       * warns about, paid for on every cold render. Three browser engines asking
+       * at once was enough to make `/governance` exceed a 60 second `page.goto`
+       * and take a11y, responsive and contrast down with it.
+       *
+       * `count` is the governor's own `proposal_count`, so this stops when the
+       * chain says it is finished rather than when a number here says so.
+       */
+      if (proposedAt.size >= count) break
     }
 
     // One request per proposal, all at once. Awaiting them in a loop made the
