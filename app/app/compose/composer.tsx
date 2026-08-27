@@ -253,6 +253,21 @@ function describeError(error: unknown): string {
   return parts.join(' · ')
 }
 
+/**
+ * Ready, and only Ready.
+ *
+ * It is the one wallet whose STRK20 methods have been exercised against this
+ * router on mainnet — the shield in 0x04816dbb…0278 came from it. Braavos may
+ * well implement them too; nobody here has checked, and offering an untested
+ * wallet offers somebody a proof they pay for before finding out.
+ *
+ * Matched on the id as well as the name, because Ready is the renamed Argent X
+ * and the library's discovery list still reports the old one.
+ */
+function isReady(wallet: { id?: string; name?: string }): boolean {
+  return /ready|argent/i.test(`${wallet.id ?? ''} ${wallet.name ?? ''}`)
+}
+
 function decimalsOf(address: string): number {
   return tokenOf(address)?.decimals ?? 18
 }
@@ -563,23 +578,91 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
     setPendingRun(runIndex)
     const { default: getStarknet } = await import('get-starknet-core')
     const available = await getStarknet.getAvailableWallets()
+    const offered = available.filter(isReady)
 
-    if (available.length === 0) {
+    if (offered.length === 0) {
       // A dead end otherwise, and this is exactly the person arriving on a
       // fresh profile. The list comes from the library rather than from a
       // hardcoded one here, so it does not go stale.
       const installable = await getStarknet.getDiscoveryWallets()
-      const names = installable.map((wallet) => wallet.name).slice(0, 4).join(', ')
+      // Whether it can be installed comes from the library; the name does not.
+      // Discovery still lists Ready under "Argent X", so taking the name from
+      // there tells somebody to install a wallet that no longer goes by it.
       setStatus(
-        installable.length > 0
-          ? `No Starknet wallet in this browser. Ready and Braavos implement the STRK20 methods; ${names} are the ones this page can see.`
+        available.length > 0
+          ? `This page signs with Ready. ${available.map((w) => w.name).join(', ')} ${
+              available.length > 1 ? 'are' : 'is'
+            } installed here instead, and Ready is the only wallet whose STRK20 support has been checked against this router on mainnet.`
+          : installable.some(isReady)
+          ? 'No Starknet wallet in this browser. This page signs with Ready — install it and come back. The discovery list still files it under its old name, Argent X.'
           : 'No Starknet wallet found in this browser.',
       )
       return
     }
 
-    setWallets(available)
+    setWallets(offered)
     setStatus(null)
+    // Stale from the previous button, and about to render under a different one.
+    setLastPayload(null)
+  }
+
+  /**
+   * Everything the machine has to say in response to a click, rendered at the
+   * button that was clicked.
+   *
+   * There are three places to start a signature - the draft plan, the shield and
+   * each numbered run - and one set of state behind them. Rendering that state
+   * in one fixed spot meant two of the three buttons answered somewhere the
+   * reader was not looking: you pressed `run` at the foot of the page and the
+   * wallet list, the proving status and the error all appeared half a screen up.
+   *
+   * `pendingRun` already knew which button was waiting. This shows it.
+   */
+  function feedback(site: number | null, what: string) {
+    if (pendingRun !== site) return null
+    if (wallets.length === 0 && !status && !lastPayload) return null
+
+    return (
+      <div className="mt-2 rounded border border-strand bg-ground p-3">
+        {wallets.length > 0 && (
+          <>
+            <p className="text-xs text-muted">
+              Choose a wallet to sign <span className="text-cloth">{what}</span>.
+            </p>
+            <ul className="mt-2 space-y-1">
+              {wallets.map((wallet) => (
+                <li key={wallet.id}>
+                  <button
+                    onClick={() => execute(wallet)}
+                    className="w-full rounded border border-strand px-3 py-2 text-left text-sm hover:border-gold"
+                  >
+                    {wallet.name}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+        {status && <p className="mt-2 break-all font-mono text-xs">{status}</p>}
+        {status?.includes('NOT_REGISTERED') && (
+          <p className="mt-2 rounded border border-strand px-3 py-2 text-xs leading-relaxed">
+            In Ready: open the wallet, shield any amount from its own privacy screen. That one
+            transaction emits <span className="font-mono">ViewingKeySet</span> and you are
+            registered. Nothing to sign here for it.
+          </p>
+        )}
+        {lastPayload && (
+          <details className="mt-2">
+            <summary className="cursor-pointer text-xs text-muted">
+              the exact payload that was sent
+            </summary>
+            <pre className="mt-1 max-h-64 overflow-auto rounded border border-thread p-2 font-mono text-[10px] break-all whitespace-pre-wrap">
+              {lastPayload}
+            </pre>
+          </details>
+        )}
+      </div>
+    )
   }
 
   /** Forgets the wallet here and in the library, so the next visit asks again. */
@@ -841,6 +924,23 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
           pool {label(POOL_ADDRESS)} · router {ROUTER_ADDRESS ? label(ROUTER_ADDRESS) : 'not deployed yet'}
         </p>
       </header>
+
+      {/*
+        The gold button in the editor below is the loudest thing on the page and
+        it is the advanced path: it signs whatever is in the boxes, spent against
+        a shielded balance a first-time reader does not have yet. Pressing it
+        first is the obvious mistake and it was being made. Signposting the
+        guided path costs a sentence; reordering the page would cost the
+        argument, which builds to those runs rather than opening with them.
+      */}
+      <p className="mt-4 max-w-2xl rounded border border-strand bg-raised px-3 py-2 text-xs leading-relaxed text-muted">
+        <span className="text-cloth">First time here?</span> This editor signs whatever plan you
+        build, and spending needs a shielded balance you may not hold yet. The guided path is{' '}
+        <a href="#mainnet-run" className="text-gold underline underline-offset-2">
+          the three numbered runs
+        </a>{' '}
+        at the foot of this page — shield once, then run them in order.
+      </p>
 
       <div className="mt-6 flex flex-wrap items-center gap-2">
         {PRESETS.map((preset) => (
@@ -1125,20 +1225,6 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
             >
               {ROUTER_ADDRESS ? 'Sign and submit' : 'Check wallet support'}
             </button>
-            {wallets.length > 0 && (
-              <ul className="mt-3 space-y-1">
-                {wallets.map((wallet) => (
-                  <li key={wallet.id}>
-                    <button
-                      onClick={() => execute(wallet)}
-                      className="w-full rounded border border-strand px-3 py-2 text-left text-sm hover:border-gold"
-                    >
-                      {wallet.name}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
             {params?.paused && (
               <p className="mt-2 rounded border border-warn/40 bg-warn/10 px-3 py-2 text-xs leading-relaxed text-warn">
                 Governance has the router paused, so every plan reverts. Nothing here can override
@@ -1163,29 +1249,12 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
                 ? 'Needs a wallet that implements wallet_strk20InvokeTransaction. Proving takes around 30 seconds.'
                 : 'The router is not deployed yet, so there is nothing to sign — but this still connects your wallet and tells you whether it implements the STRK20 methods.'}
             </p>
-            {status && <p className="mt-2 break-all font-mono text-xs">{status}</p>}
-            {status?.includes('NOT_REGISTERED') && (
-              <p className="mt-2 rounded border border-strand px-3 py-2 text-xs leading-relaxed">
-                In Ready: open the wallet, shield any amount from its own privacy screen. That one
-                transaction emits <span className="font-mono">ViewingKeySet</span> and you are
-                registered. Nothing to sign here for it.
-              </p>
-            )}
-            {lastPayload && (
-              <details className="mt-2">
-                <summary className="cursor-pointer text-xs text-muted">
-                  the exact payload that was sent
-                </summary>
-                <pre className="mt-1 max-h-64 overflow-auto rounded border border-thread p-2 font-mono text-[10px] break-all whitespace-pre-wrap">
-                  {lastPayload}
-                </pre>
-              </details>
-            )}
+            {feedback(null, 'the plan above')}
           </div>
         </section>
       </div>
 
-      <section className="mt-10 rounded border border-thread bg-raised p-5">
+      <section id="mainnet-run" className="mt-10 scroll-mt-6 rounded border border-thread bg-raised p-5">
         <h2 className="font-mono text-sm">The mainnet run</h2>
         <p className="mt-1 max-w-3xl text-xs text-muted">
           Three transactions on Starknet mainnet, each an invoke through a contract of ours.
@@ -1239,6 +1308,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
           {shieldHash && verdicts[shieldHash] && (
             <p className="mt-1 text-[11px] text-muted">{verdicts[shieldHash]}</p>
           )}
+          {feedback(-1, SHIELD.title)}
         </div>
 
         <ol className="mt-4">
@@ -1299,6 +1369,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
               {hashes[i] && verdicts[hashes[i]!] && (
                 <p className="mt-1 text-[11px] text-muted">{verdicts[hashes[i]!]}</p>
               )}
+              {feedback(i, `${i + 1}. ${run.title}`)}
             </li>
           ))}
         </ol>

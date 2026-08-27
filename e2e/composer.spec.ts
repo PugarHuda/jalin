@@ -251,8 +251,10 @@ test.describe('the wallet flow', () => {
     await page.getByRole('button', { name: /^shield · / }).click()
 
     await expect(page.locator('main')).toContainText(/No Starknet wallet/, { timeout: 20_000 })
-    // Named from the library's own discovery list, not from a list written here.
-    await expect(page.locator('main')).toContainText(/Ready and Braavos/)
+    // The page signs with Ready alone, and says so rather than listing a wallet
+    // it has never been run against. The names beside it still come from the
+    // library's own discovery list rather than from one written here.
+    await expect(page.locator('main')).toContainText(/This page signs with Ready/)
   })
 
   test('shows no connection state until there is a connection', async ({ page }) => {
