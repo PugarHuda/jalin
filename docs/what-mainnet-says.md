@@ -108,3 +108,30 @@ issues on the hackathon repository say the same thing:
 [#124](https://github.com/starkience/strk20-hackathon/issues/124),
 [#135](https://github.com/starkience/strk20-hackathon/issues/135),
 [#147](https://github.com/starkience/strk20-hackathon/issues/147).
+
+## The pool charges 6 STRK per private operation, not 4
+
+`get_fee_amount()` on the pool returns `0x53444835ec580000`, which is 6e18. The
+agent skill shipped in this repository says 4 STRK, and says to read it rather
+than hardcode it — advice that was right and that we followed for the router's
+own parameters while missing it here.
+
+Corroborated by the fee leg rather than by the view alone. The shield in
+`0x04816dbb…0278`, the transaction this project already cites for
+`ViewingKeySet`, deposited 10 STRK and emitted a `Withdrawal` of exactly 6:
+
+```
+Deposit      10 STRK
+Withdrawal    6 STRK   the fee leg
+```
+
+It is flat, so it dwarfs small amounts rather than scaling with them, and it is
+paid out of the private balance. The composer's mainnet run was sized at a 1
+STRK shield to cover three runs of 0.5, 0.25 and 0.1 — arithmetic that counted
+the value moved and none of the fees. Four operations at 6 STRK is 24, so the
+first spend answered `not enough private balance for both the amount and the
+privacy fee`, which is the wallet naming a shortfall the page had designed in.
+
+The shield is now derived from the live fee: once for itself, once per run,
+plus what the runs spend. A demo that hardcodes any of those numbers is a demo
+that works until a vote changes one.

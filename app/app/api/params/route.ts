@@ -1,5 +1,5 @@
 import { RpcError, rpc } from '@/lib/rpc'
-import { GOVERNOR_ADDRESS } from '@/lib/config'
+import { GOVERNOR_ADDRESS, POOL_ADDRESS } from '@/lib/config'
 
 /**
  * What the router is running on right now.
@@ -38,10 +38,18 @@ export async function GET(request: Request) {
   if (bad) return Response.json({ error: `${bad} is not a felt` }, { status: 400 })
 
   try {
-    const [raw, head, rawCount] = await Promise.all([
+    const [raw, head, rawCount, rawPoolFee] = await Promise.all([
       rpc.call(GOVERNOR_ADDRESS, 'params', [], revalidate),
       rpc.blockNumber(revalidate),
       rpc.call(GOVERNOR_ADDRESS, 'proposal_count', [], revalidate),
+      // The pool's own flat charge per private operation, and nothing to do
+      // with the router's feeBps above. It is read rather than assumed because
+      // assuming it is what broke the mainnet run: the shield was sized at 1
+      // STRK against a fee that has been 6 STRK on mainnet all along, so the
+      // first spend failed for a reason no screen here could name. The skill
+      // shipped with this repository says 4; the chain says otherwise, which
+      // is the whole argument for reading it.
+      rpc.call(POOL_ADDRESS, 'get_fee_amount', [], revalidate),
     ])
 
     const denied: Record<string, boolean> = {}
@@ -77,6 +85,8 @@ export async function GET(request: Request) {
       maxSteps: Number(BigInt(raw[1] ?? '0x0')),
       maxCalldata: Number(BigInt(raw[2] ?? '0x0')),
       feeBps: Number(BigInt(raw[3] ?? '0x0')),
+      // A string, because it is 6e18 and JSON numbers lose felts this size.
+      poolFee: BigInt(rawPoolFee[0] ?? '0x0').toString(),
       denied,
     })
   } catch (error) {

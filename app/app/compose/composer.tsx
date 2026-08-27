@@ -197,18 +197,32 @@ interface MainnetRun {
   plan?: Plan
 }
 
-/**
- * Enough to cover all three runs at once. Runs 1 and 2 are round trips - what
- * they withdraw comes straight back into a note - so only the ballot's stake
- * actually leaves, and one shield covers the lot.
- */
-const SHIELD_AMOUNT = ONE
-
 const SHIELD: MainnetRun = {
-  title: 'Shield 1 STRK',
+  title: 'Shield the whole run',
   note: 'Moves public STRK into the pool as an encrypted note. Not one of the three - it goes through the pool but not through a contract of ours, so it does not count. Combining it with the plan below would be quieter, and the wallet will not have it: a withdrawal is checked against the private balance you already hold, and a deposit in the same action set does not arrive in time to cover it.',
-  amount: SHIELD_AMOUNT,
+  amount: 0n,
   shieldOnly: true,
+}
+
+/**
+ * What to shield so all three runs can be paid for.
+ *
+ * This used to be the constant 1 STRK, with a comment reasoning that runs 1 and
+ * 2 are round trips and only the ballot's stake leaves for good. The arithmetic
+ * was right about the value that moves and forgot the pool's own charge, which
+ * is levied per private operation and dwarfs every amount on this page: four
+ * operations at 6 STRK is 24, against a shield of one. The first spend failed
+ * with "not enough private balance for both the amount and the privacy fee",
+ * which is the wallet naming a shortfall the page had built in.
+ *
+ * So it is derived: the fee once for the shield itself, once per run, plus what
+ * the runs actually spend. Read from the chain rather than written here,
+ * because it is governed and 4 STRK was already stale by the time it was
+ * documented.
+ */
+function shieldAmount(poolFee: bigint): bigint {
+  const spent = RUNS.reduce((total, run) => total + run.amount, 0n)
+  return poolFee * BigInt(RUNS.length + 1) + spent
 }
 
 const RUNS: MainnetRun[] = [
@@ -295,6 +309,12 @@ interface LiveParams {
   maxSteps: number
   maxCalldata: number
   feeBps: number
+  /**
+   * The pool's flat charge per private operation, in base units as a string.
+   * Not the router's `feeBps` - this one belongs to the pool, is paid out of
+   * the private balance, and is large: 6 STRK on mainnet.
+   */
+  poolFee: string
   denied: Record<string, boolean>
   /** The newest proposal still taking votes, or null when none is. */
   openProposal: { id: number; endBlock: number; blocksLeft: number } | null
@@ -498,6 +518,15 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
   const deniedTargets = draft.steps
     .map((step) => step.target.trim())
     .filter((target) => params?.denied[target])
+
+  // Null until the pool has been asked. Nothing here guesses a fee: the shield
+  // button stays disabled rather than offering an amount that would strand
+  // somebody halfway through the run.
+  const poolFee = params?.poolFee ? BigInt(params.poolFee) : null
+  const shield: MainnetRun = {
+    ...SHIELD,
+    amount: poolFee ? shieldAmount(poolFee) : 0n,
+  }
 
   /**
    * The exact wallet calls, built outside the render.
@@ -803,7 +832,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
 
   async function execute(wallet: StarknetWindowObject) {
     const run =
-      pendingRun === null ? null : pendingRun === -1 ? SHIELD : RUNS[pendingRun]!
+      pendingRun === null ? null : pendingRun === -1 ? shield : RUNS[pendingRun]!
     if (!run && !result.plan) return
     setWallets([])
     setStatus('Connecting…')
@@ -1285,16 +1314,29 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
 
         <div className="mt-4 border-t border-thread py-3">
           <div className="flex items-baseline justify-between gap-4">
-            <span className="font-mono text-sm text-muted">{SHIELD.title}</span>
+            <span className="font-mono text-sm text-muted">{shield.title}</span>
             <button
               onClick={() => pickWallet(-1)}
-              disabled={!ROUTER_ADDRESS}
+              disabled={!ROUTER_ADDRESS || !poolFee}
               className="shrink-0 rounded border border-strand px-3 py-1 text-xs hover:border-gold disabled:opacity-40"
             >
-              {shieldHash ? 'shield again' : `shield · ${Number(SHIELD.amount) / 1e18} STRK`}
+              {!poolFee
+                ? 'reading the pool fee…'
+                : shieldHash
+                ? 'shield again'
+                : `shield · ${Number(shield.amount) / 1e18} STRK`}
             </button>
           </div>
-          <p className="mt-1 max-w-2xl text-xs leading-relaxed text-muted">{SHIELD.note}</p>
+          <p className="mt-1 max-w-2xl text-xs leading-relaxed text-muted">{shield.note}</p>
+          {poolFee && (
+            <p className="mt-1 max-w-2xl font-mono text-[11px] leading-relaxed text-gold">
+              the pool charges {Number(poolFee) / 1e18} STRK per private operation, read from its
+              own get_fee_amount · four operations here — this shield and the three runs — so{' '}
+              {Number(poolFee * BigInt(RUNS.length + 1)) / 1e18} STRK of the amount above is fee
+              and {Number(shield.amount - poolFee * BigInt(RUNS.length + 1)) / 1e18} is what the
+              runs spend
+            </p>
+          )}
           {shieldHash && (
             <a
               className="mt-1 block break-all font-mono text-[11px] text-gold"
@@ -1308,7 +1350,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
           {shieldHash && verdicts[shieldHash] && (
             <p className="mt-1 text-[11px] text-muted">{verdicts[shieldHash]}</p>
           )}
-          {feedback(-1, SHIELD.title)}
+          {feedback(-1, shield.title)}
         </div>
 
         <ol className="mt-4">

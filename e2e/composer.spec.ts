@@ -111,6 +111,33 @@ test.describe('composer', () => {
     await expect(runs.nth(1)).toBeEnabled()
   })
 
+  test('the shield covers the pool fee on every operation it pays for', async ({ page }) => {
+    /**
+     * The shield used to be a flat 1 STRK, sized by counting the value the runs
+     * move and forgetting what the pool charges to move it. On mainnet that is
+     * 6 STRK per private operation, so the first spend failed for a shortfall
+     * the page had built in and could not name.
+     *
+     * Asserted against the fee the pool reports rather than against 24.85,
+     * because the fee is governed: a test pinned to today's number would go
+     * green on a page that had gone wrong the moment it changed.
+     */
+    const params = await json<ParamsResponse>(await page.request.get('/api/params'))
+    const fee = BigInt(params.poolFee)
+    expect(fee).toBeGreaterThan(0n)
+
+    const shield = page.getByRole('button', { name: /^shield · / })
+    const shielded = Number((await shield.innerText()).match(/shield · ([\d.]+) STRK/)?.[1])
+
+    const runs = await page.getByRole('button', { name: /^run · / }).allInnerTexts()
+    const spent = runs.reduce((total, text) => total + Number(text.match(/([\d.]+) STRK/)![1]), 0)
+
+    // One operation for the shield itself, one for each run it has to fund.
+    const fees = (Number(fee) / 1e18) * (runs.length + 1)
+    expect(shielded).toBeCloseTo(fees + spent, 6)
+    expect(shielded).toBeGreaterThan(spent)
+  })
+
   test('adding an output extends the plan', async ({ page }) => {
     await page.getByRole('button', { name: 'Stake on Endur' }).click()
 
