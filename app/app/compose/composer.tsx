@@ -29,7 +29,7 @@ import {
   toBaseUnits,
   tokenOf,
 } from '@/lib/config'
-import { describeError } from '@/lib/wallet-error'
+import { describeError, readyWallets } from '@/lib/wallet'
 
 interface StepForm {
   target: string
@@ -246,21 +246,6 @@ const RUNS: MainnetRun[] = [
     ballot: true,
   },
 ]
-
-/**
- * Ready, and only Ready.
- *
- * It is the one wallet whose STRK20 methods have been exercised against this
- * router on mainnet — the shield in 0x04816dbb…0278 came from it. Braavos may
- * well implement them too; nobody here has checked, and offering an untested
- * wallet offers somebody a proof they pay for before finding out.
- *
- * Matched on the id as well as the name, because Ready is the renamed Argent X
- * and the library's discovery list still reports the old one.
- */
-function isReady(wallet: { id?: string; name?: string }): boolean {
-  return /ready|argent/i.test(`${wallet.id ?? ''} ${wallet.name ?? ''}`)
-}
 
 function decimalsOf(address: string): number {
   return tokenOf(address)?.decimals ?? 18
@@ -585,27 +570,10 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
 
   async function pickWallet(runIndex: number | null = null) {
     setPendingRun(runIndex)
-    const { default: getStarknet } = await import('get-starknet-core')
-    const available = await getStarknet.getAvailableWallets()
-    const offered = available.filter(isReady)
+    const { wallets: offered, error } = await readyWallets()
 
-    if (offered.length === 0) {
-      // A dead end otherwise, and this is exactly the person arriving on a
-      // fresh profile. The list comes from the library rather than from a
-      // hardcoded one here, so it does not go stale.
-      const installable = await getStarknet.getDiscoveryWallets()
-      // Whether it can be installed comes from the library; the name does not.
-      // Discovery still lists Ready under "Argent X", so taking the name from
-      // there tells somebody to install a wallet that no longer goes by it.
-      setStatus(
-        available.length > 0
-          ? `This page signs with Ready. ${available.map((w) => w.name).join(', ')} ${
-              available.length > 1 ? 'are' : 'is'
-            } installed here instead, and Ready is the only wallet whose STRK20 support has been checked against this router on mainnet.`
-          : installable.some(isReady)
-          ? 'No Starknet wallet in this browser. This page signs with Ready — install it and come back. The discovery list still files it under its old name, Argent X.'
-          : 'No Starknet wallet found in this browser.',
-      )
+    if (error) {
+      setStatus(error)
       return
     }
 

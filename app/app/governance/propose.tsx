@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import { hash, shortString } from 'starknet'
 import { KINDS as KIND_NAMES } from '@/lib/config'
-import { describeError } from '@/lib/wallet-error'
+import { describeError, readyWallets } from '@/lib/wallet'
 
 /**
  * Submits a real `propose` call.
@@ -88,13 +88,13 @@ export function Propose({ governor, router }: { governor: string; router: string
     setStatus(null)
     setSent(null)
     try {
-      const { default: getStarknet } = await import('get-starknet-core')
-      const available = await getStarknet.getAvailableWallets()
-      const wallet = available[0]
-      if (!wallet) return setStatus('No Starknet wallet found in this browser.')
+      const { wallets, error: noWallet } = await readyWallets()
+      const wallet = wallets[0]
+      if (!wallet) return setStatus(noWallet)
 
       if (!call) return setStatus(invalid)
 
+      const { default: getStarknet } = await import('get-starknet-core')
       await getStarknet.enable(wallet)
       const response = (await wallet.request({
         type: 'wallet_addInvokeTransaction',

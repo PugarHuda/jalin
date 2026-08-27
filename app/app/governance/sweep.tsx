@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { hash } from 'starknet'
-import { describeError } from '@/lib/wallet-error'
+import { describeError, readyWallets } from '@/lib/wallet'
 
 /**
  * Clears a donation off the router.
@@ -24,10 +24,11 @@ export function Sweep({ router, token, symbol }: { router: string; token: string
   async function sweep() {
     setStatus(null)
     try {
+      const { wallets, error: noWallet } = await readyWallets()
+      const wallet = wallets[0]
+      if (!wallet) return setStatus(noWallet)
+
       const { default: getStarknet } = await import('get-starknet-core')
-      const available = await getStarknet.getAvailableWallets()
-      const wallet = available[0]
-      if (!wallet) return setStatus('No Starknet wallet found in this browser.')
 
       await getStarknet.enable(wallet)
       const response = (await wallet.request({
