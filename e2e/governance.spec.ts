@@ -51,7 +51,21 @@ test.describe('governance', () => {
     await page.getByText('the exact call this would send').click()
 
     const call = page.locator('pre')
-    await expect(call).toContainText('entry_point_selector')
+
+    /**
+     * The Wallet API's `Call` is `{ contract_address, entry_point, calldata }`,
+     * and `entry_point` holds the entrypoint's name. `entry_point_selector` is
+     * the JSON-RPC spelling: correct in `lib/rpc`, refused here with
+     * INVALID_REQUEST_PAYLOAD and no `data` to say which field was wrong.
+     *
+     * This test used to assert the RPC spelling, which made it a guarantee that
+     * the payload stayed the one the wallet rejects. Both halves are asserted
+     * now, because being right about the new name does not stop the old one
+     * coming back beside it.
+     */
+    await expect(call).toContainText('"entry_point": "propose"')
+    await expect(call).not.toContainText('entry_point_selector')
+
     // 0x4 is LABEL, the default tab, and the target defaults to our router.
     await expect(call).toContainText(ROUTER.replace(/^0x0*/, '').slice(0, 20))
   })
