@@ -2,6 +2,7 @@
 import Link from 'next/link'
 
 import { useState } from 'react'
+import { Wordmark } from '../wordmark'
 
 /**
  * Check a submission against the sprint's rules before the panel does.
@@ -145,9 +146,7 @@ export default function Verify() {
     <main className="mx-auto w-full max-w-3xl px-5 py-10">
       <header className="border-b border-thread pb-6">
         <div className="flex items-baseline justify-between">
-          <Link href="/" className="font-display text-lg font-extrabold tracking-tight hover:text-gold">
-            jalin
-          </Link>
+          <Wordmark />
           <nav className="flex gap-5 font-mono text-xs text-muted">
             <Link href="/compose" className="hover:text-gold">
               composer

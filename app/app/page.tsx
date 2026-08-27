@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { GOVERNOR_ADDRESS, ROUTER_ADDRESS } from '@/lib/config'
 import { readChainState } from '@/lib/chain'
+import { Wordmark } from './wordmark'
 
 const REPO = 'https://github.com/PugarHuda/jalin'
 
@@ -316,7 +317,7 @@ export default async function Landing() {
   return (
     <main>
       <header className="mx-auto flex w-full max-w-5xl items-baseline justify-between px-6 py-6">
-        <span className="font-display text-lg font-extrabold tracking-tight">jalin</span>
+        <Wordmark home />
         <nav className="flex gap-6 font-mono text-xs text-muted">
           <Link className="hover:text-gold" href="/compose">
             composer

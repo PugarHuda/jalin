@@ -4,6 +4,7 @@ import { GOVERNOR_ADDRESS, ROUTER_ADDRESS, TOKENS, label } from '@/lib/config'
 import { Execute } from './execute'
 import { Propose } from './propose'
 import { Sweep } from './sweep'
+import { Wordmark } from '../wordmark'
 
 /**
  * The governor, visible at last.
@@ -93,9 +94,7 @@ export default async function Governance() {
     <main className="mx-auto w-full max-w-4xl px-5 py-10">
       <header className="border-b border-thread pb-6">
         <div className="flex items-baseline justify-between">
-          <Link href="/" className="font-display text-lg font-extrabold tracking-tight hover:text-gold">
-            jalin
-          </Link>
+          <Wordmark />
           <nav className="flex gap-5 font-mono text-xs text-muted">
             <Link href="/compose" className="hover:text-gold">
               composer
