@@ -49,7 +49,13 @@ export async function GET(request: Request) {
       // first spend failed for a reason no screen here could name. The skill
       // shipped with this repository says 4; the chain says otherwise, which
       // is the whole argument for reading it.
-      rpc.call(POOL_ADDRESS, 'get_fee_amount', [], revalidate),
+      //
+      // Caught rather than awaited bare. Inside `Promise.all` a rejection here
+      // takes the whole route to 502, which is what this one extra call did
+      // under CI's load: the composer's background reads started logging
+      // failures and a console-error test went red for a fee it does not need.
+      // What the router is running on is answerable without it, so it answers.
+      rpc.call(POOL_ADDRESS, 'get_fee_amount', [], revalidate).catch(() => null),
     ])
 
     const denied: Record<string, boolean> = {}
@@ -86,7 +92,9 @@ export async function GET(request: Request) {
       maxCalldata: Number(BigInt(raw[2] ?? '0x0')),
       feeBps: Number(BigInt(raw[3] ?? '0x0')),
       // A string, because it is 6e18 and JSON numbers lose felts this size.
-      poolFee: BigInt(rawPoolFee[0] ?? '0x0').toString(),
+      // Null when the pool would not answer, which the shield reads as "do not
+      // offer an amount" rather than as a fee of zero.
+      poolFee: rawPoolFee ? BigInt(rawPoolFee[0] ?? '0x0').toString() : null,
       denied,
     })
   } catch (error) {

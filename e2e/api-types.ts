@@ -36,8 +36,8 @@ export interface ParamsResponse {
   maxSteps: number
   maxCalldata: number
   feeBps: number
-  /** The pool's flat charge per private operation, base units as a string. */
-  poolFee: string
+  /** The pool's flat charge per private operation, base units. Null if unread. */
+  poolFee: string | null
   denied: Record<string, boolean>
 }
 

@@ -278,8 +278,12 @@ interface LiveParams {
    * The pool's flat charge per private operation, in base units as a string.
    * Not the router's `feeBps` - this one belongs to the pool, is paid out of
    * the private balance, and is large: 6 STRK on mainnet.
+   *
+   * Null when the pool would not answer. The shield stays unoffered rather than
+   * falling back to a number, because falling back to a number is the bug this
+   * whole field exists to close.
    */
-  poolFee: string
+  poolFee: string | null
   denied: Record<string, boolean>
   /** The newest proposal still taking votes, or null when none is. */
   openProposal: { id: number; endBlock: number; blocksLeft: number } | null

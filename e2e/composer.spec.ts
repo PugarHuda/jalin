@@ -123,7 +123,14 @@ test.describe('composer', () => {
      * green on a page that had gone wrong the moment it changed.
      */
     const params = await json<ParamsResponse>(await page.request.get('/api/params'))
-    const fee = BigInt(params.poolFee)
+
+    // When the pool would not answer, the shield is not offered either, so
+    // there is nothing to check the sizing against. Skipped rather than failed:
+    // a rate-limited node is not a broken page, and asserting here would only
+    // make it look like one.
+    test.skip(params.poolFee === null, 'the pool fee could not be read')
+
+    const fee = BigInt(params.poolFee!)
     expect(fee).toBeGreaterThan(0n)
 
     const shield = page.getByRole('button', { name: /^shield · / })
@@ -278,10 +285,10 @@ test.describe('the wallet flow', () => {
     await page.getByRole('button', { name: /^shield · / }).click()
 
     await expect(page.locator('main')).toContainText(/No Starknet wallet/, { timeout: 20_000 })
-    // The page signs with Ready alone, and says so rather than listing a wallet
-    // it has never been run against. The names beside it still come from the
-    // library's own discovery list rather than from one written here.
-    await expect(page.locator('main')).toContainText(/This page signs with Ready/)
+    // The demo signs with Ready alone, and says so rather than listing a wallet
+    // it has never been run against. Whether Ready can be installed still comes
+    // from the library's own discovery list rather than from one written here.
+    await expect(page.locator('main')).toContainText(/This demo signs with Ready/)
   })
 
   test('shows no connection state until there is a connection', async ({ page }) => {
