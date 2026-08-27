@@ -1,8 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { hash } from 'starknet'
-import { describeError, readyWallets } from '@/lib/wallet'
+import { describeError, readyWallets, sendCalls } from '@/lib/wallet'
 
 /**
  * Clears a donation off the router.
@@ -28,23 +27,11 @@ export function Sweep({ router, token, symbol }: { router: string; token: string
       const wallet = wallets[0]
       if (!wallet) return setStatus(noWallet)
 
-      const { default: getStarknet } = await import('get-starknet-core')
-
-      await getStarknet.enable(wallet)
-      const response = (await wallet.request({
-        type: 'wallet_addInvokeTransaction',
-        params: {
-          calls: [
-            {
-              contract_address: router,
-              entry_point_selector: hash.getSelectorFromName('sweep'),
-              calldata: [token],
-            } as never,
-          ],
-        },
-      })) as { transaction_hash: string }
-
-      setSent(response.transaction_hash)
+      setSent(
+        await sendCalls(wallet, [
+          { contract_address: router, entry_point: 'sweep', calldata: [token] },
+        ]),
+      )
     } catch (error) {
       setStatus(describeError(error))
     }

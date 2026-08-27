@@ -1,8 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { hash } from 'starknet'
-import { describeError, readyWallets } from '@/lib/wallet'
+import { describeError, readyWallets, sendCalls } from '@/lib/wallet'
 
 /**
  * Anyone may execute a proposal that has carried and cleared its timelock.
@@ -25,23 +24,15 @@ export function Execute({ governor, proposalId }: { governor: string; proposalId
       const wallet = wallets[0]
       if (!wallet) return setStatus(noWallet)
 
-      const { default: getStarknet } = await import('get-starknet-core')
-
-      await getStarknet.enable(wallet)
-      const response = (await wallet.request({
-        type: 'wallet_addInvokeTransaction',
-        params: {
-          calls: [
-            {
-              contract_address: governor,
-              entry_point_selector: hash.getSelectorFromName('execute'),
-              calldata: [`0x${proposalId.toString(16)}`],
-            } as never,
-          ],
-        },
-      })) as { transaction_hash: string }
-
-      setSent(response.transaction_hash)
+      setSent(
+        await sendCalls(wallet, [
+          {
+            contract_address: governor,
+            entry_point: 'execute',
+            calldata: [`0x${proposalId.toString(16)}`],
+          },
+        ]),
+      )
     } catch (error) {
       const message = describeError(error)
       setStatus(

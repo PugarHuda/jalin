@@ -1,16 +1,18 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { hash, shortString } from 'starknet'
+import { shortString } from 'starknet'
 import { KINDS as KIND_NAMES } from '@/lib/config'
-import { describeError, readyWallets } from '@/lib/wallet'
+import { describeError, readyWallets, sendCalls } from '@/lib/wallet'
 
 /**
  * Submits a real `propose` call.
  *
- * Nothing about this needs STRK20: a proposal is a plain public invoke, which
- * is why governance is the one part of the project that runs end to end today
- * while a plan still waits on a proving service.
+ * Nothing about this needs STRK20: a proposal is a plain public invoke, and it
+ * needs no proving service either. That was described here as the one part of
+ * the project running end to end today, which was true of the contract and not
+ * of this button: every propose sent from a browser was refused, and the
+ * proposal sitting on chain was not made from one.
  */
 
 /**
@@ -58,8 +60,13 @@ export function Propose({ governor, router }: { governor: string; router: string
    * that validates its payload refuses a call carrying a fourth field, so every
    * propose from Ready came back `INVALID_REQUEST_PAYLOAD` - a valid proposal
    * rejected for a key that only ever existed to colour this component's own
-   * error line. `execute` and `sweep` send the same shape and were never
-   * affected, because they never had a validation result to carry.
+   * error line.
+   *
+   * That was one of two reasons for the same refusal. The other was the field
+   * name: `entry_point_selector` is the JSON-RPC spelling and the Wallet API
+   * wants `entry_point` with the entrypoint's name. `execute` and `sweep` had
+   * that one too, and had it silently, because neither has a validation result
+   * to carry and so neither ever got as far as this one did.
    */
   const { call, error: invalid } = useMemo(() => {
     try {
@@ -69,7 +76,7 @@ export function Propose({ governor, router }: { governor: string; router: string
       return {
         call: {
           contract_address: governor,
-          entry_point_selector: hash.getSelectorFromName('propose'),
+          entry_point: 'propose',
           calldata: [
             `0x${kind.toString(16)}`,
             `0x${BigInt(target.trim()).toString(16)}`,
@@ -94,14 +101,7 @@ export function Propose({ governor, router }: { governor: string; router: string
 
       if (!call) return setStatus(invalid)
 
-      const { default: getStarknet } = await import('get-starknet-core')
-      await getStarknet.enable(wallet)
-      const response = (await wallet.request({
-        type: 'wallet_addInvokeTransaction',
-        params: { calls: [call as never] },
-      })) as { transaction_hash: string }
-
-      setSent(response.transaction_hash)
+      setSent(await sendCalls(wallet, [call]))
     } catch (error) {
       setStatus(describeError(error))
     }

@@ -80,3 +80,45 @@ export async function readyWallets(): Promise<{
         : 'No Starknet wallet found in this browser.',
   }
 }
+
+/**
+ * The Wallet API's call shape, which is not the JSON-RPC one.
+ *
+ * `starknet_call` and the transaction specs name the field
+ * `entry_point_selector` and take a selector hash. The Wallet API's own `Call`
+ * names it `entry_point` and starknet.js's `WalletAccount.execute` fills it
+ * with `entrypoint` verbatim - the function's name. Sending the RPC spelling is
+ * refused with INVALID_REQUEST_PAYLOAD, code 114, and the code is all you get:
+ * there is no `data` naming the field.
+ *
+ * The three governance components each sent the RPC spelling, each behind an
+ * `as never` on the call itself, which is exactly the cast that would otherwise
+ * have made the compiler say so. Typed here, once, and asserted nowhere.
+ */
+export interface WalletCall {
+  contract_address: string
+  /** The entrypoint's name — `propose`, not `0x1bfd59…`. */
+  entry_point: string
+  calldata?: string[]
+}
+
+/**
+ * Sends calls through the connected wallet and returns the transaction hash.
+ *
+ * One cast, on `request` rather than on the call, because get-starknet-core
+ * bundles a request map that predates some of these methods. The payload itself
+ * stays typed, which is the half that was getting things wrong.
+ */
+export async function sendCalls(
+  wallet: StarknetWindowObject,
+  calls: WalletCall[],
+): Promise<string> {
+  const { default: getStarknet } = await import('get-starknet-core')
+  await getStarknet.enable(wallet)
+  const response = (await (
+    wallet as unknown as { request(call: unknown): Promise<{ transaction_hash: string }> }
+  ).request({ type: 'wallet_addInvokeTransaction', params: { calls } })) as {
+    transaction_hash: string
+  }
+  return response.transaction_hash
+}
