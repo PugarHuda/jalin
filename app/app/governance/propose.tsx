@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { hash, shortString } from 'starknet'
 import { KINDS as KIND_NAMES } from '@/lib/config'
+import { describeError } from '@/lib/wallet-error'
 
 /**
  * Submits a real `propose` call.
@@ -49,24 +50,37 @@ export function Propose({ governor, router }: { governor: string; router: string
 
   const spec = KINDS[kind]!
 
-  const call = useMemo(() => {
+  /**
+   * The call, and separately whether one could be built.
+   *
+   * These used to be one object: the happy path returned the three call fields
+   * plus `error: null`, and the whole thing was handed to the wallet. A wallet
+   * that validates its payload refuses a call carrying a fourth field, so every
+   * propose from Ready came back `INVALID_REQUEST_PAYLOAD` - a valid proposal
+   * rejected for a key that only ever existed to colour this component's own
+   * error line. `execute` and `sweep` send the same shape and were never
+   * affected, because they never had a validation result to carry.
+   */
+  const { call, error: invalid } = useMemo(() => {
     try {
       if (!/^0x[0-9a-fA-F]{1,64}$/.test(target.trim())) {
         throw new Error('target must be a felt')
       }
       return {
-        contract_address: governor,
-        entry_point_selector: hash.getSelectorFromName('propose'),
-        calldata: [
-          `0x${kind.toString(16)}`,
-          `0x${BigInt(target.trim()).toString(16)}`,
-          encodeValue(kind, valueA),
-          spec.b ? encodeValue(kind, valueB) : '0x0',
-        ],
+        call: {
+          contract_address: governor,
+          entry_point_selector: hash.getSelectorFromName('propose'),
+          calldata: [
+            `0x${kind.toString(16)}`,
+            `0x${BigInt(target.trim()).toString(16)}`,
+            encodeValue(kind, valueA),
+            spec.b ? encodeValue(kind, valueB) : '0x0',
+          ],
+        },
         error: null as string | null,
       }
     } catch (error) {
-      return { error: error instanceof Error ? error.message : String(error) }
+      return { call: null, error: error instanceof Error ? error.message : String(error) }
     }
   }, [governor, kind, target, valueA, valueB, spec.b])
 
@@ -79,6 +93,8 @@ export function Propose({ governor, router }: { governor: string; router: string
       const wallet = available[0]
       if (!wallet) return setStatus('No Starknet wallet found in this browser.')
 
+      if (!call) return setStatus(invalid)
+
       await getStarknet.enable(wallet)
       const response = (await wallet.request({
         type: 'wallet_addInvokeTransaction',
@@ -87,7 +103,7 @@ export function Propose({ governor, router }: { governor: string; router: string
 
       setSent(response.transaction_hash)
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : String(error))
+      setStatus(describeError(error))
     }
   }
 
@@ -139,9 +155,9 @@ export function Propose({ governor, router }: { governor: string; router: string
         )}
       </div>
 
-      {call.error ? (
+      {invalid ? (
         <p className="rounded border border-warn/40 bg-warn/10 px-3 py-2 font-mono text-xs text-warn">
-          {call.error}
+          {invalid}
         </p>
       ) : (
         <details>
@@ -156,7 +172,7 @@ export function Propose({ governor, router }: { governor: string; router: string
 
       <button
         onClick={submit}
-        disabled={Boolean(call.error) || !governor}
+        disabled={Boolean(invalid) || !governor}
         className="rounded-sm px-4 py-2 text-sm font-medium transition-colors enabled:bg-gold enabled:text-ground enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:border disabled:border-strand disabled:text-muted"
       >
         Sign and propose

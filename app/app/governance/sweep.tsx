@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { hash } from 'starknet'
+import { describeError } from '@/lib/wallet-error'
 
 /**
  * Clears a donation off the router.
@@ -44,7 +45,7 @@ export function Sweep({ router, token, symbol }: { router: string; token: string
 
       setSent(response.transaction_hash)
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : String(error))
+      setStatus(describeError(error))
     }
   }
 

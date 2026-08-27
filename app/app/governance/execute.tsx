@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { hash } from 'starknet'
+import { describeError } from '@/lib/wallet-error'
 
 /**
  * Anyone may execute a proposal that has carried and cleared its timelock.
@@ -41,7 +42,7 @@ export function Execute({ governor, proposalId }: { governor: string; proposalId
 
       setSent(response.transaction_hash)
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error)
+      const message = describeError(error)
       setStatus(
         /NO_QUORUM/i.test(message)
           ? 'GOV_NO_QUORUM: it carried, but not by enough weight. Quorum is stored in the governor with no view to read it, so this was not knowable before sending.'
