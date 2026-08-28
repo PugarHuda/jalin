@@ -1,3 +1,4 @@
+import { cached } from '@/lib/cache'
 import { RpcError, rpc } from '@/lib/rpc'
 import { u256 } from '@jalin/sdk'
 import { ENDUR_VAULT } from '@/lib/config'
@@ -26,7 +27,7 @@ export async function GET(request: Request) {
   try {
     const result = await rpc.call(ENDUR_VAULT, 'preview_deposit', u256(amount), revalidate)
     const shares = BigInt(result[0]!) + (BigInt(result[1] ?? '0x0') << 128n)
-    return Response.json({ assets: amount.toString(), shares: shares.toString() })
+    return cached({ assets: amount.toString(), shares: shares.toString() }, revalidate)
   } catch (error) {
     if (error instanceof RpcError && error.kind === 'unconfigured') {
       return Response.json({ error: 'no rpc configured' }, { status: 503 })

@@ -1,3 +1,4 @@
+import { cached } from '@/lib/cache'
 import { checkReceipt, describeVerdict } from '@jalin/sdk'
 import { RpcError, rpc } from '@/lib/rpc'
 import { GOVERNOR_ADDRESS, POOL_ADDRESS, ROUTER_ADDRESS } from '@/lib/config'
@@ -54,5 +55,8 @@ export async function GET(request: Request) {
   }
 
   const verdict = checkReceipt(receipt as never, { pool: POOL_ADDRESS, ours })
-  return Response.json({ ...verdict, summary: describeVerdict(verdict) })
+  // A landed receipt never changes, so its verdict can be kept for an hour; a
+  // hash the node has not seen may land in the next block, so that answer is
+  // kept for fifteen seconds and no longer.
+  return cached({ ...verdict, summary: describeVerdict(verdict) }, verdict.exists ? 3600 : 15)
 }

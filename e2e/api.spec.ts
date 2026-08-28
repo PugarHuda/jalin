@@ -21,6 +21,38 @@ const POOL_TX_NOT_OURS = '0x6abbe003a51a29b634d8615517d231d469f3e009b4a1289a0e70
 /** Well-formed felt, no such transaction. Nothing can ever mine into it. */
 const ABSENT_TX = '0x' + 'a'.repeat(63) + '1'
 
+test.describe('what the edge may keep', () => {
+  /**
+   * `revalidate` caches the fetches inside a route and says nothing about the
+   * response, so every request reached a function and, cold, the node. A read
+   * of the chain is the same for everyone; the header is what lets the CDN
+   * answer the second visitor from the first one's read.
+   */
+  test('chain reads carry a public cache header', async ({ request }) => {
+    for (const path of ['/api/params', '/api/crowd', '/api/quote?assets=1000000000000000000']) {
+      const response = await request.get(path)
+      expect(response.status(), path).toBe(200)
+      expect(response.headers()['cache-control'], path).toMatch(/public, s-maxage=\d+, stale-while-revalidate=\d+/)
+    }
+  })
+
+  test('a landed receipt is kept far longer than a missing one', async ({ request }) => {
+    const landed = await request.get(`/api/tx?hash=0x060a25127edcca8a5f310fa711c1566dd39c688c8b30406d7482388d715ed311`)
+    expect(landed.headers()['cache-control']).toContain('s-maxage=3600')
+    const missing = await request.get(`/api/tx?hash=${ABSENT_TX}`)
+    expect(missing.headers()['cache-control']).toContain('s-maxage=15')
+  })
+
+  test('a swap quote is never kept', async ({ request }) => {
+    const response = await request.get(
+      '/api/swap?sell=0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d&buy=0x033068f6539f8e6e6b131e6b2b814e6c34a5224bc66947c47dab9dfee93b35fb&amount=250000000000000000',
+    )
+    // Whatever AVNU answered, the answer is a price at a block and must not be
+    // served to the next person from the edge.
+    expect(response.headers()['cache-control'] ?? '').not.toMatch(/s-maxage/)
+  })
+})
+
 test.describe('/api/swap', () => {
   const STRK = '0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d'
   /** Native USDC - the one with 71 deposits in the pool, not the bridged one with 1. */

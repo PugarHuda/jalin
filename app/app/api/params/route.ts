@@ -1,4 +1,5 @@
 import { RpcError, rpc, secondsPerBlock } from '@/lib/rpc'
+import { cached } from '@/lib/cache'
 import { GOVERNOR_ADDRESS, POOL_ADDRESS } from '@/lib/config'
 
 /**
@@ -90,7 +91,7 @@ export async function GET(request: Request) {
       break
     }
 
-    return Response.json({
+    return cached({
       paused: BigInt(raw[0] ?? '0x0') !== 0n,
       openProposal,
       maxSteps: Number(BigInt(raw[1] ?? '0x0')),
@@ -102,7 +103,7 @@ export async function GET(request: Request) {
       poolFee: rawPoolFee ? BigInt(rawPoolFee[0] ?? '0x0').toString() : null,
       secondsPerBlock: blockTime,
       denied,
-    })
+    }, revalidate)
   } catch (error) {
     if (error instanceof RpcError && error.kind === 'unconfigured') {
       return Response.json({ error: 'no rpc configured' }, { status: 503 })

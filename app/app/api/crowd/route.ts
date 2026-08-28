@@ -1,3 +1,4 @@
+import { cached } from '@/lib/cache'
 import { prospectFor } from '@jalin/sdk'
 import { readCrowd, readDeposits } from '@/lib/crowd-source'
 
@@ -20,7 +21,7 @@ export async function GET(request: Request) {
   if (asset === null && amount === null) {
     const crowd = await readCrowd(revalidate)
     if (!crowd) return Response.json({ error: 'pool unreachable' }, { status: 502 })
-    return Response.json(crowd)
+    return cached(crowd, revalidate)
   }
 
   if (!asset || !/^0x[0-9a-fA-F]{1,64}$/.test(asset)) {
@@ -33,7 +34,8 @@ export async function GET(request: Request) {
   const reading = await readDeposits(revalidate)
   if (!reading) return Response.json({ error: 'pool unreachable' }, { status: 502 })
 
-  return Response.json(
+  return cached(
     prospectFor(reading.events, { asset, amount: BigInt(amount), atBlock: reading.head }),
+    revalidate,
   )
 }

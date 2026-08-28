@@ -8,6 +8,7 @@ import {
 } from '@jalin/sdk'
 import { RpcError, rpc } from '@/lib/rpc'
 import { POOL_ADDRESS } from '@/lib/config'
+import { cached } from '@/lib/cache'
 
 /**
  * Judge a whole submission at once.
@@ -120,7 +121,7 @@ export async function GET(request: Request) {
 
   const counted = results.filter((result) => result.qualifies).length
 
-  return Response.json({
+  return cached({
     source,
     contracts,
     counted,
@@ -141,5 +142,7 @@ export async function GET(request: Request) {
     demoUrl: /^https?:\/\//i.test(read.manifest.demoUrl) ? read.manifest.demoUrl : '',
     demoVideo: /^https?:\/\//i.test(read.manifest.demoVideo) ? read.manifest.demoVideo : '',
     results,
-  })
+    // A minute, not the five the GitHub fetch keeps: a team fixing their
+    // manifest wants to see the fix without waiting for the file cache to turn.
+  }, 60)
 }
