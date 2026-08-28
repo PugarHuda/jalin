@@ -350,7 +350,7 @@ export default async function Landing() {
           So weave the plan inside it.
         </h1>
         <p
-          className="lift mt-6 max-w-2xl text-lg leading-relaxed text-muted"
+          className="lift mt-6 max-w-[60ch] text-lg leading-relaxed text-muted"
           style={{ ['--delay' as string]: '160ms' }}
         >
           The STRK20 pool allows a single external call per private transaction. That makes a
@@ -383,7 +383,7 @@ export default async function Landing() {
         <div className="mx-auto grid w-full max-w-5xl gap-10 px-6 py-16 md:grid-cols-2">
           <div>
             <h2 className="font-display text-2xl font-semibold">The constraint</h2>
-            <p className="mt-4 leading-relaxed text-muted">
+            <p className="mt-4 max-w-[68ch] leading-relaxed text-muted">
               Two protocol rules shape everything downstream. Together they mean a private swap
               needs a swap helper, lending needs another, and swap-then-lend needs a third. Every
               new interaction is a new Cairo contract — which is why almost everything built on
@@ -450,12 +450,12 @@ export default async function Landing() {
         <div className="mx-auto w-full max-w-5xl px-6 py-16">
           <h2 className="font-display text-2xl font-semibold">When not to use Jalin</h2>
           <div className="mt-4 grid gap-8 md:grid-cols-2">
-            <p className="leading-relaxed text-muted">
+            <p className="max-w-[68ch] leading-relaxed text-muted">
               Private swaps are already live on AVNU through its own anonymizer, and Ekubo is
               next. For a single swap, use those — they are purpose-built and they will price
               better than a generic router calling the same pool.
             </p>
-            <p className="leading-relaxed text-muted">
+            <p className="max-w-[68ch] leading-relaxed text-muted">
               One invoke per transaction means a venue&apos;s anonymizer and this router compete
               for the same slot rather than composing. That every venue has to write its own, and
               that none of them compose, is the argument for Jalin existing — not a reason to use

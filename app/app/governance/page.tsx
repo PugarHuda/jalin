@@ -58,7 +58,7 @@ function ProposalCard({ proposal, governor }: { proposal: Proposal; governor: st
         <StageBadge stage={proposal.stage} />
       </div>
 
-      <p className="mt-1 text-sm text-muted">{KIND_TEXT[proposal.kind]}</p>
+      <p className="mt-1 max-w-[68ch] text-sm text-muted">{KIND_TEXT[proposal.kind]}</p>
 
       <dl className="mt-3 grid gap-x-6 gap-y-1 font-mono text-xs sm:grid-cols-[auto_1fr]">
         <dt className="text-muted">target</dt>
@@ -125,7 +125,7 @@ export default async function Governance() {
         <>
           <section className="mt-8">
             <h2 className="font-display text-xl font-semibold">What the router is running on</h2>
-            <p className="mt-1 text-sm text-muted">
+            <p className="mt-1 max-w-[68ch] text-sm text-muted">
               Read from the governor at block {governance.head.toLocaleString()}. The router asks
               for these on every single plan, so this is not a mirror of the settings. It is the
               settings.
@@ -161,7 +161,7 @@ export default async function Governance() {
               )}
             </dl>
 
-            <p className="mt-4 rounded border border-strand px-3 py-2 text-xs leading-relaxed text-muted">
+            <p className="mt-4 max-w-[72ch] rounded border border-strand px-3 py-2 text-xs leading-relaxed text-muted">
               The voting window and the timelock above are measured, not configured here:
               subtracted from a real proposal&apos;s own blocks. Quorum cannot be shown, because the
               governor stores it and exposes no view for it. A governance parameter nobody can
@@ -176,7 +176,7 @@ export default async function Governance() {
               Proposals{' '}
               <span className="font-mono text-sm text-muted">({governance.proposals.length})</span>
             </h2>
-            <p className="mt-1 text-sm text-muted">
+            <p className="mt-1 max-w-[68ch] text-sm text-muted">
               Ballots do not arrive here. They arrive through the pool, as{' '}
               <span className="font-mono">privacy_invoke</span> — the governor is an anonymizer
               helper like the router is. So the weight of a vote is public and the voter is not,

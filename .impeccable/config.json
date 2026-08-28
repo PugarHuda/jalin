@@ -1,0 +1,12 @@
+{
+  "detector": {
+    "ignoreRules": [
+      "first-viewport-column-overflow"
+    ],
+    "ignoreFiles": [],
+    "ignoreValues": []
+  },
+  "notes": {
+    "first-viewport-column-overflow": "The composer left column is an editor (input, step, outputs) and is taller than one viewport by nature; the disclosure column is sticky beside it so nothing scrolls away. Collapsing the editor to balance a first-viewport metric would cost the surface its job. Recorded 2026-08-28."
+  }
+}

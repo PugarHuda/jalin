@@ -851,7 +851,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
         {status && <p className="mt-2 break-all font-mono text-xs">{status}</p>}
         {dryRun && <DryRun answer={dryRun} />}
         {status?.includes('NOT_REGISTERED') && (
-          <p className="mt-2 rounded border border-strand px-3 py-2 text-xs leading-relaxed">
+          <p className="mt-2 max-w-[68ch] text-xs leading-relaxed">
             In Ready: open the wallet, shield any amount from its own privacy screen. That one
             transaction emits <span className="font-mono">ViewingKeySet</span> and you are
             registered. Nothing to sign here for it.
@@ -862,7 +862,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
             <summary className="cursor-pointer text-xs text-muted">
               the exact payload that was sent
             </summary>
-            <pre className="mt-1 max-h-64 overflow-auto rounded border border-thread p-2 font-mono text-xs break-all whitespace-pre-wrap">
+            <pre className="mt-1 max-h-64 overflow-auto bg-ground p-2 font-mono text-xs break-all whitespace-pre-wrap">
               {lastPayload}
             </pre>
           </details>
@@ -1504,7 +1504,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
                 {JSON.stringify(actions, (_, v) => (typeof v === 'bigint' ? `0x${v.toString(16)}` : v), 2)}
               </pre>
             ) : (
-              <p className="rounded border border-thread bg-raised px-3 py-2 text-xs leading-relaxed text-muted">
+              <p className="max-w-[68ch] rounded border border-thread bg-raised px-3 py-2 text-xs leading-relaxed text-muted">
                 {result.plan
                   ? 'Connect a wallet and the exact calls appear here, recipient included. Your address is one of them, and there is no honest stand-in for it — a made-up one would show you a transaction you are not going to send. Running any of the numbered transactions below connects the wallet.'
                   : 'Fix the plan first — the calls are derived from it.'}
@@ -1549,7 +1549,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
                 allow list — everything not on it stays callable.
               </p>
             )}
-            <p className="mt-2 text-xs text-muted">
+            <p className="mt-2 max-w-[68ch] text-xs text-muted">
               {draftIncomplete
                 ? 'One of the steps has no target yet. A step needs the contract it calls, and there is no honest default for which contract that is. To send something that already works, use the numbered runs below.'
                 : ROUTER_ADDRESS
@@ -1570,7 +1570,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
           other two spend.
         </p>
 
-        <p className="mt-3 rounded border border-thread px-3 py-2 text-xs leading-relaxed text-muted">
+        <p className="mt-3 max-w-[72ch] border-t border-thread pt-3 text-xs leading-relaxed text-muted">
           <span className="font-mono">0.</span> First time on this account? The pool needs your
           public viewing key before anything can be sent to you privately, and that is not a step
           any dapp can do for you — there is no register method in the Wallet API. Shield any
