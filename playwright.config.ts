@@ -38,7 +38,17 @@ export default defineConfig({
    * with "Could not connect" - which reads exactly like a broken page and is
    * not one. Four keeps the whole suite green on three engines.
    */
-  workers: 4,
+  /**
+   * Three on CI. Four held while the suite was smaller; at 330-odd tests on
+   * three engines, with /governance walking the governor's events on every
+   * cold render through a public node, the runner's one `next start` began
+   * dropping connections again - `page.goto` at the full 60 seconds on
+   * Firefox, `TypeError: Load failed` from a fetch to our own API on WebKit,
+   * two runs in three. Those are the server saturating, not the page, and
+   * fewer workers is the honest fix; the retry in the composer is the other
+   * half.
+   */
+  workers: process.env.CI ? 3 : 4,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [['github'], ['list']] : [['list']],

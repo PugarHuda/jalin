@@ -367,6 +367,35 @@ function ignoreAbort(error: unknown): void {
   console.error('[jalin] background read failed', error)
 }
 
+/**
+ * A background read that tries three times before it is a failure.
+ *
+ * A fetch to this app's own API that never reaches the server - WebKit says
+ * `TypeError: Load failed`, Chromium `Failed to fetch` - is a dropped
+ * connection, and a dropped connection is usually gone by the next attempt.
+ * The page used to give up on the first one: the shield button then read
+ * "reading the pool fee…" for the rest of the visit, with nothing to say the
+ * read had failed and nothing that would try again. Three attempts, 300ms then
+ * 900ms apart; a non-OK answer is returned as null, not retried, because the
+ * server said something and the caller decides what. Abort is honoured
+ * between attempts, so navigating away still cancels the work.
+ */
+async function readJson<T>(url: string, signal: AbortSignal): Promise<T | null> {
+  const waits = [300, 900]
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      const response = await fetch(url, { signal })
+      return response.ok ? ((await response.json()) as T) : null
+    } catch (error) {
+      if (signal.aborted || attempt >= waits.length) throw error
+      await new Promise<void>((resolve, reject) => {
+        const timer = setTimeout(resolve, waits[attempt])
+        signal.addEventListener('abort', () => { clearTimeout(timer); reject(error) }, { once: true })
+      })
+    }
+  }
+}
+
 export function Composer({ shared }: { shared: SharedDraft | null }) {
   // The server already read `?plan=` and decoded it, so the first render is the
   // shared plan rather than a preset replaced a tick later. That also removes
@@ -385,6 +414,8 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
   const [account, setAccount] = useState<string | null>(null)
   const [connected, setConnected] = useState<string | null>(null)
   const [params, setParams] = useState<LiveParams | null>(null)
+  /** The governor could not be read after three attempts; the page says so. */
+  const [paramsFailed, setParamsFailed] = useState(false)
   const [verdicts, setVerdicts] = useState<Record<string, string>>({})
   const [quote, setQuote] = useState<{ shares: bigint } | null>(null)
   const [crowd, setCrowd] = useState<{
@@ -522,8 +553,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
      */
     const stop = new AbortController()
 
-    fetch(`/api/quote?assets=${assets.toString()}`, { signal: stop.signal })
-      .then((r) => (r.ok ? r.json() : null))
+    readJson<{ shares?: string }>(`/api/quote?assets=${assets.toString()}`, stop.signal)
       .then((body) => {
         if (body?.shares) setQuote({ shares: BigInt(body.shares) })
       })
@@ -537,8 +567,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
   useEffect(() => {
     const stop = new AbortController()
 
-    fetch('/api/crowd', { signal: stop.signal })
-      .then((r) => (r.ok ? r.json() : null))
+    readJson<NonNullable<typeof crowd>>('/api/crowd', stop.signal)
       .then((body) => {
         if (typeof body?.depositors === 'number') setCrowd(body)
       })
@@ -574,8 +603,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
       }
 
       const query = new URLSearchParams({ asset: draft.inputToken, amount: amount.toString() })
-      fetch(`/api/crowd?${query}`, { signal: stop.signal })
-        .then((r) => (r.ok ? r.json() : null))
+      readJson<NonNullable<typeof prospect>>(`/api/crowd?${query}`, stop.signal)
         .then((body) => {
           if (typeof body?.effectiveSetAfter === 'number') setProspect(body)
         })
@@ -604,12 +632,20 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
     // Debounced, because every prefix of an address being typed is itself a
     // valid felt - so without this it was one node call per keystroke.
     const timer = setTimeout(() => {
-      fetch(`/api/params?targets=${encodeURIComponent(targets)}`, { signal: stop.signal })
-        .then((r) => (r.ok ? r.json() : null))
+      readJson<LiveParams>(`/api/params?targets=${encodeURIComponent(targets)}`, stop.signal)
         .then((body) => {
-          if (typeof body?.maxSteps === 'number') setParams(body)
+          if (typeof body?.maxSteps === 'number') {
+            setParams(body)
+            setParamsFailed(false)
+          }
         })
-        .catch(ignoreAbort)
+        .catch((error: unknown) => {
+          ignoreAbort(error)
+          // Three attempts are gone. The shield button was reading "reading
+          // the pool fee…" for the rest of the visit in this case, which is
+          // a spinner for a read that had already failed.
+          if (!(error instanceof DOMException && error.name === 'AbortError')) setParamsFailed(true)
+        })
     }, 300)
 
     return () => {
@@ -1679,7 +1715,9 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
               className="shrink-0 rounded border border-strand px-3 py-1 text-xs hover:border-gold disabled:opacity-40"
             >
               {!poolFee
-                ? 'reading the pool fee…'
+                ? paramsFailed
+                  ? 'the pool could not be read — reload to try again'
+                  : 'reading the pool fee…'
                 : shieldHash
                 ? 'shield again'
                 : `shield · ${Number(shield.amount) / 1e18} STRK`}

@@ -66,6 +66,34 @@ test.describe('the wallet surface', () => {
     await expect(page.getByTestId('dry-run')).toHaveCount(0)
   })
 
+  test('a background read that drops twice is tried a third time, and one that keeps dropping says so', async ({
+    page,
+  }) => {
+    // Two connection failures, then the real answer. The page used to give up
+    // on the first and leave the shield button reading "reading the pool fee…"
+    // for the rest of the visit - a spinner for a read that had already failed.
+    let attempts = 0
+    await page.route('**/api/params**', async (route) => {
+      attempts += 1
+      if (attempts <= 2) return route.abort('connectionfailed')
+      return route.continue()
+    })
+    await page.goto('/compose')
+    await settled(page)
+
+    const shield = page.getByRole('button', { name: /^shield · / })
+    await expect(shield).toBeEnabled({ timeout: 30_000 })
+    expect(attempts).toBeGreaterThanOrEqual(3)
+
+    // And when every attempt drops, the button says the read failed rather than
+    // that it is still reading.
+    await page.unroute('**/api/params**')
+    await page.route('**/api/params**', (route) => route.abort('connectionfailed'))
+    await page.goto('/compose')
+    await settled(page)
+    await expect(page.getByRole('button', { name: /could not be read/ })).toBeVisible({ timeout: 30_000 })
+  })
+
   test('the run buttons are not gated on a balance nobody has read', async ({ page }) => {
     // Without a wallet the page knows nothing about the account, so it must
     // not claim a shortfall. The gate only closes on the wallet's numbers.
