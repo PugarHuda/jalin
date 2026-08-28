@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
 
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { StarknetWindowObject } from 'get-starknet-core'
 import { hash, shortString } from 'starknet'
 import {
@@ -407,6 +407,42 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
   /** The wallet's answer to a dry run, by the button that asked. */
   const [simulations, setSimulations] = useState<Record<string, string>>({})
 
+  /**
+   * The hashes this account has landed, kept across reloads.
+   *
+   * They lived in component state only. Run 1 was submitted while its "Proving"
+   * line was still up, the next click replaced that line, the page was later
+   * reopened, and a transaction that had succeeded on mainnet was missing from
+   * the only screen that listed them - it was found again by reading the
+   * router's events. Per account, because a second account on the same
+   * browser has not run anything.
+   */
+  const restoredFor = useRef<string | null>(null)
+  function restoreRuns(address: string) {
+    try {
+      const raw = localStorage.getItem(`jalin:mainnet-run:${address}`)
+      if (raw) {
+        const saved = JSON.parse(raw) as { shield?: string | null; runs?: (string | null)[] }
+        const runs = RUNS.map((_, i) => saved.runs?.[i] ?? null)
+        setHashes(runs)
+        setShieldHash(saved.shield ?? null)
+        // Verdicts are not stored; they are the chain's to give, so ask again.
+        for (const h of [saved.shield, ...runs]) if (h) void judge(h, null)
+      }
+    } catch {}
+    restoredFor.current = address
+  }
+
+  useEffect(() => {
+    if (!account || restoredFor.current !== account) return
+    try {
+      localStorage.setItem(
+        `jalin:mainnet-run:${account}`,
+        JSON.stringify({ shield: shieldHash, runs: hashes }),
+      )
+    } catch {}
+  }, [account, hashes, shieldHash])
+
   // The Endur run's floor comes from the vault rather than from a constant. A
   // constant cannot know the share price moved, so it is either too loose to
   // protect anything or tight enough to revert for no reason.
@@ -645,6 +681,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
         if (!cancelled && address) {
           setAccount(address)
           setConnected(remembered.name ?? remembered.id ?? 'a wallet')
+          restoreRuns(address)
         }
       } catch {
         // A wallet that refuses a silent reconnect is not an error to report;
@@ -655,6 +692,10 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
     return () => {
       cancelled = true
     }
+    // Runs once, on mount: a silent reconnect is a one-time question. The
+    // restore it calls reads storage for whatever address came back and has no
+    // reason to re-run when the component's functions are re-created.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   async function pickWallet(
@@ -807,6 +848,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
     }
     setAccount(address)
     setConnected(raw.name ?? raw.id ?? 'a wallet')
+    restoreRuns(address)
 
     setStatus('Checking what this wallet supports…')
     const found = await probe(w)
