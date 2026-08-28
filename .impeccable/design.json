@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-28T08:00:00Z",
+  "title": "Design System: Jalin",
+  "extensions": {
+    "colorMeta": {
+      "gold": { "role": "primary", "displayName": "Songket Gold", "canonical": "#c9a227", "tonalRamp": ["#2a2108", "#4d3c0f", "#705716", "#93731d", "#b68f24", "#c9a227", "#dcbf5e", "#efdda0"] },
+      "ground": { "role": "neutral", "displayName": "Tarum Ground", "canonical": "#101423", "tonalRamp": ["#080a12", "#101423", "#171d31", "#2a3350", "#3d4a6f", "#5a67a0", "#8b93ad", "#e6e2d8"] },
+      "raised": { "role": "neutral", "displayName": "Raised Indigo", "canonical": "#171d31", "tonalRamp": ["#080a12", "#101423", "#171d31", "#2a3350", "#3d4a6f", "#5a67a0", "#8b93ad", "#e6e2d8"] },
+      "thread": { "role": "neutral", "displayName": "Thread", "canonical": "#2a3350", "tonalRamp": ["#080a12", "#101423", "#171d31", "#2a3350", "#3d4a6f", "#5a67a0", "#8b93ad", "#e6e2d8"] },
+      "strand": { "role": "neutral", "displayName": "Strand", "canonical": "#5a67a0", "tonalRamp": ["#080a12", "#101423", "#171d31", "#2a3350", "#3d4a6f", "#5a67a0", "#8b93ad", "#e6e2d8"] },
+      "cloth": { "role": "neutral", "displayName": "Cloth", "canonical": "#e6e2d8", "tonalRamp": ["#2b2a26", "#4f4d47", "#736f68", "#979289", "#bbb5aa", "#e6e2d8", "#f0ede6", "#faf8f4"] },
+      "muted": { "role": "neutral", "displayName": "Muted Cloth", "canonical": "#8b93ad", "tonalRamp": ["#1a1c24", "#2f3345", "#454b66", "#5b6387", "#727ba8", "#8b93ad", "#a9afc2", "#c8ccd8"] },
+      "hidden": { "role": "semantic", "displayName": "Hidden Green", "canonical": "#6fbf9a", "tonalRamp": ["#0f2a1f", "#1c4a37", "#2a6a4f", "#3d8a67", "#55a580", "#6fbf9a", "#95d1b5", "#bfe4d2"] },
+      "warn": { "role": "semantic", "displayName": "Red Clay", "canonical": "#d4674f", "tonalRamp": ["#2f120b", "#54211a", "#7a3128", "#9f4437", "#c05743", "#d4674f", "#e0907d", "#ecb8ac"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "The landing h1 only. Two lines, balanced." },
+      "headline": { "displayName": "Headline", "purpose": "Page titles." },
+      "title": { "displayName": "Title", "purpose": "Section headings inside a page." },
+      "body": { "displayName": "Body", "purpose": "Running text at a 60–62ch measure." },
+      "label": { "displayName": "Label / Data", "purpose": "Field labels, notes, and every address, amount, hash and felt. Never below 12px." }
+    },
+    "shadows": [],
+    "motion": [
+      { "name": "ease-thread", "value": "cubic-bezier(0.22, 1, 0.36, 1)", "purpose": "The weave drawing itself and the hero lift: exponential ease-out from an already-visible default." },
+      { "name": "duration-draw", "value": "1.1s", "purpose": "One stroke of the weave; strands are staggered 120ms." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "lg", "value": "1024px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one gold action on a view: sign, check, propose.",
+      "html": "<button class=\"ds-btn-primary\">Sign and submit</button>",
+      "css": ".ds-btn-primary { background: var(--gold, #c9a227); color: var(--ground, #101423); font-family: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; padding: 8px 16px; border: none; border-radius: 2px; transition: opacity 0.15s; } .ds-btn-primary:hover { opacity: 0.9; } .ds-btn-primary:focus-visible { outline: 2px solid var(--gold, #c9a227); outline-offset: 2px; } .ds-btn-primary:disabled { background: transparent; color: var(--muted, #8b93ad); border: 1px solid var(--strand, #5a67a0); cursor: not-allowed; opacity: 1; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Every other action: run, dry run, re-read, disconnect. Mono, hairline edge, gold on hover.",
+      "html": "<button class=\"ds-btn-secondary\">dry run</button>",
+      "css": ".ds-btn-secondary { background: transparent; color: var(--cloth, #e6e2d8); font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 0.75rem; padding: 4px 12px; border: 1px solid var(--strand, #5a67a0); border-radius: 4px; transition: border-color 0.15s; } .ds-btn-secondary:hover { border-color: var(--gold, #c9a227); } .ds-btn-secondary:focus-visible { outline: 2px solid var(--gold, #c9a227); outline-offset: 2px; } .ds-btn-secondary:disabled { opacity: 0.4; cursor: not-allowed; border-color: var(--strand, #5a67a0); }"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Addresses, amounts and calldata. Mono, raised fill, strand edge, gold caret.",
+      "html": "<label class=\"ds-field\"><span class=\"ds-field-label\">target</span><input class=\"ds-input\" value=\"0x28d709c875c0ceac3dce7065bec5328186dc89fe254527084d1689910954b0a\" /></label>",
+      "css": ".ds-field { display: block; } .ds-field-label { display: block; margin-bottom: 4px; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 0.75rem; color: var(--muted, #8b93ad); } .ds-input { width: 100%; background: var(--raised, #171d31); color: var(--cloth, #e6e2d8); caret-color: var(--gold, #c9a227); font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 0.75rem; padding: 6px 8px; border: 1px solid var(--strand, #5a67a0); border-radius: 4px; } .ds-input::placeholder { color: color-mix(in srgb, var(--muted, #8b93ad) 70%, transparent); } .ds-input:focus-visible { outline: 2px solid var(--gold, #c9a227); outline-offset: 2px; } .ds-input::selection { background: color-mix(in srgb, var(--gold, #c9a227) 38%, transparent); }"
+    },
+    {
+      "name": "Navigation",
+      "kind": "nav",
+      "refersTo": "nav-link",
+      "description": "Lowercase page names in mono; the strand mark and wordmark at the left.",
+      "html": "<nav class=\"ds-nav\"><span class=\"ds-wordmark\"><svg viewBox=\"0 0 32 32\" width=\"20\" height=\"20\" fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\"><g stroke-width=\"2\" opacity=\"0.55\"><path d=\"M3 7c9 0 9 9 16 9\"/><path d=\"M3 16h16\"/><path d=\"M3 25c9 0 9-9 16-9\"/></g><path d=\"M19 16h10\" stroke-width=\"3.5\"/></svg>jalin</span><a class=\"ds-nav-link\" href=\"#\">composer</a><a class=\"ds-nav-link\" href=\"#\">verify</a><a class=\"ds-nav-link\" href=\"#\">governance</a></nav>",
+      "css": ".ds-nav { display: flex; align-items: baseline; gap: 20px; color: var(--cloth, #e6e2d8); } .ds-wordmark { display: inline-flex; align-items: center; gap: 8px; margin-right: auto; font-family: 'Bricolage Grotesque', ui-sans-serif, system-ui, sans-serif; font-size: 1.125rem; font-weight: 800; letter-spacing: -0.025em; } .ds-nav-link { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 0.75rem; color: var(--muted, #8b93ad); text-decoration: none; } .ds-nav-link:hover { color: var(--gold, #c9a227); } .ds-nav-link:focus-visible { outline: 2px solid var(--gold, #c9a227); outline-offset: 2px; }"
+    },
+    {
+      "name": "Section",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "The one bordered container: a section holding a form or a list. Inside it, rules above, never boxes.",
+      "html": "<section class=\"ds-section\"><h2 class=\"ds-section-title\">The mainnet run</h2><p class=\"ds-section-note\">Three transactions on Starknet mainnet, each an invoke through a contract of ours.</p><div class=\"ds-row\"><span class=\"ds-row-title\">1. Two steps, one invoke</span><button class=\"ds-btn-secondary\">run · 0.5 STRK</button></div></section>",
+      "css": ".ds-section { background: var(--raised, #171d31); border: 1px solid var(--thread, #2a3350); border-radius: 4px; padding: 20px; color: var(--cloth, #e6e2d8); } .ds-section-title { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 0.875rem; font-weight: 400; margin: 0; } .ds-section-note { max-width: 60ch; margin: 4px 0 0; font-family: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif; font-size: 0.75rem; line-height: 1.625; color: var(--muted, #8b93ad); } .ds-row { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--thread, #2a3350); } .ds-row-title { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 0.875rem; } .ds-btn-secondary { background: transparent; color: var(--cloth, #e6e2d8); font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 0.75rem; padding: 4px 12px; border: 1px solid var(--strand, #5a67a0); border-radius: 4px; } .ds-btn-secondary:hover { border-color: var(--gold, #c9a227); }"
+    },
+    {
+      "name": "Feedback Line",
+      "kind": "custom",
+      "refersTo": "feedback",
+      "description": "The wallet's answer, rendered under the button that asked: pass in green, refusal in red-clay, status in cloth.",
+      "html": "<div class=\"ds-feedback\"><p class=\"ds-feedback-pass\">Dry run passed. The wallet assembled 3 actions into one call of 23 felts and raised nothing. Nothing was proved, sent or charged.</p><p class=\"ds-feedback-refusal\">Dry run refused: An error occurred (INSUFFICIENT_PRIVATE_BALANCE) · code 119</p></div>",
+      "css": ".ds-feedback { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--thread, #2a3350); font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 0.75rem; line-height: 1.625; max-width: 62ch; word-break: break-all; } .ds-feedback p { margin: 0 0 8px; } .ds-feedback-pass { color: var(--hidden, #6fbf9a); } .ds-feedback-refusal { color: var(--warn, #d4674f); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Loom at Night",
+    "overview": "A weaver's workshop after dark. The ground is indigo — tarum dye, not a crypto template's navy — and across it run fixed vertical threads, faint, the warp the whole page is woven on. Content sits on that warp in thin strands of a lighter indigo; one thread of songket gold runs through the whole cloth and is spent only where value passes: the primary action, the privacy_invoke line in the hero, a hash that landed. Everything else is cloth-coloured text on the dark, set in a grotesque that reads as assembled rather than drawn, with an engineering mono for anything that is data.\n\nThe register is a craftsman's precision, not a product's shine. Surfaces are flat; depth is a hairline, never a shadow. The name means to weave separate strands into one, and the protocol constraint the product exists for — one invoke per transaction — has the same shape, so the mark, the hero diagram and the vocabulary all draw the same figure: strands entering apart and leaving as one. The one confirmed rejection: nothing that reads as a category default — no kicker over a heading, no card inside a card, no gradient text, no glass.",
+    "keyCharacteristics": [
+      "Indigo ground with a fixed vertical warp; content woven across it in hairlines",
+      "One gold thread, spent only on value and action",
+      "Flat surfaces, hairline rules for structure, no shadows anywhere",
+      "Grotesque display, Plex Sans body, Plex Mono for every number, address and felt",
+      "Green for what is hidden, gold for what is visible, red-clay for what would fail",
+      "Only self-drawn SVG: the strand mark, the weave, the anonymity chart"
+    ],
+    "rules": [
+      { "name": "The One Thread Rule", "body": "Gold appears on at most one control and a handful of data points per viewport. If two things on a screen are gold, one of them is wrong.", "section": "colors" },
+      { "name": "The Meaning Rule", "body": "Green, gold and red-clay carry meaning (hidden, visible, would fail) and are never used decoratively.", "section": "colors" },
+      { "name": "The Data Is Mono Rule", "body": "Anything read from the chain or the wallet — an address, an amount, a block, a felt, a verdict — is set in Plex Mono. Prose is never mono; mono is never a costume.", "section": "typography" },
+      { "name": "The Measure Rule", "body": "Running text is capped at 60–62ch, which the design detector counts as ~76 characters. Data rows get the same cap; a 66-character hash fits in 62ch of mono.", "section": "typography" },
+      { "name": "The Flat Rule", "body": "A bordered block never contains another bordered block. If a panel needs structure, it gets a rule above it.", "section": "elevation" },
+      { "name": "The Only Alert Rule", "body": "One box is allowed on a page: an alert the reader has to find again (the ballot secret). Everything else that is a warning is red-clay text on the page's own surface.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do set every chain or wallet value in Plex Mono, at 12px or larger.",
+      "Do cap running text and data rows at 60–62ch.",
+      "Do separate sections and panels with a 1px Thread rule above them.",
+      "Do spend gold on one action per view and on landed value only.",
+      "Do keep the 2px gold :focus-visible outline on every control.",
+      "Do draw diagrams and marks as SVG in Strand, Gold and Ground."
+    ],
+    "donts": [
+      "Don't put a bordered block inside a bordered block.",
+      "Don't add a shadow, a gradient, a glass effect or a pill.",
+      "Don't place a kicker or eyebrow above a heading.",
+      "Don't use grey for secondary text; tint it from the indigo (Muted Cloth).",
+      "Don't render a number the chain or the wallet did not give.",
+      "Don't add a light theme."
+    ]
+  }
+}
