@@ -83,10 +83,20 @@ test.describe('reading a whole submission', () => {
     await page.getByLabel('owner/repo').fill('PugarHuda/jalin')
     await page.getByRole('button', { name: 'Read it' }).click()
 
-    // Our own manifest: two contracts declared, no transactions listed yet.
-    await expect(page.getByText(/listed transactions would count/)).toBeVisible({ timeout: 30_000 })
+    // Our own manifest, judged by the rule it will be judged by. This used to
+    // assert "the sprint asks for three" - the sentence shown while fewer than
+    // three were listed - and went red the day the third landed, which is the
+    // one day a test on the submission should be green. What must hold at any
+    // point is that every transaction we list counts: N of N, never N of M.
+    const verdict = page.getByText(/(\d+) of (\d+) listed transactions would count/)
+    await expect(verdict).toBeVisible({ timeout: 30_000 })
+    const [, counted, listed] = (await verdict.innerText()).match(/(\d+) of (\d+) listed/)!
+    expect(counted).toBe(listed)
+    expect(Number(listed)).toBeGreaterThan(0)
     await expect(page.locator('main')).toContainText('2 contracts declared')
-    await expect(page.locator('main')).toContainText('the sprint asks for three')
+    // The video is the one field still allowed to be missing while this is
+    // written; whichever it is, the page must say which.
+    await expect(page.locator('main')).toContainText(/demo video (present|missing)/)
   })
 
   test('says so when the repository has no manifest', async ({ page }) => {

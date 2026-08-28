@@ -682,6 +682,22 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
           setAccount(address)
           setConnected(remembered.name ?? remembered.id ?? 'a wallet')
           restoreRuns(address)
+
+          // And ask what it can do, the same as an explicit connect would. A
+          // reconnect that restored the address and nothing else left the
+          // balance and shadow panels blank on a page that said "connected",
+          // with no line saying why - the wallet had simply never been asked.
+          const w = asStrk20(remembered)
+          const found = await probe(w)
+          if (cancelled) return
+          setWallet(w)
+          setCaps(found)
+          setBalances(found.balances)
+          if (found.shadow) {
+            shadowCommitment(w)
+              .then((c) => !cancelled && setShadow(c))
+              .catch((error) => !cancelled && setShadow(`refused: ${describeError(error)}`))
+          }
         }
       } catch {
         // A wallet that refuses a silent reconnect is not an error to report;
@@ -999,6 +1015,14 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
         wallet && account ? { wallet, address: account } : raw ? await connect(raw) : null
       if (!session || how === 'connect') return
       const { wallet: w, address } = session
+
+      // A wallet that was kept without its capabilities - a reconnect that
+      // stopped short - gets asked now rather than signing blind.
+      if (!caps) {
+        const found = await probe(w)
+        setCaps(found)
+        setBalances(found.balances)
+      }
       if (!ROUTER_ADDRESS) {
         return setStatus('The router is not deployed yet, so there is nothing to sign.')
       }
@@ -1024,7 +1048,9 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
         // The failures a plan can have - a short balance, a placeholder the
         // wallet cannot resolve, a revert inside the invoke - come back here as
         // the wallet's own words instead of thirty seconds and a fee later.
-        setStatus('Asking the wallet to assemble this without proving it…')
+        setStatus(
+          'Asking the wallet to assemble this without proving it. Ready opens its own screen for this and shows any refusal there - Reject closes it; nothing is proved, sent or charged either way.',
+        )
         const prepared = await simulate(w, actions)
         const felts = prepared.call.calldata?.length ?? 0
         setStatus(null)
@@ -1484,6 +1510,18 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
         </p>
 
         {feedback(-2, 'this page')}
+
+        {connected && (
+          <p className="mt-4 font-mono text-[11px] text-muted" data-testid="wallet-says">
+            {!caps
+              ? `${connected} is connected and has not been asked what it supports yet - the first dry run or run asks.`
+              : !caps.strk20
+              ? `${connected} does not answer wallet_strk20Balances. It said: ${caps.refusal}`
+              : !caps.registered
+              ? `${connected} supports STRK20, but this account has not joined the pool: shield once from inside the wallet and it registers you in that transaction.`
+              : `${connected} · STRK20 ${caps.versions.length ? `· Wallet API ${caps.versions.join(', ')}` : ''} · balances read from the wallet`}
+          </p>
+        )}
 
         {caps?.registered && (
           <div className="mt-4 rounded border border-strand bg-ground p-3" data-testid="shielded">
