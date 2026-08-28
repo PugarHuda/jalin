@@ -134,16 +134,23 @@ the alternative, and it runs today.
 
 `sdk/src/subaccounts.ts` implements the sub-account portfolio layer — deriving a
 stable label per strategy, rolling unlinkable positions back into one balance
-sheet, and saying out loud when a portfolio has no internal anonymity left. It is
-tested and it is not wired into the app, which is deliberate and worth explaining
-rather than hiding.
+sheet, and saying out loud when a portfolio has no internal anonymity left.
+`sdk/src/shadow.ts` builds the Wallet API action for it.
 
-Two things block it. The Wallet API exposes no sub-account method, and the SDK
-route that does (`transfers.build().subaccounts(name).invoke(...)`, from Privacy
-SDK 0.14.3-rc.4) needs a proving service URL that is not published for mainnet —
-see [starkience/strk20-hackathon#121](https://github.com/starkience/strk20-hackathon/issues/121)
-and the three issues alongside it. So the helpers ship in the SDK for anyone who
-holds keys and has prover access, and the product does something else.
+An earlier version of this section said the Wallet API exposed no sub-account
+method. It does now: starknet.js 10.6.0 (29 July 2026) added the handling, and
+`@starknet-io/types-js` 0.10.4 carries `shadow_account_invoke` — calls made from
+a shadow account the wallet derives per `(dapp, nonce)`, with a `collect_policy`
+that settles only what the interaction gained — and
+`wallet_strk20ShadowAccountCommitment`. Whether a given wallet implements them
+is a separate question, so the composer asks the connected wallet and shows its
+answer verbatim: the partial commitment when it has one, the refusal when it
+does not. Nothing on that panel is rendered from a constant.
+
+The SDK route (`transfers.build().shadowAccounts(name).invoke(...)`, rc.5) still
+needs a proving service URL that is not published for mainnet — see
+[starkience/strk20-hackathon#121](https://github.com/starkience/strk20-hackathon/issues/121)
+and the three issues alongside it.
 
 **What the router does instead.** Every external step is dispatched by the router
 itself, so from the venue's side the caller is always the same address. Endur sees
@@ -174,6 +181,25 @@ the right answer and this is not a substitute for them.
 And the honest caveat on the crowd: it is only as large as the number of people
 using the router, which today is small. The mechanism is right; the set has to be
 earned.
+
+## What the composer asks the wallet
+
+Everything the composer says to Ready goes through `app/lib/wallet.ts`, typed by
+the Wallet API's own request map (`@starknet-io/types-js` 0.10.4) rather than
+cast around it. That is not tidiness: two bugs — a call carrying a field too
+many, and a call spelling the entrypoint the JSON-RPC way — hid behind `as never`
+for days, and the types that refuse both were installed the whole time.
+
+| Method | What the page does with the answer |
+|---|---|
+| `wallet_supportedWalletApi` | Names the API version beside the wallet, so a refusal can be read against it |
+| `wallet_strk20Balances` | Shows what the pool holds for this account, and gates every run on `amount + pool fee` against it, naming the shortfall |
+| `wallet_strk20PrepareInvoke` (simulate) | *Dry run*: the wallet assembles the transaction and reports what it would refuse, with nothing proved, sent or charged |
+| `wallet_strk20InvokeTransaction` | The real thing |
+| `wallet_strk20ShadowAccountCommitment` | The partial commitment for dapp `jalin`, computed inside the wallet, or the wallet's refusal — verbatim |
+
+Support is detected by asking, per method, per session. A wallet that answers the
+balance call and not the shadow-account one gets a page that says exactly that.
 
 ## Repository layout
 
@@ -246,11 +272,11 @@ network, and use a public node that takes no key.
 TypeScript:
 
 ```bash
-npm test                      # 108 SDK tests, no build step
+npm test                      # 129 SDK tests, no build step
 npm run typecheck             # tsc over the whole SDK, imported or not
 npm run lint                  # eslint over the app
 npm run check:links           # every path this repository names
-npm run test:e2e              # 287 Playwright tests, three engines
+npm run test:e2e              # 327 Playwright tests, three engines
 ```
 
 The browser suite has no fixtures in it. It reads the live chain, so it asserts

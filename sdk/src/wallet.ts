@@ -33,6 +33,7 @@ export type Strk20Action =
   | { type: 'withdraw'; token: WireFelt; amount: WireFelt; recipient: WireFelt }
   | { type: 'transfer'; token: WireFelt; amount: WireFelt | 'OPEN'; recipient: WireFelt }
   | { type: 'invoke'; contract: WireFelt; calldata: WireFelt[] }
+  | import('./shadow.ts').ShadowInvokeAction
 
 /** `${openNoteIds[N]}` or `${poolAddress}` - resolved by the wallet, not by us. */
 const PLACEHOLDER = /^\$\{(?:openNoteIds\[[0-9]+\]|poolAddress)\}$/

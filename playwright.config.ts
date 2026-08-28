@@ -17,7 +17,12 @@ import { loadEnv } from './scripts/lib/env.mjs'
  */
 loadEnv()
 
-const PORT = 3100
+/**
+ * 3100 by default, overridable, because "already used" was the whole answer the
+ * suite gave on a machine where another project's server held the port - and
+ * the suite is the thing you want running while that other project is too.
+ */
+const PORT = Number(process.env.E2E_PORT ?? 3100)
 const baseURL = `http://127.0.0.1:${PORT}`
 
 export default defineConfig({

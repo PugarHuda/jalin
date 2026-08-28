@@ -6,13 +6,15 @@
  * nothing on chain ties them together; the aggregation back into one portfolio
  * happens here, on the client, from notes only the viewing key can read.
  *
- * Availability, stated plainly because the ideas list says otherwise: the SDK
- * route works as of Privacy SDK 0.14.3-rc.4 via
- * `transfers.build().subaccounts(dappName).invoke(...)`, backed by the
- * `sub_account_anonymizer` package. The Wallet API route does not exist yet, so
- * this path requires holding a viewing key rather than delegating to a wallet.
- * The demo does not hold one: it goes through the Wallet API, so the key never
- * leaves the wallet. That is why this module is tested and not wired in.
+ * Availability, kept current because it has changed under this file once
+ * already. The SDK route works as of Privacy SDK 0.14.3-rc.4 via
+ * `transfers.build().subaccounts(dappName).invoke(...)` - renamed to
+ * `shadowAccounts` in rc.5 - and needs a viewing key in hand. The Wallet API
+ * route, which this file used to say did not exist, does since starknet.js
+ * 10.6.0 and `@starknet-io/types-js` 0.10.4: `shadow_account_invoke` and
+ * `wallet_strk20ShadowAccountCommitment`. `./shadow.ts` builds the action and
+ * the app asks the connected wallet whether it answers, rather than assuming.
+ * `strategyLabel` below is what becomes its `dapp_name`.
  */
 
 export const MIN_SDK_VERSION = '0.14.3-rc.4'

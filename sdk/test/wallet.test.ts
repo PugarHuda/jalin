@@ -197,9 +197,13 @@ test('every felt is canonical, leading zeros stripped', () => {
     { router: '0x008498d7', inputs: [{ token: padded, amount: 1000n }], recipient: '0x00abc' },
   )
 
-  const felts = actions.flatMap((a) =>
-    a.type === 'invoke' ? [a.contract, ...a.calldata] : [a.token, a.amount, 'recipient' in a ? a.recipient : ''],
-  )
+  const felts = actions.flatMap((a): string[] => {
+    if (a.type === 'invoke') return [a.contract, ...a.calldata]
+    // A plan never emits one, and the union now admits it: the pool's actions
+    // gained a fifth shape when shadow accounts reached the Wallet API.
+    if (a.type === 'shadow_account_invoke') return [a.nonce]
+    return [a.token, a.amount, 'recipient' in a ? a.recipient : '']
+  })
   for (const felt of felts) {
     if (!felt || felt === 'OPEN' || felt.startsWith('${')) continue
     assert.ok(!/^0x0./.test(felt), `${felt} still carries a leading zero`)

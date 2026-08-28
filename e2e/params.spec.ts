@@ -15,6 +15,18 @@ test.describe('/api/params', () => {
     expect(params.feeBps).toBeLessThanOrEqual(1000)
   })
 
+  test('measures the block time rather than remembering it', async ({ request }) => {
+    const params = await json<ParamsResponse>(await request.get('/api/params'))
+    test.skip(params.secondsPerBlock === null, 'the node would not give two block timestamps')
+
+    // An invariant, not a value. Starknet mainnet has run between roughly 1.5
+    // and 2.5 seconds a block for the life of the pool; a reading outside that
+    // means the subtraction is wrong, not that the chain changed. The literal
+    // this replaced was 1.68, from a 2,000-block sample - right by luck.
+    expect(params.secondsPerBlock).toBeGreaterThan(1.2)
+    expect(params.secondsPerBlock).toBeLessThan(3)
+  })
+
   test('agrees with the governance page, because both read the same contract', async ({
     page,
   }) => {

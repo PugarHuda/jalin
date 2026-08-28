@@ -11,12 +11,13 @@
   },
   "dependencies": {
     "@jalin/sdk": "*",
+    "@starknet-io/types-js": "^0.10.4-beta.2",
     "get-starknet-core": "^4.0.0",
     "next": "16.3.3",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "server-only": "^0.0.1",
-    "starknet": "^10.0.2"
+    "starknet": "^10.7.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

@@ -128,4 +128,34 @@ export const rpc = {
 
   receipt: (transactionHash: string) =>
     send<unknown>('starknet_getTransactionReceipt', { transaction_hash: transactionHash }),
+
+  /** A block's timestamp, for measuring how fast the chain actually moves. */
+  blockTimestamp: (blockNumber: number, revalidate?: number) =>
+    send<{ timestamp: number }>(
+      'starknet_getBlockWithTxHashes',
+      { block_id: { block_number: blockNumber } },
+      revalidate,
+    ).then((block) => block.timestamp),
+}
+
+/**
+ * Seconds per block, measured rather than remembered.
+ *
+ * Every deadline on these pages is a block count, and turning one into minutes
+ * needs a block time. That number was the literal 1.68 in two sentences, from a
+ * 2,000-block sample taken once. Another team in the sprint had 30 seconds
+ * hardcoded from an older Starknet and a seven-day window that closed in under
+ * three hours; ours was right by luck and drifts by the day - 1.72 over the same
+ * 2,000 blocks a week later, 1.70 over 200,000.
+ *
+ * Twenty thousand blocks, because short spans are jitter: a 1,000-block sample
+ * read 2.03 against a true 1.70 on the day this was written.
+ */
+export async function secondsPerBlock(head: number, revalidate?: number): Promise<number> {
+  const SPAN = 20_000
+  const [now, then] = await Promise.all([
+    rpc.blockTimestamp(head, revalidate),
+    rpc.blockTimestamp(Math.max(0, head - SPAN), revalidate),
+  ])
+  return (now - then) / SPAN
 }

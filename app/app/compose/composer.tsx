@@ -29,7 +29,20 @@ import {
   toBaseUnits,
   tokenOf,
 } from '@/lib/config'
-import { describeError, readyWallets } from '@/lib/wallet'
+import type { STRK20_BALANCE_ENTRY } from '@starknet-io/types-js'
+import {
+  SHADOW_DAPP,
+  asStrk20,
+  describeError,
+  probe,
+  readyWallets,
+  shadowCommitment,
+  shieldedBalances,
+  simulate,
+  submit,
+  type Capabilities,
+  type Strk20Wallet,
+} from '@/lib/wallet'
 import { Wordmark } from '../wordmark'
 
 interface StepForm {
@@ -252,6 +265,32 @@ function decimalsOf(address: string): number {
   return tokenOf(address)?.decimals ?? 18
 }
 
+/** Base units to a decimal string, trailing zeros dropped, no floating point. */
+function formatUnits(value: bigint, decimals: number): string {
+  const whole = value / 10n ** BigInt(decimals)
+  const fraction = (value % 10n ** BigInt(decimals)).toString().padStart(decimals, '0').replace(/0+$/, '')
+  return fraction ? `${whole}.${fraction}` : whole.toString()
+}
+
+/** The key a button's dry-run answer is filed under. */
+function siteKey(site: number | null): string {
+  return site === null ? 'draft' : String(site)
+}
+
+function DryRun({ answer }: { answer: string }) {
+  const refused = answer.startsWith('Dry run refused')
+  return (
+    <p
+      data-testid="dry-run"
+      className={`mt-2 break-all rounded border px-2 py-1 font-mono text-[11px] leading-relaxed ${
+        refused ? 'border-warn/40 bg-warn/10 text-warn' : 'border-hidden/40 bg-hidden/10 text-hidden'
+      }`}
+    >
+      {answer}
+    </p>
+  )
+}
+
 /**
  * Calldata is written a line per felt. `{amount:u256}` expands to the step's own
  * approval amount split low-first, which is the shape most venues want and the
@@ -285,6 +324,8 @@ interface LiveParams {
    * whole field exists to close.
    */
   poolFee: string | null
+  /** Measured over the last 20,000 blocks, or null when the node would not say. */
+  secondsPerBlock: number | null
   denied: Record<string, boolean>
   /** The newest proposal still taking votes, or null when none is. */
   openProposal: { id: number; endBlock: number; blocksLeft: number } | null
@@ -354,6 +395,17 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
     effectiveSetAfter: number
     blocksLeftInCell: number
   } | null>(null)
+
+  // Kept once connected, so balances, a dry run and the shadow-account
+  // commitment can be asked for without another round of picking a wallet.
+  const [wallet, setWallet] = useState<Strk20Wallet | null>(null)
+  const [caps, setCaps] = useState<Capabilities | null>(null)
+  const [balances, setBalances] = useState<STRK20_BALANCE_ENTRY[]>([])
+  const [shadow, setShadow] = useState<string | null>(null)
+  /** What the wallet is being asked for: only to connect, to assemble, or to sign. */
+  const [mode, setMode] = useState<'connect' | 'simulate' | 'submit'>('submit')
+  /** The wallet's answer to a dry run, by the button that asked. */
+  const [simulations, setSimulations] = useState<Record<string, string>>({})
 
   // The Endur run's floor comes from the vault rather than from a constant. A
   // constant cannot know the share price moved, so it is either too loose to
@@ -499,6 +551,38 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
   }
 
   /**
+   * A block count as wall-clock, from the block time the chain reported - or
+   * nothing at all when it did not. "About 53 minutes at 1.68s" was a literal
+   * that happened to be right; the same sentence with 30s in it, from an older
+   * Starknet, cost another sprint team a seven-day window that closed in three
+   * hours. Blocks are the truth, minutes are a courtesy, and a courtesy from a
+   * number nobody measured is not one.
+   */
+  function minutes(blocks: number): string {
+    const rate = params?.secondsPerBlock
+    if (!rate) return ''
+    return ` — about ${Math.max(1, Math.round((blocks * rate) / 60))} minutes at mainnet's measured ${rate.toFixed(2)}s`
+  }
+
+  /**
+   * Why a run cannot be paid for from what the pool holds, or null when it can.
+   *
+   * Only once the wallet has answered: before that there is nothing to compare
+   * against and the buttons stay as they were. The comparison is the one the
+   * wallet makes - amount plus the pool's fee against the shielded STRK - so
+   * the sentence here is the one the wallet would otherwise say after the proof.
+   */
+  function shortfall(run: MainnetRun): string | null {
+    if (!caps?.registered || !poolFee) return null
+    const strk = TOKENS[0]!.address
+    const held = balances.find((b) => tokenOf(b.token)?.address === strk)
+    const have = held ? BigInt(held.balance) : 0n
+    const need = run.amount + poolFee
+    if (have >= need) return null
+    return `Needs ${formatUnits(need, 18)} STRK in the pool - ${formatUnits(run.amount, 18)} to spend and ${formatUnits(poolFee, 18)} of pool fee - and this account holds ${formatUnits(have, 18)}. Short by ${formatUnits(need - have, 18)}; shield that much more first.`
+  }
+
+  /**
    * The exact wallet calls, built outside the render.
    *
    * It used to be built inline with `recipient: '0xYOUR_ACCOUNT'`, which is not
@@ -573,8 +657,22 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
     }
   }, [])
 
-  async function pickWallet(runIndex: number | null = null) {
+  async function pickWallet(
+    runIndex: number | null = null,
+    how: 'connect' | 'simulate' | 'submit' = 'submit',
+  ) {
     setPendingRun(runIndex)
+    setMode(how)
+    setSimulations((s) => {
+      const next = { ...s }
+      delete next[siteKey(runIndex)]
+      return next
+    })
+
+    // Already connected: nothing to pick. Asking again would open the wallet's
+    // account chooser for a question it has answered.
+    if (wallet) return execute(null, runIndex, how)
+
     const { wallets: offered, error } = await readyWallets()
 
     if (error) {
@@ -601,24 +699,27 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
    * `pendingRun` already knew which button was waiting. This shows it.
    */
   function feedback(site: number | null, what: string) {
-    if (pendingRun !== site) return null
-    if (wallets.length === 0 && !status && !lastPayload) return null
+    const dryRun = simulations[siteKey(site)]
+    if (pendingRun !== site) return dryRun ? <DryRun answer={dryRun} /> : null
+    if (wallets.length === 0 && !status && !lastPayload && !dryRun) return null
 
     return (
       <div className="mt-2 rounded border border-strand bg-ground p-3">
         {wallets.length > 0 && (
           <>
             <p className="text-xs text-muted">
-              Choose a wallet to sign <span className="text-cloth">{what}</span>.
+              Choose a wallet to{' '}
+              {mode === 'connect' ? 'connect' : mode === 'simulate' ? 'dry-run' : 'sign'}{' '}
+              <span className="text-cloth">{what}</span>.
             </p>
             <ul className="mt-2 space-y-1">
-              {wallets.map((wallet) => (
-                <li key={wallet.id}>
+              {wallets.map((candidate) => (
+                <li key={candidate.id}>
                   <button
-                    onClick={() => execute(wallet)}
+                    onClick={() => execute(candidate, site, mode)}
                     className="w-full rounded border border-strand px-3 py-2 text-left text-sm hover:border-gold"
                   >
-                    {wallet.name}
+                    {candidate.name}
                   </button>
                 </li>
               ))}
@@ -626,6 +727,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
           </>
         )}
         {status && <p className="mt-2 break-all font-mono text-xs">{status}</p>}
+        {dryRun && <DryRun answer={dryRun} />}
         {status?.includes('NOT_REGISTERED') && (
           <p className="mt-2 rounded border border-strand px-3 py-2 text-xs leading-relaxed">
             In Ready: open the wallet, shield any amount from its own privacy screen. That one
@@ -653,48 +755,81 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
     await getStarknet.disconnect({ clearLastWallet: true })
     setAccount(null)
     setConnected(null)
+    setWallet(null)
+    setCaps(null)
+    setBalances([])
+    setShadow(null)
     setWallets([])
     setStatus(null)
   }
 
   /**
-   * Whether this wallet implements the STRK20 methods at all. The account class
-   * on chain says nothing about it - support lives in the wallet, not in the
-   * account - so the only honest test is to call one and see. `strk20Balances`
-   * is the read-only one, which makes it the safe probe.
+   * What is in the pool for this account, straight from the wallet.
+   *
+   * Asked after every landed transaction as well as at connection, because the
+   * number this page most needs to be right about is the one that was invisible
+   * when the shield was sized at 1 STRK against a 6 STRK fee: nothing on screen
+   * knew what the account held, so nothing could say it was short.
    */
-  async function probe(wallet: StarknetWindowObject): Promise<string> {
-    const anyWallet = wallet as unknown as {
-      request(call: { type: string; params?: unknown }): Promise<unknown>
-    }
-
-    // Name the wallet in the answer. Without it a pasted result cannot be told
-    // apart from the last one, and "not implemented" is only useful when you
-    // know which wallet said it.
-    const named = wallet as unknown as { id?: string; name?: string; version?: string }
-    const who = `${named.name ?? 'unknown wallet'}${named.version ? ` ${named.version}` : ''} (id: ${named.id ?? '?'})`
-
-    let versions = 'unknown'
+  async function refreshBalances(w: Strk20Wallet) {
     try {
-      const supported = (await anyWallet.request({ type: 'wallet_supportedWalletApi' })) as string[]
-      versions = supported.join(', ')
-    } catch {}
-
-    try {
-      // `tokens` is required; an empty array means every shielded token. Calling
-      // it with no params at all returns INVALID_REQUEST_PAYLOAD, which reads
-      // like a missing method and is not one.
-      await anyWallet.request({ type: 'wallet_strk20Balances', params: { tokens: [] } })
-      return `STRK20 supported by ${who}. Wallet API ${versions}.`
+      setBalances(await shieldedBalances(w))
     } catch (error) {
-      const message = describeError(error)
-      // NOT_REGISTERED is the pool saying "I know this method, you have no notes
-      // yet" - which is support, not the absence of it.
-      if (/NOT_REGISTERED/i.test(message)) {
-        return `STRK20 supported by ${who}, but this account has not joined the pool yet. Shield once from inside the wallet and it registers you in the same transaction. Wallet API ${versions}.`
-      }
-      return `${who} does not answer wallet_strk20Balances, so it cannot sign a Jalin plan yet. Wallet API ${versions}. It said: ${message}`
+      // Not fatal to anything else; the last known balances stay up and the
+      // reason they are stale is on screen.
+      setStatus(`Could not re-read the shielded balance: ${describeError(error)}`)
     }
+  }
+
+  /**
+   * Connects, then asks the wallet what it can do. Everything the page later
+   * shows about the account - balances, whether a shadow account can be derived,
+   * which API version answered - comes from this one exchange.
+   */
+  async function connect(raw: StarknetWindowObject): Promise<Strk20Wallet | null> {
+    const { default: getStarknet } = await import('get-starknet-core')
+    await getStarknet.enable(raw)
+    const w = asStrk20(raw)
+
+    const [address] = await w.request({ type: 'wallet_requestAccounts' })
+    if (!address) {
+      setStatus('Wallet returned no account.')
+      return null
+    }
+    setAccount(address)
+    setConnected(raw.name ?? raw.id ?? 'a wallet')
+
+    setStatus('Checking what this wallet supports…')
+    const found = await probe(w)
+    setCaps(found)
+    setBalances(found.balances)
+    setWallet(w)
+
+    const who = `${raw.name ?? 'unknown wallet'}${raw.version ? ` ${raw.version}` : ''}`
+    const api = found.versions.length ? `Wallet API ${found.versions.join(', ')}` : 'Wallet API version unknown'
+
+    if (!found.strk20) {
+      setStatus(
+        `${who} does not answer wallet_strk20Balances, so it cannot sign a Jalin plan yet. ${api}. It said: ${found.refusal}`,
+      )
+      return null
+    }
+    if (!found.registered) {
+      setStatus(
+        `STRK20 supported by ${who}, but this account has not joined the pool yet. Shield once from inside the wallet and it registers you in the same transaction. ${api}.`,
+      )
+      return w
+    }
+
+    if (found.shadow) {
+      // The partial commitment: computed inside the wallet, sent nowhere.
+      shadowCommitment(w)
+        .then(setShadow)
+        .catch((error) => setShadow(`refused: ${describeError(error)}`))
+    }
+
+    setStatus(`STRK20 supported by ${who}. ${api}.`)
+    return w
   }
 
   function buildRunActions(run: MainnetRun, account: string): Strk20Action[] {
@@ -769,46 +904,54 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
    * The rules the panel will apply, applied here. Polls because a receipt does
    * not exist the instant a transaction is accepted.
    */
-  async function judge(hash: string) {
+  async function judge(hash: string, w: Strk20Wallet | null) {
     for (let attempt = 0; attempt < 12; attempt += 1) {
       try {
         const response = await fetch(`/api/tx?hash=${hash}`)
         if (response.ok) {
           const body = (await response.json()) as { exists?: boolean; summary?: string }
           if (body.summary) setVerdicts((v) => ({ ...v, [hash]: body.summary! }))
-          if (body.exists) return
+          if (body.exists) {
+            // Landed, so the pool's view of this account has moved. Re-read it
+            // rather than subtracting here: the fee leg is the wallet's to add
+            // and the page has been wrong about it once.
+            if (w) await refreshBalances(w)
+            return
+          }
         }
       } catch {}
       await new Promise((resolve) => setTimeout(resolve, 5000))
     }
   }
 
-  async function execute(wallet: StarknetWindowObject) {
-    const run =
-      pendingRun === null ? null : pendingRun === -1 ? shield : RUNS[pendingRun]!
-    if (!run && !result.plan) return
+  /**
+   * One entry point for the three things a button can ask of the wallet.
+   *
+   * `site` and `how` arrive as arguments rather than being read from state,
+   * because the wallet list's buttons fire in the same tick that set them and
+   * would otherwise read the previous click's answer.
+   */
+  async function execute(
+    /** A wallet to connect, or null to use the one already connected. */
+    raw: StarknetWindowObject | null,
+    site: number | null,
+    how: 'connect' | 'simulate' | 'submit',
+  ) {
+    const run = site === null || site === -2 ? null : site === -1 ? shield : RUNS[site]!
+    if (how !== 'connect' && !run && !result.plan) return
     setWallets([])
     setStatus('Connecting…')
     try {
-      const { default: getStarknet } = await import('get-starknet-core')
-      await getStarknet.enable(wallet)
-
-      const [account] = (await wallet.request({
-        type: 'wallet_requestAccounts',
-      })) as string[]
-      if (!account) return setStatus('Wallet returned no account.')
-      setAccount(account)
-      setConnected(wallet.name ?? wallet.id ?? 'a wallet')
-
-      setStatus('Checking what this wallet supports…')
-      const capability = await probe(wallet)
-      if (!capability.startsWith('STRK20 supported')) return setStatus(capability)
+      const w = wallet ?? (raw ? await connect(raw) : null)
+      if (!w || how === 'connect') return
+      const address = account ?? (await w.request({ type: 'wallet_requestAccounts' }))[0]
+      if (!address) return setStatus('Wallet returned no account.')
       if (!ROUTER_ADDRESS) {
-        return setStatus(`${capability} The router is not deployed yet, so there is nothing to sign.`)
+        return setStatus('The router is not deployed yet, so there is nothing to sign.')
       }
 
-      const actions = run
-        ? buildRunActions(run, account)
+      const actions: Strk20Action[] = run
+        ? buildRunActions(run, address)
         : toWalletActions(result.plan!, {
             router: ROUTER_ADDRESS,
             inputs: [
@@ -817,39 +960,45 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
                 amount: toBaseUnits(draft.inputAmount, decimalsOf(draft.inputToken)),
               },
             ],
-            recipient: account,
+            recipient: address,
           })
 
-      setStatus('Proving. This takes around 30 seconds; the wallet stays open.')
       setLastPayload(JSON.stringify(actions, null, 2))
       console.log('[jalin] strk20 actions', actions)
-      // get-starknet-core bundles an older @starknet-io/types-js whose request
-      // map predates STRK20, so the method it is about to call is not in its
-      // types. The wallet either implements wallet_strk20InvokeTransaction or
-      // rejects the call - which is what the catch below reports.
-      const strk20 = wallet as unknown as {
-        request(call: {
-          type: 'wallet_strk20InvokeTransaction'
-          params: { actions: Strk20Action[] }
-        }): Promise<{ transaction_hash: string }>
-      }
-      const response = await strk20.request({
-        type: 'wallet_strk20InvokeTransaction',
-        params: { actions },
-      })
 
-      setStatus(`Submitted: ${response.transaction_hash}`)
-      judge(response.transaction_hash)
-      if (pendingRun === -1) {
-        setShieldHash(response.transaction_hash)
-      } else if (pendingRun !== null) {
-        const index = pendingRun
-        setHashes((previous) =>
-          previous.map((h, i) => (i === index ? response.transaction_hash : h)),
-        )
+      if (how === 'simulate') {
+        // Assembled by the wallet and not proved, not submitted, not paid for.
+        // The failures a plan can have - a short balance, a placeholder the
+        // wallet cannot resolve, a revert inside the invoke - come back here as
+        // the wallet's own words instead of thirty seconds and a fee later.
+        setStatus('Asking the wallet to assemble this without proving it…')
+        const prepared = await simulate(w, actions)
+        const felts = prepared.call.calldata?.length ?? 0
+        setStatus(null)
+        setSimulations((s) => ({
+          ...s,
+          [siteKey(site)]: `Dry run passed. The wallet assembled ${actions.length} action${actions.length === 1 ? '' : 's'} into one call of ${felts} felts to ${label(String(prepared.call.contract_address))} and raised nothing. Nothing was proved, sent or charged.`,
+        }))
+        return
+      }
+
+      setStatus('Proving. This takes around 30 seconds; the wallet stays open.')
+      const transactionHash = await submit(w, actions)
+
+      setStatus(`Submitted: ${transactionHash}`)
+      judge(transactionHash, w)
+      if (site === -1) {
+        setShieldHash(transactionHash)
+      } else if (site !== null && site >= 0) {
+        setHashes((previous) => previous.map((h, i) => (i === site ? transactionHash : h)))
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error)
+      const message = describeError(error)
+      if (how === 'simulate') {
+        setStatus(null)
+        setSimulations((s) => ({ ...s, [siteKey(site)]: `Dry run refused: ${message}` }))
+        return
+      }
       // Registration is once per account and needs no STRK20 wallet support -
       // There is no register method in the Wallet API because registration is
       // not a dapp's to perform: the wallet emits ViewingKeySet itself, on the
@@ -934,6 +1083,14 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
           </button>
         ))}
 
+        {!connected && (
+          <button
+            onClick={() => pickWallet(-2, 'connect')}
+            className="ml-auto rounded border border-strand px-3 py-1.5 font-mono text-xs hover:border-gold"
+          >
+            connect Ready
+          </button>
+        )}
         {connected && account && (
           <span className="ml-auto flex items-center gap-2 font-mono text-xs text-muted">
             <span className="text-hidden">●</span>
@@ -1157,7 +1314,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
                       : `${prospect.headcount} other ${prospect.headcount === 1 ? 'address is' : 'addresses are'} in the same cell — same token, same order of magnitude, same six-hour window. Your effective anonymity set would be ${prospect.effectiveSetAfter.toFixed(2)}.`,
                     'A cell, not the pool. An observer of the public leg sees the asset, the magnitude and roughly when, so only deposits agreeing on all three cover each other. The figure is a perplexity over the flow, because a cell one address dominates is not the crowd its headcount claims.',
                     'Changing the amount moves you to a different cell. Rounding to whatever your neighbours used is the cheapest privacy available here.',
-                    `This cell closes in ${prospect.blocksLeftInCell.toLocaleString()} blocks — about ${Math.round((prospect.blocksLeftInCell * 1.68) / 60)} minutes at mainnet's 1.68s. Sign after that and the deposit lands in the next one, which starts empty.`,
+                    `This cell closes in ${prospect.blocksLeftInCell.toLocaleString()} blocks${minutes(prospect.blocksLeftInCell)}. Sign after that and the deposit lands in the next one, which starts empty.`,
                   ]}
                 />
               )}
@@ -1204,6 +1361,16 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
               className="rounded-sm px-4 py-2 text-sm font-medium transition-colors enabled:bg-gold enabled:text-ground enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:border disabled:border-strand disabled:text-muted"
             >
               {ROUTER_ADDRESS ? 'Sign and submit' : 'Check wallet support'}
+            </button>
+            <button
+              onClick={() => pickWallet(null, 'simulate')}
+              disabled={
+                !result.plan || draftIncomplete || params?.paused || deniedTargets.length > 0
+              }
+              title="The wallet assembles the transaction and reports what it would refuse, without proving, sending or charging anything."
+              className="ml-2 rounded-sm border border-strand px-4 py-2 text-sm hover:border-gold disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Dry run
             </button>
             {params?.paused && (
               <p className="mt-2 rounded border border-warn/40 bg-warn/10 px-3 py-2 text-xs leading-relaxed text-warn">
@@ -1263,6 +1430,74 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
           <span className="font-mono">NOT_REGISTERED</span>.
         </p>
 
+        {feedback(-2, 'this page')}
+
+        {caps?.registered && (
+          <div className="mt-4 rounded border border-strand bg-ground p-3" data-testid="shielded">
+            <div className="flex items-baseline justify-between gap-4">
+              <span className="font-mono text-sm">In the pool, for this account</span>
+              <button
+                onClick={() => wallet && refreshBalances(wallet)}
+                className="shrink-0 rounded border border-strand px-2 py-1 text-[11px] hover:border-gold"
+              >
+                re-read
+              </button>
+            </div>
+            <p className="mt-1 max-w-2xl text-xs leading-relaxed text-muted">
+              Read from the wallet with <span className="font-mono">wallet_strk20Balances</span>.
+              The viewing key that decrypts these never left it; this page only sees the
+              totals, and only because you connected. Each run below is checked against the
+              STRK line, plus the pool&apos;s fee, before its button is offered.
+            </p>
+            {balances.length === 0 ? (
+              <p className="mt-2 font-mono text-xs text-muted">no shielded tokens yet</p>
+            ) : (
+              <ul className="mt-2 space-y-0.5 font-mono text-xs">
+                {balances.map((entry) => (
+                  <li key={entry.token} className="flex justify-between gap-4">
+                    <span>{label(entry.token)}</span>
+                    <span>{formatUnits(BigInt(entry.balance), decimalsOf(entry.token))}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+
+        {caps?.strk20 && (
+          <div className="mt-3 rounded border border-strand bg-ground p-3" data-testid="shadow">
+            <span className="font-mono text-sm">Shadow account</span>
+            <p className="mt-1 max-w-2xl text-xs leading-relaxed text-muted">
+              A real Starknet account the wallet derives for this dapp from your private
+              state, with no public link to your main wallet. Unlike the router it can hold
+              a position between transactions — a lending deposit, a vault subscription —
+              which is the one shape the router cannot serve. The Wallet API route exists
+              since starknet.js 10.6.0; whether this wallet implements it is asked, not
+              assumed.
+            </p>
+            {caps.shadow ? (
+              <p className="mt-2 break-all font-mono text-[11px] text-gold">
+                {shadow
+                  ? `dapp ${SHADOW_DAPP} · partial commitment ${shadow}`
+                  : `dapp ${SHADOW_DAPP} · asking the wallet for the commitment…`}
+                <span className="mt-1 block font-sans text-muted">
+                  Computed inside the wallet from your identity key and this dapp&apos;s name;
+                  nothing was sent to compute it. Shared by every shadow account you derive
+                  here, and it reveals no individual nonce.
+                </span>
+              </p>
+            ) : (
+              <p className="mt-2 break-all rounded border border-warn/40 bg-warn/10 px-2 py-1 font-mono text-[11px] leading-relaxed text-warn">
+                {connected} does not answer{' '}
+                <span className="font-mono">wallet_strk20ShadowAccountCommitment</span> yet.
+                {caps.shadowRefusal ? ` It said: ${caps.shadowRefusal}` : ''} The SDK route
+                exists for anyone holding a viewing key; from a wallet, this waits on the
+                wallet.
+              </p>
+            )}
+          </div>
+        )}
+
         <div className="mt-4 border-t border-thread py-3">
           <div className="flex items-baseline justify-between gap-4">
             <span className="font-mono text-sm text-muted">{shield.title}</span>
@@ -1311,26 +1546,46 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
                 <span className="font-mono text-sm">
                   {i + 1}. {run.title}
                 </span>
-                <button
-                  onClick={() => pickWallet(i)}
-                  // A ballot with no open proposal is a transaction that reverts
-                  // after it has been paid for and proved. Offering the button
-                  // anyway would be charging somebody to find that out.
-                  disabled={!ROUTER_ADDRESS || (run.ballot && !params?.openProposal)}
-                  className="shrink-0 rounded border border-strand px-3 py-1 text-xs hover:border-gold disabled:opacity-40"
-                >
-                  {hashes[i] ? 'run again' : `run · ${Number(run.amount) / 1e18} STRK`}
-                </button>
+                <span className="flex shrink-0 gap-2">
+                  <button
+                    onClick={() => pickWallet(i, 'simulate')}
+                    disabled={!ROUTER_ADDRESS || (run.ballot && !params?.openProposal)}
+                    title="Assembled by the wallet, not proved, not sent, not charged."
+                    className="rounded border border-strand px-3 py-1 text-xs hover:border-gold disabled:opacity-40"
+                  >
+                    dry run
+                  </button>
+                  <button
+                    onClick={() => pickWallet(i)}
+                    // A ballot with no open proposal is a transaction that reverts
+                    // after it has been paid for and proved. Offering the button
+                    // anyway would be charging somebody to find that out. A short
+                    // balance is the same shape of mistake, and the same button.
+                    disabled={
+                      !ROUTER_ADDRESS ||
+                      (run.ballot && !params?.openProposal) ||
+                      shortfall(run) !== null
+                    }
+                    className="rounded border border-strand px-3 py-1 text-xs hover:border-gold disabled:opacity-40"
+                  >
+                    {hashes[i] ? 'run again' : `run · ${Number(run.amount) / 1e18} STRK`}
+                  </button>
+                </span>
               </div>
               <p className="mt-1 max-w-2xl text-xs leading-relaxed text-muted">{run.note}</p>
+              {shortfall(run) && (
+                <p className="mt-1 rounded border border-warn/40 bg-warn/10 px-2 py-1 font-mono text-[11px] leading-relaxed text-warn">
+                  {shortfall(run)}
+                </p>
+              )}
 
               {run.ballot &&
                 params &&
                 (params.openProposal ? (
                   <p className="mt-1 font-mono text-[11px] text-gold">
                     voting on proposal {params.openProposal.id} · closes in{' '}
-                    {params.openProposal.blocksLeft.toLocaleString()} blocks, about{' '}
-                    {Math.max(1, Math.round((params.openProposal.blocksLeft * 1.68) / 60))} minutes
+                    {params.openProposal.blocksLeft.toLocaleString()} blocks
+                    {minutes(params.openProposal.blocksLeft)}
                   </p>
                 ) : (
                   <p className="mt-1 rounded border border-warn/40 bg-warn/10 px-2 py-1 font-mono text-[11px] leading-relaxed text-warn">

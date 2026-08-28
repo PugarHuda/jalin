@@ -1,4 +1,4 @@
-import { RpcError, rpc } from '@/lib/rpc'
+import { RpcError, rpc, secondsPerBlock } from '@/lib/rpc'
 import { GOVERNOR_ADDRESS, POOL_ADDRESS } from '@/lib/config'
 
 /**
@@ -58,6 +58,11 @@ export async function GET(request: Request) {
       rpc.call(POOL_ADDRESS, 'get_fee_amount', [], revalidate).catch(() => null),
     ])
 
+    // How fast the chain is moving, so "closes in 1,900 blocks" can be said in
+    // minutes without a literal that was right on the day it was written. Null
+    // when the node will not answer; the page then says blocks and nothing more.
+    const blockTime = await secondsPerBlock(head, revalidate).catch(() => null)
+
     const denied: Record<string, boolean> = {}
     for (const target of asked) {
       const answer = await rpc.call(GOVERNOR_ADDRESS, 'is_denied', [target], revalidate)
@@ -95,6 +100,7 @@ export async function GET(request: Request) {
       // Null when the pool would not answer, which the shield reads as "do not
       // offer an amount" rather than as a fee of zero.
       poolFee: rawPoolFee ? BigInt(rawPoolFee[0] ?? '0x0').toString() : null,
+      secondsPerBlock: blockTime,
       denied,
     })
   } catch (error) {

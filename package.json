@@ -19,7 +19,7 @@
   },
   "dependencies": {
     "@scure/starknet": "^2.3.0",
-    "starknet": "^10.0.2"
+    "starknet": "^10.7.1"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",

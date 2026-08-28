@@ -8,11 +8,29 @@ same walls.
 All figures are over the pool's life — a 600,000 block window ending at the head
 on 26 August 2026, which is roughly eleven days at the measured block time.
 
-## Block time is 1.68 seconds
+## Block time is about 1.7 seconds, and a short sample lies
 
-Measured across a 2,000 block sample. It matters because every window in this
-project is expressed in blocks: 50,000 blocks sounds like a long baseline and is
-under a day.
+First measured across a 2,000 block sample as 1.68. It matters because every
+window in this project is expressed in blocks: 50,000 blocks sounds like a long
+baseline and is under a day.
+
+Re-measured on 27 August at head 13,951,896, because another team took the
+1.68 from this document, checked it against their own hardcoded 30 seconds, and
+found a seven-day campaign window that would have closed in under three hours:
+
+```
+  1,000 blocks   1.720 s/block
+  2,000 blocks   1.723 s/block
+ 20,000 blocks   1.738 s/block
+200,000 blocks   1.702 s/block
+600,000 blocks   1.695 s/block
+```
+
+The 2,000-block figure moved by 2.5% in a week; their 1,000-block sample read
+2.03 against a true 1.70 on the same day. Short spans are jitter. The composer
+now measures over 20,000 blocks on every read (`/api/params` →
+`secondsPerBlock`) and says blocks alone when the node will not give it two
+timestamps, rather than minutes from a number nobody checked.
 
 ## You cannot shield and spend in the same transaction
 

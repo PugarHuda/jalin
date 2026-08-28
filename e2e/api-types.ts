@@ -38,6 +38,8 @@ export interface ParamsResponse {
   feeBps: number
   /** The pool's flat charge per private operation, base units. Null if unread. */
   poolFee: string | null
+  /** Seconds per block over the last 20,000, or null when unread. */
+  secondsPerBlock: number | null
   denied: Record<string, boolean>
 }
 
