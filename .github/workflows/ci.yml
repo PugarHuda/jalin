@@ -76,6 +76,23 @@ jobs:
       # masked SVG - all places the three disagree.
       - run: npx playwright install --with-deps chromium firefox webkit
       - run: npm run test:e2e
+
+      # Impeccable's detector - 59 deterministic rules over a headless render -
+      # as a gate, the way cairo-coverage and verify-classes already are. It
+      # reads the build the suite just tested, at desktop width and at a
+      # phone's. Thirty findings the first time it ran; zero is the bar now,
+      # and the one recorded exception sits in .impeccable/config.json with its
+      # reason beside it, where the detector reads it and a reviewer can too.
+      - name: Design defects are build failures
+        run: |
+          npm run start --workspace app -- --port 3100 &
+          for i in $(seq 1 60); do curl -sf -o /dev/null http://127.0.0.1:3100 && break; sleep 1; done
+          npx -y impeccable detect \
+            http://127.0.0.1:3100 \
+            http://127.0.0.1:3100/compose \
+            http://127.0.0.1:3100/governance \
+            http://127.0.0.1:3100/verify
+          npx -y impeccable detect --viewport 390x844 http://127.0.0.1:3100/compose
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
