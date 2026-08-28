@@ -153,7 +153,7 @@ function Trend({
         </text>
       </svg>
 
-      <figcaption className="mt-2 max-w-[72ch] font-mono text-xs text-muted">
+      <figcaption className="mt-2 max-w-[62ch] font-mono text-xs text-muted">
         <span className="text-warn">solid</span> the typical deposit ·{' '}
         <span className="text-hidden">dashed</span> the best one · each point is a six-hour window
       </figcaption>
@@ -383,7 +383,7 @@ export default async function Landing() {
         <div className="mx-auto grid w-full max-w-5xl gap-10 px-6 py-16 md:grid-cols-2">
           <div>
             <h2 className="font-display text-2xl font-semibold">The constraint</h2>
-            <p className="mt-4 max-w-[68ch] leading-relaxed text-muted">
+            <p className="mt-4 max-w-[60ch] leading-relaxed text-muted">
               Two protocol rules shape everything downstream. Together they mean a private swap
               needs a swap helper, lending needs another, and swap-then-lend needs a third. Every
               new interaction is a new Cairo contract — which is why almost everything built on
@@ -414,7 +414,7 @@ export default async function Landing() {
     outputs: Array<Output>,
 ) -> Span<OpenNoteDeposit>`}
         </pre>
-        <p className="mt-6 max-w-[68ch] leading-relaxed text-muted">
+        <p className="mt-6 max-w-[60ch] leading-relaxed text-muted">
           Each step names a target, a selector, calldata, and the approvals it needs. Nothing is
           whitelisted: any Starknet contract is a valid target and calldata is free-form, which is
           what makes a bridge call, a DEX route and a lending deposit the same object.
@@ -426,7 +426,7 @@ export default async function Landing() {
           <h2 className="font-display text-2xl font-semibold">
             Why free calldata is safe here
           </h2>
-          <p className="mt-4 max-w-[68ch] leading-relaxed text-muted">
+          <p className="mt-4 max-w-[60ch] leading-relaxed text-muted">
             Jalin is non-custodial and holds nothing between transactions, so a hostile plan can
             only harm the notes of whoever wrote it. Safety comes from invariants enforced in
             Cairo, not from a gatekeeper&apos;s list. Each has a test.
@@ -450,12 +450,12 @@ export default async function Landing() {
         <div className="mx-auto w-full max-w-5xl px-6 py-16">
           <h2 className="font-display text-2xl font-semibold">When not to use Jalin</h2>
           <div className="mt-4 grid gap-8 md:grid-cols-2">
-            <p className="max-w-[68ch] leading-relaxed text-muted">
+            <p className="max-w-[60ch] leading-relaxed text-muted">
               Private swaps are already live on AVNU through its own anonymizer, and Ekubo is
               next. For a single swap, use those — they are purpose-built and they will price
               better than a generic router calling the same pool.
             </p>
-            <p className="max-w-[68ch] leading-relaxed text-muted">
+            <p className="max-w-[60ch] leading-relaxed text-muted">
               One invoke per transaction means a venue&apos;s anonymizer and this router compete
               for the same slot rather than composing. That every venue has to write its own, and
               that none of them compose, is the argument for Jalin existing — not a reason to use
@@ -512,7 +512,7 @@ export default async function Landing() {
                   is the crowd the median deposit actually hides in
                 </span>
               </div>
-              <p className="mt-3 max-w-[72ch] text-sm leading-relaxed text-muted">
+              <p className="mt-3 max-w-[62ch] text-sm leading-relaxed text-muted">
                 That first number is the pool&apos;s headcount, and it is not what hides you. An
                 observer of the public deposit leg sees the asset, the order of magnitude and
                 roughly when — so two deposits only cover each other if they agree on all three.
@@ -522,7 +522,7 @@ export default async function Landing() {
                 than a headcount, because a cell where one address carries most of the volume is
                 not the crowd its headcount claims.
               </p>
-              <p className="mt-3 max-w-[72ch] text-sm leading-relaxed text-muted">
+              <p className="mt-3 max-w-[62ch] text-sm leading-relaxed text-muted">
                 Jalin does not fix that — nothing a helper contract does can conjure other people.
                 What it changes is how many transactions you need: three public legs at three
                 separate moments is three chances to be the only one there, and a plan is one.

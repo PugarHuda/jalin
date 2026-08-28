@@ -851,7 +851,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
         {status && <p className="mt-2 break-all font-mono text-xs">{status}</p>}
         {dryRun && <DryRun answer={dryRun} />}
         {status?.includes('NOT_REGISTERED') && (
-          <p className="mt-2 max-w-[68ch] text-xs leading-relaxed">
+          <p className="mt-2 max-w-[60ch] text-xs leading-relaxed">
             In Ready: open the wallet, shield any amount from its own privacy screen. That one
             transaction emits <span className="font-mono">ViewingKeySet</span> and you are
             registered. Nothing to sign here for it.
@@ -1183,7 +1183,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
           </nav>
         </div>
         <h1 className="mt-6 font-display text-3xl font-semibold tracking-tight">Composer</h1>
-        <p className="mt-2 max-w-[68ch] text-sm text-muted">
+        <p className="mt-2 max-w-[60ch] text-sm text-muted">
           A programmable execution router for the STRK20 shielded pool. The pool allows one
           invoke per transaction, so a private DeFi action is normally only as expressive as
           the single helper contract it calls. Jalin takes a plan instead, and composition
@@ -1202,7 +1202,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
         guided path costs a sentence; reordering the page would cost the
         argument, which builds to those runs rather than opening with them.
       */}
-      <p className="mt-4 max-w-[68ch] rounded border border-strand bg-raised px-3 py-2 text-xs leading-relaxed text-muted">
+      <p className="mt-4 max-w-[60ch] rounded border border-strand bg-raised px-3 py-2 text-xs leading-relaxed text-muted">
         <span className="text-cloth">First time here?</span> This editor signs whatever plan you
         build, and spending needs a shielded balance you may not hold yet. The guided path is{' '}
         <a href="#mainnet-run" className="text-gold underline underline-offset-2">
@@ -1504,7 +1504,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
                 {JSON.stringify(actions, (_, v) => (typeof v === 'bigint' ? `0x${v.toString(16)}` : v), 2)}
               </pre>
             ) : (
-              <p className="max-w-[68ch] rounded border border-thread bg-raised px-3 py-2 text-xs leading-relaxed text-muted">
+              <p className="max-w-[60ch] rounded border border-thread bg-raised px-3 py-2 text-xs leading-relaxed text-muted">
                 {result.plan
                   ? 'Connect a wallet and the exact calls appear here, recipient included. Your address is one of them, and there is no honest stand-in for it — a made-up one would show you a transaction you are not going to send. Running any of the numbered transactions below connects the wallet.'
                   : 'Fix the plan first — the calls are derived from it.'}
@@ -1549,7 +1549,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
                 allow list — everything not on it stays callable.
               </p>
             )}
-            <p className="mt-2 max-w-[68ch] text-xs text-muted">
+            <p className="mt-2 max-w-[60ch] text-xs text-muted">
               {draftIncomplete
                 ? 'One of the steps has no target yet. A step needs the contract it calls, and there is no honest default for which contract that is. To send something that already works, use the numbered runs below.'
                 : ROUTER_ADDRESS
@@ -1563,14 +1563,14 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
 
       <section id="mainnet-run" className="mt-10 scroll-mt-6 rounded border border-thread bg-raised p-5">
         <h2 className="font-mono text-sm">The mainnet run</h2>
-        <p className="mt-1 max-w-[72ch] text-xs text-muted">
+        <p className="mt-1 max-w-[62ch] text-xs text-muted">
           Three transactions on Starknet mainnet, each an invoke through a contract of ours.
           Small and deliberately dull: the point is to prove the mechanism with real value, not
           to take a market position. Run them in order - the first one shields the note the
           other two spend.
         </p>
 
-        <p className="mt-3 max-w-[72ch] border-t border-thread pt-3 text-xs leading-relaxed text-muted">
+        <p className="mt-3 max-w-[62ch] border-t border-thread pt-3 text-xs leading-relaxed text-muted">
           <span className="font-mono">0.</span> First time on this account? The pool needs your
           public viewing key before anything can be sent to you privately, and that is not a step
           any dapp can do for you — there is no register method in the Wallet API. Shield any
@@ -1615,7 +1615,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
                 re-read
               </button>
             </div>
-            <p className="mt-1 max-w-[68ch] text-xs leading-relaxed text-muted">
+            <p className="mt-1 max-w-[60ch] text-xs leading-relaxed text-muted">
               Read from the wallet with <span className="font-mono">wallet_strk20Balances</span>.
               The viewing key that decrypts these never left it; this page only sees the
               totals, and only because you connected. Each run below is checked against the
@@ -1639,7 +1639,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
         {caps?.strk20 && (
           <div className="mt-3 border-t border-thread pt-3" data-testid="shadow">
             <span className="font-mono text-sm">Shadow account</span>
-            <p className="mt-1 max-w-[68ch] text-xs leading-relaxed text-muted">
+            <p className="mt-1 max-w-[60ch] text-xs leading-relaxed text-muted">
               A real Starknet account the wallet derives for this dapp from your private
               state, with no public link to your main wallet. Unlike the router it can hold
               a position between transactions — a lending deposit, a vault subscription —
@@ -1685,9 +1685,9 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
                 : `shield · ${Number(shield.amount) / 1e18} STRK`}
             </button>
           </div>
-          <p className="mt-1 max-w-[68ch] text-xs leading-relaxed text-muted">{shield.note}</p>
+          <p className="mt-1 max-w-[60ch] text-xs leading-relaxed text-muted">{shield.note}</p>
           {poolFee && (
-            <p className="mt-1 max-w-[68ch] font-mono text-xs leading-relaxed text-gold">
+            <p className="mt-1 max-w-[60ch] font-mono text-xs leading-relaxed text-gold">
               the pool charges {Number(poolFee) / 1e18} STRK per private operation, read from its
               own get_fee_amount · four operations here — this shield and the three runs — so{' '}
               {Number(poolFee * BigInt(RUNS.length + 1)) / 1e18} STRK of the amount above is fee
@@ -1744,9 +1744,9 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
                   </button>
                 </span>
               </div>
-              <p className="mt-1 max-w-[68ch] text-xs leading-relaxed text-muted">{run.note}</p>
+              <p className="mt-1 max-w-[60ch] text-xs leading-relaxed text-muted">{run.note}</p>
               {shortfall(run) && (
-                <p className="mt-1 font-mono text-xs leading-relaxed text-warn">
+                <p className="mt-1 max-w-[62ch] font-mono text-xs leading-relaxed text-warn">
                   {shortfall(run)}
                 </p>
               )}
@@ -1754,13 +1754,13 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
               {run.ballot &&
                 params &&
                 (params.openProposal ? (
-                  <p className="mt-1 font-mono text-xs text-gold">
+                  <p className="mt-1 max-w-[62ch] font-mono text-xs text-gold">
                     voting on proposal {params.openProposal.id} · closes in{' '}
                     {params.openProposal.blocksLeft.toLocaleString()} blocks
                     {minutes(params.openProposal.blocksLeft)}
                   </p>
                 ) : (
-                  <p className="mt-1 font-mono text-xs leading-relaxed text-warn">
+                  <p className="mt-1 max-w-[62ch] font-mono text-xs leading-relaxed text-warn">
                     No proposal is taking votes. Make one on the{' '}
                     <a className="underline underline-offset-2" href="/governance">
                       governance page
@@ -1770,7 +1770,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
                   </p>
                 ))}
               {run.title.includes('Endur') && quote && (
-                <p className="mt-1 font-mono text-xs text-gold">
+                <p className="mt-1 max-w-[62ch] font-mono text-xs text-gold">
                   vault quotes {(Number(quote.shares) / 1e18).toFixed(6)} xSTRK for{' '}
                   {Number(run.amount) / 1e18} STRK · floor{' '}
                   {(Number((quote.shares * 96n) / 100n) / 1e18).toFixed(6)}
@@ -1812,7 +1812,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
         )}
       </section>
 
-      <footer className="mt-12 max-w-[72ch] border-t border-thread pt-6 text-xs text-muted">
+      <footer className="mt-12 max-w-[62ch] border-t border-thread pt-6 text-xs text-muted">
         <a className="text-gold underline underline-offset-2" href="https://github.com/PugarHuda/jalin">
           github.com/PugarHuda/jalin
         </a>{' '}
@@ -1837,7 +1837,7 @@ function Panel({
   return (
     <div className="border-t border-thread pt-4">
       <h2 className="font-mono text-sm">{title}</h2>
-      {note && <p className="mb-3 mt-1 max-w-[68ch] text-xs text-muted">{note}</p>}
+      {note && <p className="mb-3 mt-1 max-w-[60ch] text-xs text-muted">{note}</p>}
       {children}
     </div>
   )

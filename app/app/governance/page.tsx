@@ -58,9 +58,9 @@ function ProposalCard({ proposal, governor }: { proposal: Proposal; governor: st
         <StageBadge stage={proposal.stage} />
       </div>
 
-      <p className="mt-1 max-w-[68ch] text-sm text-muted">{KIND_TEXT[proposal.kind]}</p>
+      <p className="mt-1 max-w-[60ch] text-sm text-muted">{KIND_TEXT[proposal.kind]}</p>
 
-      <dl className="mt-3 grid max-w-[64ch] gap-x-6 gap-y-1 font-mono text-xs sm:grid-cols-[auto_1fr]">
+      <dl className="mt-3 grid max-w-[60ch] gap-x-6 gap-y-1 font-mono text-xs sm:grid-cols-[auto_1fr]">
         <dt className="text-muted">target</dt>
         <dd className="break-all">{label(proposal.target)}</dd>
         {proposal.label && (
@@ -105,12 +105,12 @@ export default async function Governance() {
           </nav>
         </div>
         <h1 className="mt-6 font-display text-3xl font-semibold tracking-tight">Governance</h1>
-        <p className="mt-2 max-w-[68ch] text-sm text-muted">
+        <p className="mt-2 max-w-[60ch] text-sm text-muted">
           The router holds no admin key. Every parameter it reads (whether it is paused, how many
           steps a plan may have, what the fee is, which targets are denied) belongs to the
           governor, and the governor moves only by a vote that has cleared a timelock.
         </p>
-        <p className="mt-3 max-w-[70ch] font-mono text-xs text-muted">
+        <p className="mt-3 max-w-[62ch] font-mono text-xs text-muted">
           governor {GOVERNOR_ADDRESS ? label(GOVERNOR_ADDRESS) : 'not deployed'} · router{' '}
           {ROUTER_ADDRESS ? label(ROUTER_ADDRESS) : 'not deployed'}
         </p>
@@ -125,13 +125,13 @@ export default async function Governance() {
         <>
           <section className="mt-8">
             <h2 className="font-display text-xl font-semibold">What the router is running on</h2>
-            <p className="mt-1 max-w-[68ch] text-sm text-muted">
+            <p className="mt-1 max-w-[60ch] text-sm text-muted">
               Read from the governor at block {governance.head.toLocaleString()}. The router asks
               for these on every single plan, so this is not a mirror of the settings. It is the
               settings.
             </p>
 
-            <dl className="mt-4 grid max-w-[64ch] gap-x-6 gap-y-2 font-mono text-sm sm:grid-cols-[auto_1fr]">
+            <dl className="mt-4 grid max-w-[60ch] gap-x-6 gap-y-2 font-mono text-sm sm:grid-cols-[auto_1fr]">
               <dt className="text-muted">paused</dt>
               <dd className={governance.params.paused ? 'text-warn' : 'text-hidden'}>
                 {governance.params.paused ? 'yes — every plan reverts' : 'no'}
@@ -161,7 +161,7 @@ export default async function Governance() {
               )}
             </dl>
 
-            <p className="mt-4 max-w-[72ch] rounded border border-strand px-3 py-2 text-xs leading-relaxed text-muted">
+            <p className="mt-4 max-w-[62ch] rounded border border-strand px-3 py-2 text-xs leading-relaxed text-muted">
               The voting window and the timelock above are measured, not configured here:
               subtracted from a real proposal&apos;s own blocks. Quorum cannot be shown, because the
               governor stores it and exposes no view for it. A governance parameter nobody can
@@ -176,7 +176,7 @@ export default async function Governance() {
               Proposals{' '}
               <span className="font-mono text-sm text-muted">({governance.proposals.length})</span>
             </h2>
-            <p className="mt-1 max-w-[68ch] text-sm text-muted">
+            <p className="mt-1 max-w-[60ch] text-sm text-muted">
               Ballots do not arrive here. They arrive through the pool, as{' '}
               <span className="font-mono">privacy_invoke</span> — the governor is an anonymizer
               helper like the router is. So the weight of a vote is public and the voter is not,
@@ -201,7 +201,7 @@ export default async function Governance() {
 
           <section className="mt-10 border-t border-thread pt-6">
             <h2 className="font-display text-xl font-semibold">Stuck on the router</h2>
-            <p className="mt-1 max-w-[68ch] text-sm text-muted">
+            <p className="mt-1 max-w-[60ch] text-sm text-muted">
               A plan must leave every token it touched at zero. Anyone can break that for a token
               by transferring it straight to the router, and every later plan touching that token
               then reverts — a denial of service costing the attacker one transfer.{' '}
@@ -211,7 +211,7 @@ export default async function Governance() {
             </p>
 
             {governance.stuck.length === 0 ? (
-              <p className="mt-3 font-mono text-xs text-hidden">
+              <p className="mt-3 max-w-[62ch] font-mono text-xs text-hidden">
                 Nothing stuck. Checked against the {TOKENS.length} tokens this app knows — a
                 contract cannot enumerate its own balances and neither can this page, so a token
                 it has never heard of would not show up here.
@@ -234,7 +234,7 @@ export default async function Governance() {
 
           <section className="mt-10 border-t border-thread pt-6">
             <h2 className="font-display text-xl font-semibold">Propose something</h2>
-            <p className="mt-1 max-w-[68ch] text-sm text-muted">
+            <p className="mt-1 max-w-[60ch] text-sm text-muted">
               Permissionless, and the one part of Jalin that works end to end today: proposing is
               an ordinary public transaction, so it needs no STRK20 wallet support and no proving
               service. Spam is answered by quorum rather than by a gate on who may speak — a gate

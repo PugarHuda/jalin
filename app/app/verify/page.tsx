@@ -162,7 +162,7 @@ export default function Verify() {
         <h1 className="mt-6 font-display text-3xl font-semibold tracking-tight">
           Will these transactions count?
         </h1>
-        <p className="mt-2 max-w-[68ch] text-sm text-muted">
+        <p className="mt-2 max-w-[60ch] text-sm text-muted">
           The sprint scores a transaction if it exists, succeeded, touched the STRK20 pool, and —
           when the project deployed contracts — ran through one of them. Every one of those is
           readable from the chain, so there is no reason to find out on the last day. This works for
@@ -205,7 +205,7 @@ export default function Verify() {
 
       <section className="mt-10 border-t border-thread pt-6">
         <h2 className="font-display text-xl font-semibold">Or read the whole submission</h2>
-        <p className="mt-1 max-w-[68ch] text-sm text-muted">
+        <p className="mt-1 max-w-[60ch] text-sm text-muted">
           Point this at a repository and it reads that project&apos;s own{' '}
           <span className="font-mono">strk20.json</span> — every hash and every contract in it,
           judged together. Copying five values out of a file by hand is the step at which people
@@ -274,7 +274,7 @@ export default function Verify() {
             )}
 
             {report.duplicates.length > 0 && (
-              <p className="mt-2 max-w-[72ch] rounded border border-warn/40 bg-warn/10 px-3 py-2 text-xs leading-relaxed text-warn">
+              <p className="mt-2 max-w-[62ch] rounded border border-warn/40 bg-warn/10 px-3 py-2 text-xs leading-relaxed text-warn">
                 {report.duplicates.length} hash
                 {report.duplicates.length === 1 ? ' is' : 'es are'} listed more than once, so the
                 manifest names fewer transactions than it appears to. Counted once each here, which
@@ -283,11 +283,11 @@ export default function Verify() {
             )}
 
             {report.results.length === 0 ? (
-              <p className="mt-3 max-w-[68ch] text-xs text-muted">
+              <p className="mt-3 max-w-[60ch] text-xs text-muted">
                 The manifest lists no transactions yet, so there is nothing to judge.
               </p>
             ) : (
-              <ul className="mt-3 max-w-[70ch] space-y-2">
+              <ul className="mt-3 max-w-[62ch] space-y-2">
                 {report.results.map((result) => (
                   <li key={result.hash} className="font-mono text-xs">
                     <span className={result.qualifies ? 'text-hidden' : 'text-warn'}>
@@ -311,7 +311,7 @@ export default function Verify() {
       </section>
 
       {tooMany !== null && (
-        <p className="mt-4 max-w-[72ch] rounded border border-warn/40 bg-warn/10 px-3 py-2 text-xs leading-relaxed text-warn">
+        <p className="mt-4 max-w-[62ch] rounded border border-warn/40 bg-warn/10 px-3 py-2 text-xs leading-relaxed text-warn">
           {tooMany} hashes at once, and this checks at most {MAX_HASHES}. Each one is a call to a
           Starknet node on a shared key. Check them in batches, or run{' '}
           <span className="font-mono">node scripts/verify-transactions.mjs</span> against your own
@@ -345,11 +345,11 @@ export default function Verify() {
                 {row.verdict && (
                   <>
                     <p
-                      className={`mt-2 max-w-[68ch] text-sm ${row.verdict.qualifies ? 'text-hidden' : 'text-warn'}`}
+                      className={`mt-2 max-w-[60ch] text-sm ${row.verdict.qualifies ? 'text-hidden' : 'text-warn'}`}
                     >
                       {row.verdict.summary}
                     </p>
-                    <ul className="mt-3 max-w-[70ch] space-y-1">
+                    <ul className="mt-3 max-w-[62ch] space-y-1">
                       {RULES.map(([key, text]) => {
                         const value = row.verdict![key]
                         return (
@@ -382,7 +382,7 @@ export default function Verify() {
         </section>
       )}
 
-      <p className="mt-10 border-t border-thread pt-4 font-mono text-xs text-muted">
+      <p className="mt-10 max-w-[62ch] border-t border-thread pt-4 font-mono text-xs text-muted">
         Read-only. The same check runs offline over a manifest —{' '}
         <span className="text-cloth">node scripts/verify-transactions.mjs strk20.json</span> — and
         the rule itself lives in the SDK, so this page and that script cannot disagree.
