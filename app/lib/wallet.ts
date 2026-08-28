@@ -80,7 +80,18 @@ export async function readyWallets(): Promise<{
 }> {
   const { default: getStarknet } = await import('get-starknet-core')
   const available = await getStarknet.getAvailableWallets()
-  const offered = available.filter(isReady)
+
+  // One entry per extension. Ready injects itself under both its old id and
+  // its new one, and the library keys by id, so a single wallet arrived here
+  // twice and the page offered a choice between a thing and itself.
+  const seen = new Set<string>()
+  const offered = available.filter((wallet) => {
+    if (!isReady(wallet)) return false
+    const key = (wallet.name ?? wallet.id).toLowerCase()
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
   if (offered.length > 0) return { wallets: offered, error: null }
 
   // Whether Ready can be installed comes from the library; the name does not,

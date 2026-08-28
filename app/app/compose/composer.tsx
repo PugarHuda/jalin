@@ -680,10 +680,14 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
       return
     }
 
-    setWallets(offered)
     setStatus(null)
     // Stale from the previous button, and about to render under a different one.
     setLastPayload(null)
+
+    // One candidate is not a choice. Listing it made every run a two-click
+    // affair whose first click asked a question with one answer.
+    if (offered.length === 1) return execute(offered[0]!, runIndex, how)
+    setWallets(offered)
   }
 
   /**
@@ -786,11 +790,16 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
    * shows about the account - balances, whether a shadow account can be derived,
    * which API version answered - comes from this one exchange.
    */
-  async function connect(raw: StarknetWindowObject): Promise<Strk20Wallet | null> {
-    const { default: getStarknet } = await import('get-starknet-core')
-    await getStarknet.enable(raw)
+  async function connect(
+    raw: StarknetWindowObject,
+  ): Promise<{ wallet: Strk20Wallet; address: string } | null> {
     const w = asStrk20(raw)
 
+    // Exactly one `wallet_requestAccounts`, and it is this one. The library's
+    // `enable` makes the same request and then a permissions check; asking a
+    // second time for the address and a third time in `execute` - because the
+    // state that held it had not landed yet - opened the wallet three times
+    // for one click. The permission is implied by an address coming back.
     const [address] = await w.request({ type: 'wallet_requestAccounts' })
     if (!address) {
       setStatus('Wallet returned no account.')
@@ -818,7 +827,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
       setStatus(
         `STRK20 supported by ${who}, but this account has not joined the pool yet. Shield once from inside the wallet and it registers you in the same transaction. ${api}.`,
       )
-      return w
+      return { wallet: w, address }
     }
 
     if (found.shadow) {
@@ -829,7 +838,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
     }
 
     setStatus(`STRK20 supported by ${who}. ${api}.`)
-    return w
+    return { wallet: w, address }
   }
 
   function buildRunActions(run: MainnetRun, account: string): Strk20Action[] {
@@ -942,10 +951,12 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
     setWallets([])
     setStatus('Connecting…')
     try {
-      const w = wallet ?? (raw ? await connect(raw) : null)
-      if (!w || how === 'connect') return
-      const address = account ?? (await w.request({ type: 'wallet_requestAccounts' }))[0]
-      if (!address) return setStatus('Wallet returned no account.')
+      // The connected pair, or a fresh connection. Address and wallet travel
+      // together here because React state set a line ago is not readable yet.
+      const session =
+        wallet && account ? { wallet, address: account } : raw ? await connect(raw) : null
+      if (!session || how === 'connect') return
+      const { wallet: w, address } = session
       if (!ROUTER_ADDRESS) {
         return setStatus('The router is not deployed yet, so there is nothing to sign.')
       }
