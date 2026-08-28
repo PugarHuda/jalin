@@ -189,3 +189,85 @@ fn the_floor_holds_against_a_real_price() {
     start_cheat_caller_address(router, pool());
     IJalinRouterDispatcher { contract_address: router }.privacy_invoke(pool(), steps, outputs);
 }
+
+/// AVNU's exchange on mainnet. `multi_route_swap` was read from its class on
+/// chain: sell_token, sell_amount: u256, buy_token, buy_amount: u256,
+/// buy_token_min_amount: u256, beneficiary, integrator_fee_amount_bps,
+/// integrator_fee_recipient, routes: Array<Route>.
+fn avnu() -> ContractAddress {
+    contract_address_const::<0x04270219d365d6b017231b52e92b3fb5d7c8378b05e9abc97724537a80e93b0f>()
+}
+
+/// Native USDC - the one with 71 deposits in the pool, not the bridged one with 1.
+fn usdc() -> ContractAddress {
+    contract_address_const::<0x033068f6539f8e6e6b131e6b2b814e6c34a5224bc66947c47dab9dfee93b35fb>()
+}
+
+/// Ekubo's adapter inside AVNU, and the STRK/USDC pool it swaps through.
+const EKUBO_ADAPTER: felt252 = 0x5dd3d2f4429af886cd1a3b08289dbcea99a294197e9eb43b0e0325b4b;
+
+#[test]
+#[fork("MAINNET")]
+fn swaps_through_the_real_avnu_exchange() {
+    let router = deploy_stack();
+    fund(router, ONE);
+
+    // The calldata AVNU's aggregator built for one STRK into native USDC with
+    // the router as taker, on 28 August 2026, route and pool parameters
+    // verbatim - only the beneficiary is this test's router rather than the
+    // deployed one, and the minimum inside the call is left at one unit so that
+    // it is the router's own floor below, and not AVNU's, that the test proves.
+    // A mock DEX returns what the mock is told; this returns what Ekubo's pool
+    // has in it at the forked block.
+    let calldata = array![
+        strk().into(), ONE.into(), 0, // sell_token, sell_amount: u256
+        usdc().into(), 0x64f2, 0, // buy_token, buy_amount: u256 (AVNU's own estimate)
+        1, 0, // buy_token_min_amount: u256 - one unit; the floor is the Output's
+        router.into(), 0, 0, // beneficiary, integrator fee bps, integrator fee recipient
+        1, // routes.len
+        strk().into(), usdc().into(), EKUBO_ADAPTER, 0xe8d4a51000, // route: sell, buy, adapter, 100%
+        6, // additional_swap_params.len: the Ekubo pool key and a price limit
+        usdc().into(), strk().into(), 0x20c49ba5e353f80000000000000000, 0x3e8, 0,
+        0x20e01af4964000000000000000000000,
+    ];
+
+    let steps = array![
+        Step {
+            target: avnu(),
+            selector: selector!("multi_route_swap"),
+            approvals: array![Approval { token: strk(), amount: ONE }],
+            calldata,
+        },
+    ];
+
+    // A floor in USDC's six decimals: 0.01 USDC for one STRK. STRK traded near
+    // $0.026 when this was written and the pool is deep enough that a one-STRK
+    // swap barely moves it, so this is loose on purpose; the tight assertion is
+    // on what came back.
+    let outputs = array![Output { token: usdc(), note_id: 'NOTE', min_amount: 10_000 }];
+
+    start_cheat_caller_address(router, pool());
+    let credited = IJalinRouterDispatcher { contract_address: router }
+        .privacy_invoke(pool(), steps, outputs);
+    stop_cheat_caller_address(router);
+
+    assert(credited.len() == 1, 'one output, one note');
+    let note = *credited.at(0);
+    assert(note.token == usdc(), 'credited in USDC');
+    assert(note.amount > 10_000, 'more than the floor');
+    // Under one dollar. One STRK is not worth a dollar and a swap that returns
+    // more than the input was worth is a broken pool, not a good price - which
+    // is exactly what the bridged USDC.e pool quoted, and why it is not here.
+    assert(note.amount < 1_000_000, 'under a dollar of USDC');
+
+    // What the pool does next: pull by allowance. Then the router holds nothing.
+    let out = IErc20PullDispatcher { contract_address: usdc() };
+    assert(out.allowance(router, pool()) == note.amount.into(), 'pool may pull exactly the note');
+    start_cheat_caller_address(usdc(), pool());
+    out.transfer_from(router, pool(), note.amount.into());
+    stop_cheat_caller_address(usdc());
+    let balance = IErc20Dispatcher { contract_address: usdc() };
+    assert(balance.balance_of(router) == 0, 'router ends up holding none');
+    let strk_balance = IErc20Dispatcher { contract_address: strk() };
+    assert(strk_balance.balance_of(router) == 0, 'no STRK left behind either');
+}

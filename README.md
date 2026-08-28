@@ -293,11 +293,11 @@ sh contracts/test.sh          # snforge in a pinned container
 because pinning the toolchain is worth more than saving a container. The scarb
 cache lives in a named volume, so only the first run pays for the plugin build.
 
-43 tests, two of them fuzzed at 256 runs each, covering every line of every
+44 tests, two of them fuzzed at 256 runs each, covering every line of every
 contract — `sh contracts/coverage.sh && node scripts/coverage-gate.mjs` fails if
 any line of `src/` never runs. Line coverage is a floor, not a proof: it says
-every line ran, not that it ran under the conditions that would break it. Three of them fork Starknet mainnet at a
-pinned block and run a plan through Endur's deployed xSTRK vault, funded by the
+every line ran, not that it ran under the conditions that would break it. Four of them fork Starknet mainnet at a
+pinned block and run a plan through Endur's deployed xSTRK vault - and one through AVNU's exchange into Ekubo's STRK/USDC pool - funded by the
 STRK20 pool's own STRK — which is where the STRK comes from in a real
 transaction. A mock ERC-4626 returns what the mock was told to return; those
 three prove the router works against a contract nobody here wrote. They need

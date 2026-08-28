@@ -1,4 +1,5 @@
-import { AVNU_EXCHANGE, ROUTER_ADDRESS, TOKENS, tokenOf } from '@/lib/config'
+import { AVNU_EXCHANGE, GOVERNOR_ADDRESS, ROUTER_ADDRESS, TOKENS, tokenOf } from '@/lib/config'
+import { rpc } from '@/lib/rpc'
 
 /**
  * A DEX route as a step, from AVNU's own aggregator.
@@ -76,34 +77,64 @@ export async function GET(request: Request) {
 
   try {
     const taker = unpad(ROUTER_ADDRESS)
+
+    // The router's calldata bound, from the governor, at the same time as the
+    // quotes. A route AVNU splits across several pools can run past it - the
+    // felt count grows with every hop - and a step over the bound is refused
+    // by I6 on chain, after the proof has been paid for. So the bound is read
+    // here and the best route that fits is the one built, not the best route.
+    const maxCalldata = GOVERNOR_ADDRESS
+      ? Number(BigInt((await rpc.call(GOVERNOR_ADDRESS, 'params', [], 30))[2] ?? '0x0'))
+      : Infinity
+
     const quoteUrl =
       `${AVNU}/swap/v2/quotes?sellTokenAddress=${unpad(sell.address)}` +
       `&buyTokenAddress=${unpad(buy.address)}&sellAmount=0x${BigInt(amount).toString(16)}` +
-      `&takerAddress=${taker}&size=1`
+      `&takerAddress=${taker}&size=3`
     const quotes = (await (
       await fetch(quoteUrl, { signal: AbortSignal.timeout(10_000), cache: 'no-store' })
     ).json()) as Quote[]
-    const quote = quotes[0]
-    if (!quote) {
+    if (quotes.length === 0) {
       return Response.json(
         { error: `AVNU found no route from ${sell.symbol} to ${buy.symbol} for that amount` },
         { status: 404 },
       )
     }
 
-    const built = (await (
-      await fetch(`${AVNU}/swap/v2/build`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ quoteId: quote.quoteId, takerAddress: taker, slippage, includeApprove: false }),
-        signal: AbortSignal.timeout(10_000),
-        cache: 'no-store',
-      })
-    ).json()) as Built
-
-    const swap = built.calls?.find((call) => call.entrypoint === 'multi_route_swap')
-    if (!swap) {
-      return Response.json({ error: 'AVNU built no multi_route_swap call' }, { status: 502 })
+    // Best first, as AVNU orders them; the first whose built calldata fits is
+    // taken. Building is what tells the length, so each candidate is built.
+    let swap: { contractAddress: string; entrypoint: string; calldata: string[] } | undefined
+    let quote: Quote | undefined
+    let longest = 0
+    for (const candidate of quotes) {
+      const built = (await (
+        await fetch(`${AVNU}/swap/v2/build`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ quoteId: candidate.quoteId, takerAddress: taker, slippage, includeApprove: false }),
+          signal: AbortSignal.timeout(10_000),
+          cache: 'no-store',
+        })
+      ).json()) as Built
+      const call = built.calls?.find((c) => c.entrypoint === 'multi_route_swap')
+      if (!call) continue
+      longest = Math.max(longest, call.calldata.length)
+      if (call.calldata.length <= maxCalldata) {
+        swap = call
+        quote = candidate
+        break
+      }
+    }
+    if (!swap || !quote) {
+      return Response.json(
+        {
+          error:
+            longest > 0
+              ? `every route AVNU found needs ${longest} felts of calldata and the router allows ${maxCalldata} per step - governance owns that bound`
+              : 'AVNU built no multi_route_swap call',
+        },
+        { status: longest > 0 ? 422 : 502 },
+      )
     }
     // The contract AVNU names must be the one this app verified. A different
     // one would still be a valid step; it would not be a step anyone here has
