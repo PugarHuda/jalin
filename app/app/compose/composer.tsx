@@ -284,7 +284,7 @@ function DryRun({ answer }: { answer: string }) {
   return (
     <p
       data-testid="dry-run"
-      className={`mt-2 break-all rounded border px-2 py-1 font-mono text-[11px] leading-relaxed ${
+      className={`mt-2 break-all rounded border px-2 py-1 font-mono text-xs leading-relaxed ${
         refused ? 'border-warn/40 bg-warn/10 text-warn' : 'border-hidden/40 bg-hidden/10 text-hidden'
       }`}
     >
@@ -826,7 +826,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
     if (wallets.length === 0 && !status && !lastPayload && !dryRun) return null
 
     return (
-      <div className="mt-2 rounded border border-strand bg-ground p-3">
+      <div className="mt-3 border-t border-thread pt-3">
         {wallets.length > 0 && (
           <>
             <p className="text-xs text-muted">
@@ -862,7 +862,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
             <summary className="cursor-pointer text-xs text-muted">
               the exact payload that was sent
             </summary>
-            <pre className="mt-1 max-h-64 overflow-auto rounded border border-thread p-2 font-mono text-[10px] break-all whitespace-pre-wrap">
+            <pre className="mt-1 max-h-64 overflow-auto rounded border border-thread p-2 font-mono text-xs break-all whitespace-pre-wrap">
               {lastPayload}
             </pre>
           </details>
@@ -1183,7 +1183,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
           </nav>
         </div>
         <h1 className="mt-6 font-display text-3xl font-semibold tracking-tight">Composer</h1>
-        <p className="mt-2 max-w-2xl text-sm text-muted">
+        <p className="mt-2 max-w-[68ch] text-sm text-muted">
           A programmable execution router for the STRK20 shielded pool. The pool allows one
           invoke per transaction, so a private DeFi action is normally only as expressive as
           the single helper contract it calls. Jalin takes a plan instead, and composition
@@ -1202,7 +1202,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
         guided path costs a sentence; reordering the page would cost the
         argument, which builds to those runs rather than opening with them.
       */}
-      <p className="mt-4 max-w-2xl rounded border border-strand bg-raised px-3 py-2 text-xs leading-relaxed text-muted">
+      <p className="mt-4 max-w-[68ch] rounded border border-strand bg-raised px-3 py-2 text-xs leading-relaxed text-muted">
         <span className="text-cloth">First time here?</span> This editor signs whatever plan you
         build, and spending needs a shielded balance you may not hold yet. The guided path is{' '}
         <a href="#mainnet-run" className="text-gold underline underline-offset-2">
@@ -1306,7 +1306,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
         </div>
       )}
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+      <div className="mt-6 grid gap-6 lg:grid-cols-2 lg:items-start">
         <section className="min-w-0 space-y-5">
           <Panel title="Input" note="What the pool withdraws to the router before the plan runs.">
             <div className="flex flex-wrap gap-2">
@@ -1429,7 +1429,14 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
           </Panel>
         </section>
 
-        <section className="min-w-0 space-y-4">
+        {/*
+          Sticky beside a long editor. The first viewport used to open on a
+          left column half again as tall as the screen while the right one
+          fit, so the fold fell inside the form and the disclosure - the reason
+          the page exists - scrolled away under it. Now it stays level with
+          whatever step is being edited.
+        */}
+        <section className="min-w-0 space-y-4 lg:sticky lg:top-6">
           <div className="flex flex-wrap gap-2 border-b border-thread">
             {(['reveals', 'calldata', 'actions'] as const).map((name) => (
               <button
@@ -1556,7 +1563,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
 
       <section id="mainnet-run" className="mt-10 scroll-mt-6 rounded border border-thread bg-raised p-5">
         <h2 className="font-mono text-sm">The mainnet run</h2>
-        <p className="mt-1 max-w-3xl text-xs text-muted">
+        <p className="mt-1 max-w-[72ch] text-xs text-muted">
           Three transactions on Starknet mainnet, each an invoke through a contract of ours.
           Small and deliberately dull: the point is to prove the mechanism with real value, not
           to take a market position. Run them in order - the first one shields the note the
@@ -1586,7 +1593,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
         {feedback(-2, 'this page')}
 
         {connected && (
-          <p className="mt-4 font-mono text-[11px] text-muted" data-testid="wallet-says">
+          <p className="mt-4 font-mono text-xs text-muted" data-testid="wallet-says">
             {!caps
               ? `${connected} is connected and has not been asked what it supports yet - the first dry run or run asks.`
               : !caps.strk20
@@ -1598,17 +1605,17 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
         )}
 
         {caps?.registered && (
-          <div className="mt-4 rounded border border-strand bg-ground p-3" data-testid="shielded">
+          <div className="mt-4 border-t border-thread pt-3" data-testid="shielded">
             <div className="flex items-baseline justify-between gap-4">
               <span className="font-mono text-sm">In the pool, for this account</span>
               <button
                 onClick={() => wallet && refreshBalances(wallet)}
-                className="shrink-0 rounded border border-strand px-2 py-1 text-[11px] hover:border-gold"
+                className="shrink-0 rounded border border-strand px-2 py-1 text-xs hover:border-gold"
               >
                 re-read
               </button>
             </div>
-            <p className="mt-1 max-w-2xl text-xs leading-relaxed text-muted">
+            <p className="mt-1 max-w-[68ch] text-xs leading-relaxed text-muted">
               Read from the wallet with <span className="font-mono">wallet_strk20Balances</span>.
               The viewing key that decrypts these never left it; this page only sees the
               totals, and only because you connected. Each run below is checked against the
@@ -1630,9 +1637,9 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
         )}
 
         {caps?.strk20 && (
-          <div className="mt-3 rounded border border-strand bg-ground p-3" data-testid="shadow">
+          <div className="mt-3 border-t border-thread pt-3" data-testid="shadow">
             <span className="font-mono text-sm">Shadow account</span>
-            <p className="mt-1 max-w-2xl text-xs leading-relaxed text-muted">
+            <p className="mt-1 max-w-[68ch] text-xs leading-relaxed text-muted">
               A real Starknet account the wallet derives for this dapp from your private
               state, with no public link to your main wallet. Unlike the router it can hold
               a position between transactions — a lending deposit, a vault subscription —
@@ -1641,7 +1648,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
               assumed.
             </p>
             {caps.shadow ? (
-              <p className="mt-2 break-all font-mono text-[11px] text-gold">
+              <p className="mt-2 break-all font-mono text-xs text-gold">
                 {shadow
                   ? `dapp ${SHADOW_DAPP} · partial commitment ${shadow}`
                   : `dapp ${SHADOW_DAPP} · asking the wallet for the commitment…`}
@@ -1652,7 +1659,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
                 </span>
               </p>
             ) : (
-              <p className="mt-2 break-all rounded border border-warn/40 bg-warn/10 px-2 py-1 font-mono text-[11px] leading-relaxed text-warn">
+              <p className="mt-2 break-all font-mono text-xs leading-relaxed text-warn">
                 {connected} does not answer{' '}
                 <span className="font-mono">wallet_strk20ShadowAccountCommitment</span> yet.
                 {caps.shadowRefusal ? ` It said: ${caps.shadowRefusal}` : ''} The SDK route
@@ -1678,9 +1685,9 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
                 : `shield · ${Number(shield.amount) / 1e18} STRK`}
             </button>
           </div>
-          <p className="mt-1 max-w-2xl text-xs leading-relaxed text-muted">{shield.note}</p>
+          <p className="mt-1 max-w-[68ch] text-xs leading-relaxed text-muted">{shield.note}</p>
           {poolFee && (
-            <p className="mt-1 max-w-2xl font-mono text-[11px] leading-relaxed text-gold">
+            <p className="mt-1 max-w-[68ch] font-mono text-xs leading-relaxed text-gold">
               the pool charges {Number(poolFee) / 1e18} STRK per private operation, read from its
               own get_fee_amount · four operations here — this shield and the three runs — so{' '}
               {Number(poolFee * BigInt(RUNS.length + 1)) / 1e18} STRK of the amount above is fee
@@ -1690,7 +1697,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
           )}
           {shieldHash && (
             <a
-              className="mt-1 block break-all font-mono text-[11px] text-gold"
+              className="mt-1 block break-all font-mono text-xs text-gold"
               href={`https://voyager.online/tx/${shieldHash}`}
               target="_blank"
               rel="noreferrer"
@@ -1699,7 +1706,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
             </a>
           )}
           {shieldHash && verdicts[shieldHash] && (
-            <p className="mt-1 text-[11px] text-muted">{verdicts[shieldHash]}</p>
+            <p className="mt-1 text-xs text-muted">{verdicts[shieldHash]}</p>
           )}
           {feedback(-1, shield.title)}
         </div>
@@ -1737,9 +1744,9 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
                   </button>
                 </span>
               </div>
-              <p className="mt-1 max-w-2xl text-xs leading-relaxed text-muted">{run.note}</p>
+              <p className="mt-1 max-w-[68ch] text-xs leading-relaxed text-muted">{run.note}</p>
               {shortfall(run) && (
-                <p className="mt-1 rounded border border-warn/40 bg-warn/10 px-2 py-1 font-mono text-[11px] leading-relaxed text-warn">
+                <p className="mt-1 font-mono text-xs leading-relaxed text-warn">
                   {shortfall(run)}
                 </p>
               )}
@@ -1747,13 +1754,13 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
               {run.ballot &&
                 params &&
                 (params.openProposal ? (
-                  <p className="mt-1 font-mono text-[11px] text-gold">
+                  <p className="mt-1 font-mono text-xs text-gold">
                     voting on proposal {params.openProposal.id} · closes in{' '}
                     {params.openProposal.blocksLeft.toLocaleString()} blocks
                     {minutes(params.openProposal.blocksLeft)}
                   </p>
                 ) : (
-                  <p className="mt-1 rounded border border-warn/40 bg-warn/10 px-2 py-1 font-mono text-[11px] leading-relaxed text-warn">
+                  <p className="mt-1 font-mono text-xs leading-relaxed text-warn">
                     No proposal is taking votes. Make one on the{' '}
                     <a className="underline underline-offset-2" href="/governance">
                       governance page
@@ -1763,7 +1770,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
                   </p>
                 ))}
               {run.title.includes('Endur') && quote && (
-                <p className="mt-1 font-mono text-[11px] text-gold">
+                <p className="mt-1 font-mono text-xs text-gold">
                   vault quotes {(Number(quote.shares) / 1e18).toFixed(6)} xSTRK for{' '}
                   {Number(run.amount) / 1e18} STRK · floor{' '}
                   {(Number((quote.shares * 96n) / 100n) / 1e18).toFixed(6)}
@@ -1771,7 +1778,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
               )}
               {hashes[i] && (
                 <a
-                  className="mt-1 block break-all font-mono text-[11px] text-gold"
+                  className="mt-1 block break-all font-mono text-xs text-gold"
                   href={`https://voyager.online/tx/${hashes[i]}`}
                   target="_blank"
                   rel="noreferrer"
@@ -1780,7 +1787,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
                 </a>
               )}
               {hashes[i] && verdicts[hashes[i]!] && (
-                <p className="mt-1 text-[11px] text-muted">{verdicts[hashes[i]!]}</p>
+                <p className="mt-1 text-xs text-muted">{verdicts[hashes[i]!]}</p>
               )}
               {feedback(i, `${i + 1}. ${run.title}`)}
             </li>
@@ -1788,7 +1795,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
         </ol>
 
         {ballotSecret && (
-          <p className="mt-3 break-all rounded border border-warn/40 bg-warn/10 p-3 font-mono text-[11px] text-warn">
+          <p className="mt-3 break-all rounded border border-warn/40 bg-warn/10 p-3 font-mono text-xs text-warn">
             Ballot secret, save it: {ballotSecret}
             <span className="mt-1 block font-sans">
               This is the only thing that redeems the stake once voting closes. It exists
@@ -1836,7 +1843,7 @@ function Panel({
 function Field({ label: name, children }: { label: string; children: ReactNode }) {
   return (
     <label className="block">
-      <span className="mb-1 block font-mono text-[11px] text-muted">{name}</span>
+      <span className="mb-1 block font-mono text-xs text-muted">{name}</span>
       {children}
     </label>
   )

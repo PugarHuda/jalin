@@ -133,3 +133,23 @@ summary:focus-visible {
     transform: none;
   }
 }
+
+/*
+ * The surfaces nobody draws still carry the design: the selection highlight,
+ * the caret, the scrollbar. Left to the browser they are the one part of the
+ * page in somebody else's palette.
+ */
+::selection {
+  background: color-mix(in srgb, var(--gold) 38%, transparent);
+  color: var(--cloth);
+}
+
+input,
+textarea {
+  caret-color: var(--gold);
+}
+
+* {
+  scrollbar-color: var(--strand) var(--ground);
+  scrollbar-width: thin;
+}

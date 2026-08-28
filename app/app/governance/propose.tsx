@@ -164,7 +164,7 @@ export function Propose({ governor, router }: { governor: string; router: string
           <summary className="cursor-pointer font-mono text-xs text-muted">
             the exact call this would send
           </summary>
-          <pre className="mt-1 overflow-x-auto rounded border border-thread bg-raised p-3 font-mono text-[11px]">
+          <pre className="mt-1 overflow-x-auto rounded border border-thread bg-raised p-3 font-mono text-xs">
             {JSON.stringify(call, null, 2)}
           </pre>
         </details>

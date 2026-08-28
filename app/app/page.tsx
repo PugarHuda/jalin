@@ -335,15 +335,15 @@ export default async function Landing() {
       </header>
 
       <section className="mx-auto w-full max-w-5xl px-6 pb-20 pt-10">
-        <p
-          className="lift font-mono text-xs uppercase tracking-[0.2em] text-gold"
-          style={{ ['--delay' as string]: '0ms' }}
-        >
-          Live on Starknet mainnet
-        </p>
+        {/*
+          No kicker above the heading. The tracked-caps eyebrow is the one
+          element the craft floor bans outright: the heading carries its own
+          weight, and "live on mainnet" is a fact that belongs beside the
+          action it licenses, not as a label over the sentence.
+        */}
         <h1
-          className="lift mt-5 max-w-3xl font-display text-4xl leading-[1.05] font-extrabold tracking-tight sm:text-6xl"
-          style={{ ['--delay' as string]: '80ms' }}
+          className="lift max-w-3xl font-display text-4xl leading-[1.05] font-extrabold tracking-tight sm:text-6xl"
+          style={{ ['--delay' as string]: '0ms' }}
         >
           One invoke per transaction.
           <br />
@@ -374,7 +374,7 @@ export default async function Landing() {
             Open the composer
           </Link>
           <span className="font-mono text-xs text-muted">
-            Build a plan, see what it reveals, sign it.
+            Live on Starknet mainnet. Build a plan, see what it reveals, sign it.
           </span>
         </div>
       </section>
@@ -414,7 +414,7 @@ export default async function Landing() {
     outputs: Array<Output>,
 ) -> Span<OpenNoteDeposit>`}
         </pre>
-        <p className="mt-6 max-w-2xl leading-relaxed text-muted">
+        <p className="mt-6 max-w-[68ch] leading-relaxed text-muted">
           Each step names a target, a selector, calldata, and the approvals it needs. Nothing is
           whitelisted: any Starknet contract is a valid target and calldata is free-form, which is
           what makes a bridge call, a DEX route and a lending deposit the same object.
@@ -426,7 +426,7 @@ export default async function Landing() {
           <h2 className="font-display text-2xl font-semibold">
             Why free calldata is safe here
           </h2>
-          <p className="mt-4 max-w-2xl leading-relaxed text-muted">
+          <p className="mt-4 max-w-[68ch] leading-relaxed text-muted">
             Jalin is non-custodial and holds nothing between transactions, so a hostile plan can
             only harm the notes of whoever wrote it. Safety comes from invariants enforced in
             Cairo, not from a gatekeeper&apos;s list. Each has a test.
@@ -512,7 +512,7 @@ export default async function Landing() {
                   is the crowd the median deposit actually hides in
                 </span>
               </div>
-              <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted">
+              <p className="mt-3 max-w-[72ch] text-sm leading-relaxed text-muted">
                 That first number is the pool&apos;s headcount, and it is not what hides you. An
                 observer of the public deposit leg sees the asset, the order of magnitude and
                 roughly when — so two deposits only cover each other if they agree on all three.
@@ -522,7 +522,7 @@ export default async function Landing() {
                 than a headcount, because a cell where one address carries most of the volume is
                 not the crowd its headcount claims.
               </p>
-              <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted">
+              <p className="mt-3 max-w-[72ch] text-sm leading-relaxed text-muted">
                 Jalin does not fix that — nothing a helper contract does can conjure other people.
                 What it changes is how many transactions you need: three public legs at three
                 separate moments is three chances to be the only one there, and a plan is one.

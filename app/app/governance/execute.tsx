@@ -56,7 +56,7 @@ export function Execute({ governor, proposalId }: { governor: string; proposalId
         read first.
       </p>
       {sent && (
-        <p className="mt-1 break-all font-mono text-[11px] text-hidden">
+        <p className="mt-1 break-all font-mono text-xs text-hidden">
           sent ·{' '}
           <a
             className="text-gold underline underline-offset-2"
@@ -68,7 +68,7 @@ export function Execute({ governor, proposalId }: { governor: string; proposalId
           </a>
         </p>
       )}
-      {status && <p className="mt-1 break-all font-mono text-[11px] text-warn">{status}</p>}
+      {status && <p className="mt-1 break-all font-mono text-xs text-warn">{status}</p>}
     </div>
   )
 }

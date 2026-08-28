@@ -46,7 +46,7 @@ export function Sweep({ router, token, symbol }: { router: string; token: string
         Sweep {symbol}
       </button>
       {sent && (
-        <p className="mt-1 break-all font-mono text-[11px] text-hidden">
+        <p className="mt-1 break-all font-mono text-xs text-hidden">
           sent ·{' '}
           <a
             className="text-gold underline underline-offset-2"
@@ -58,7 +58,7 @@ export function Sweep({ router, token, symbol }: { router: string; token: string
           </a>
         </p>
       )}
-      {status && <p className="mt-1 break-all font-mono text-[11px] text-warn">{status}</p>}
+      {status && <p className="mt-1 break-all font-mono text-xs text-warn">{status}</p>}
     </div>
   )
 }

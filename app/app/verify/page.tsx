@@ -266,7 +266,7 @@ export default function Verify() {
                     </a>
                   </>
                 )}
-                <span className="block text-[11px]">
+                <span className="block text-xs">
                   Links, not checks: this page does not fetch what a manifest names, so open them
                   yourself — a dead demo is the first thing a panel meets.
                 </span>

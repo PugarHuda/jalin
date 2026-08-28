@@ -105,9 +105,9 @@ export default async function Governance() {
           </nav>
         </div>
         <h1 className="mt-6 font-display text-3xl font-semibold tracking-tight">Governance</h1>
-        <p className="mt-2 max-w-2xl text-sm text-muted">
-          The router holds no admin key. Every parameter it reads — whether it is paused, how many
-          steps a plan may have, what the fee is, which targets are denied — belongs to the
+        <p className="mt-2 max-w-[68ch] text-sm text-muted">
+          The router holds no admin key. Every parameter it reads (whether it is paused, how many
+          steps a plan may have, what the fee is, which targets are denied) belongs to the
           governor, and the governor moves only by a vote that has cleared a timelock.
         </p>
         <p className="mt-3 font-mono text-xs text-muted">
@@ -127,7 +127,7 @@ export default async function Governance() {
             <h2 className="font-display text-xl font-semibold">What the router is running on</h2>
             <p className="mt-1 text-sm text-muted">
               Read from the governor at block {governance.head.toLocaleString()}. The router asks
-              for these on every single plan, so this is not a mirror of the settings — it is the
+              for these on every single plan, so this is not a mirror of the settings. It is the
               settings.
             </p>
 
@@ -143,7 +143,7 @@ export default async function Governance() {
               <dt className="text-muted">fee</dt>
               <dd>
                 {governance.params.feeBps} bps
-                {governance.params.feeBps === 0 && ' — nothing is taken'}
+                {governance.params.feeBps === 0 && ', nothing is taken'}
               </dd>
               <dt className="text-muted">fee recipient</dt>
               <dd className="break-all">{label(governance.params.feeRecipient)}</dd>
@@ -164,7 +164,7 @@ export default async function Governance() {
             <p className="mt-4 rounded border border-strand px-3 py-2 text-xs leading-relaxed text-muted">
               The voting window and the timelock above are measured, not configured here:
               subtracted from a real proposal&apos;s own blocks. Quorum cannot be shown, because the
-              governor stores it and exposes no view for it — a governance parameter nobody can
+              governor stores it and exposes no view for it. A governance parameter nobody can
               read is a governance parameter nobody can check, and that is our omission rather than
               the protocol&apos;s. It is enforced at execution, so a proposal below can look ready
               and still fail on it.
@@ -201,7 +201,7 @@ export default async function Governance() {
 
           <section className="mt-10 border-t border-thread pt-6">
             <h2 className="font-display text-xl font-semibold">Stuck on the router</h2>
-            <p className="mt-1 max-w-2xl text-sm text-muted">
+            <p className="mt-1 max-w-[68ch] text-sm text-muted">
               A plan must leave every token it touched at zero. Anyone can break that for a token
               by transferring it straight to the router, and every later plan touching that token
               then reverts — a denial of service costing the attacker one transfer.{' '}
@@ -234,7 +234,7 @@ export default async function Governance() {
 
           <section className="mt-10 border-t border-thread pt-6">
             <h2 className="font-display text-xl font-semibold">Propose something</h2>
-            <p className="mt-1 max-w-2xl text-sm text-muted">
+            <p className="mt-1 max-w-[68ch] text-sm text-muted">
               Permissionless, and the one part of Jalin that works end to end today: proposing is
               an ordinary public transaction, so it needs no STRK20 wallet support and no proving
               service. Spam is answered by quorum rather than by a gate on who may speak — a gate
