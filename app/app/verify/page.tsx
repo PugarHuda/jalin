@@ -42,6 +42,9 @@ interface ManifestReport {
   duplicates: string[]
   enough: boolean
   hasDemoVideo: boolean
+  /** Web URLs only, or empty. Rendered as links; never fetched by the server. */
+  demoUrl: string
+  demoVideo: string
   results: ManifestResult[]
 }
 
@@ -244,6 +247,31 @@ export default function Verify() {
               {report.contracts.length} contract{report.contracts.length === 1 ? '' : 's'} declared ·
               demo video {report.hasDemoVideo ? 'present' : 'missing'}
             </p>
+            {(report.demoUrl || report.demoVideo) && (
+              <p className="mt-1 break-all font-mono text-xs text-muted" data-testid="demo-links">
+                {report.demoUrl && (
+                  <>
+                    demo{' '}
+                    <a className="text-gold underline underline-offset-2" href={report.demoUrl} target="_blank" rel="noreferrer">
+                      {report.demoUrl}
+                    </a>
+                  </>
+                )}
+                {report.demoUrl && report.demoVideo && ' · '}
+                {report.demoVideo && (
+                  <>
+                    video{' '}
+                    <a className="text-gold underline underline-offset-2" href={report.demoVideo} target="_blank" rel="noreferrer">
+                      {report.demoVideo}
+                    </a>
+                  </>
+                )}
+                <span className="block text-[11px]">
+                  Links, not checks: this page does not fetch what a manifest names, so open them
+                  yourself — a dead demo is the first thing a panel meets.
+                </span>
+              </p>
+            )}
 
             {report.duplicates.length > 0 && (
               <p className="mt-2 rounded border border-warn/40 bg-warn/10 px-3 py-2 text-xs leading-relaxed text-warn">

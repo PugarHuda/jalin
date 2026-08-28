@@ -94,6 +94,9 @@ test.describe('reading a whole submission', () => {
     expect(counted).toBe(listed)
     expect(Number(listed)).toBeGreaterThan(0)
     await expect(page.locator('main')).toContainText('2 contracts declared')
+    // The demo URL is what a panel opens first, so it is a link here - and only
+    // a link: the server never fetches what a manifest names.
+    await expect(page.getByTestId('demo-links').getByRole('link', { name: /jalin-five\.vercel\.app/ })).toBeVisible()
     // The video is the one field still allowed to be missing while this is
     // written; whichever it is, the page must say which.
     await expect(page.locator('main')).toContainText(/demo video (present|missing)/)

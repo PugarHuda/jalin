@@ -130,6 +130,16 @@ export async function GET(request: Request) {
     /** The sprint asks for three that count. */
     enough: counted >= 3,
     hasDemoVideo: read.manifest.demoVideo.length > 0,
+    /**
+     * Shown as links, never fetched. A panel opens the demo; a dead one is the
+     * failure they meet first, and it was invisible here. But a server that
+     * requests whatever URL a manifest names is a server that fetches the cloud
+     * metadata endpoint on a stranger's say-so - the same forgery this route's
+     * header comment describes removing once. Only web URLs are passed through;
+     * anything else is dropped rather than rendered as a link.
+     */
+    demoUrl: /^https?:\/\//i.test(read.manifest.demoUrl) ? read.manifest.demoUrl : '',
+    demoVideo: /^https?:\/\//i.test(read.manifest.demoVideo) ? read.manifest.demoVideo : '',
     results,
   })
 }
