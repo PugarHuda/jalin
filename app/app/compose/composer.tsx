@@ -67,6 +67,8 @@ interface Draft {
 
 const STRK = TOKENS[0]!.address
 const ETH = TOKENS[1]!.address
+// By symbol, not position: native USDC, the one the pool actually holds.
+const USDC = TOKENS.find((t) => t.symbol === 'USDC')!.address
 
 const PRESETS: { name: string; blurb: string; draft: Draft }[] = [
   {
@@ -406,6 +408,65 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
   const [mode, setMode] = useState<'connect' | 'simulate' | 'submit'>('submit')
   /** The wallet's answer to a dry run, by the button that asked. */
   const [simulations, setSimulations] = useState<Record<string, string>>({})
+
+  const [splitting, setSplitting] = useState(false)
+  const [splitError, setSplitError] = useState<string | null>(null)
+
+  /**
+   * The preset that has to be fetched: a swap route is a quote, and a quote is
+   * a price at a block, so it cannot be written into the page ahead of time
+   * the way the others are. AVNU is asked with the router as taker; what comes
+   * back is the exact calldata of its `multi_route_swap`, with the router as
+   * beneficiary and AVNU's own minimum as the output floor. Half the input
+   * goes there and half into Endur, and both land in notes.
+   */
+  async function loadSplit() {
+    setSplitting(true)
+    setSplitError(null)
+    try {
+      const half = ONE / 4n
+      const response = await fetch(
+        `/api/swap?sell=${STRK}&buy=${USDC}&amount=${half.toString()}&slippage=0.01`,
+      )
+      const body = (await response.json()) as {
+        error?: string
+        calldata?: string[]
+        exchange?: string
+        buy?: { min: string }
+      }
+      if (!response.ok || !body.calldata || !body.exchange || !body.buy) {
+        throw new Error(body.error ?? `AVNU answered ${response.status}`)
+      }
+      setDraft({
+        inputToken: STRK,
+        inputAmount: '0.5',
+        steps: [
+          {
+            target: body.exchange,
+            selector: 'multi_route_swap',
+            approveToken: STRK,
+            approveAmount: '0.25',
+            calldata: body.calldata.join('\n'),
+          },
+          {
+            target: ENDUR_VAULT,
+            selector: 'deposit',
+            approveToken: STRK,
+            approveAmount: '0.25',
+            calldata: `{amount:u256}\n${ROUTER_ADDRESS}`,
+          },
+        ],
+        outputs: [
+          { token: USDC, minAmount: formatUnits(BigInt(body.buy.min), 6) },
+          { token: ENDUR_VAULT, minAmount: '0.19' },
+        ],
+      })
+    } catch (error) {
+      setSplitError(error instanceof Error ? error.message : String(error))
+    } finally {
+      setSplitting(false)
+    }
+  }
 
   /**
    * The hashes this account has landed, kept across reloads.
@@ -1161,6 +1222,19 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
             {preset.name}
           </button>
         ))}
+        <button
+          onClick={loadSplit}
+          disabled={splitting}
+          title="Half the input swapped to USDC through AVNU's aggregator, half staked on Endur, both credited to notes - two venues in the single invoke the pool allows. The swap route and its floor come from AVNU at the moment you click."
+          className="rounded border border-strand bg-raised px-3 py-1.5 text-sm hover:border-gold disabled:opacity-40"
+        >
+          {splitting ? 'asking AVNU for a route…' : 'Swap half on AVNU, stake half on Endur'}
+        </button>
+        {splitError && (
+          <span className="font-mono text-xs text-warn" data-testid="split-error">
+            {splitError}
+          </span>
+        )}
 
         {!connected && (
           <button

@@ -153,3 +153,38 @@ privacy fee`, which is the wallet naming a shortfall the page had designed in.
 The shield is now derived from the live fee: once for itself, once per run,
 plus what the runs spend. A demo that hardcodes any of those numbers is a demo
 that works until a vote changes one.
+
+## Two USDCs, and the one with a route is not the one with a crowd
+
+The pool has no token list — ten different ERC-20s have been shielded into it —
+so an output note can be in anything. Which anything matters more than it
+looks. Over the pool's life:
+
+```
+STRK       295 deposits
+USDC       71    0x33068f…  native
+strkBTC    16    0x787150…
+ETH         8
+USDC.e      1    0x53c9…    bridged "USD Coin"
+```
+
+This project's config labelled `0x53c9…` "USDC". A note in it is a cell of one
+— the "you, alone" the disclosure panel warns about — and no router can fix
+that. The swap preset buys native USDC for that reason.
+
+AVNU, asked with the router as taker on 28 August:
+
+```
+                 0.25 STRK      1 STRK       5 STRK      25 STRK
+USDC native      0dAMM          0dAMM        0dAMM       0dAMM      fair
+USDC.e           Ekubo 5.0×     Ekubo 5.0×   Ekubo 5.0×  0dAMM      -
+ETH              no route       no route     JediSwapCL  0dAMM
+```
+
+The USDC.e quotes through Ekubo return five times the sell value in USD. That
+is not a market, it is a pool nobody has priced in months, and a swap "into"
+it is a swap into whatever its next arbitrage leaves. The native quotes are at
+value — and intermittent: five "no route" answers in a row one minute, a route
+at every size the next. `/api/swap` returns AVNU's refusal as a 404 in AVNU's
+own words rather than falling back to the mispriced pair, and the tests skip
+on that answer rather than fail on it.

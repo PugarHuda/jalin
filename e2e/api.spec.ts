@@ -5,6 +5,7 @@ import {
   type ErrorResponse,
   type ProspectResponse,
   type QuoteResponse,
+  type SwapResponse,
   type TxResponse,
 } from './api-types'
 
@@ -19,6 +20,61 @@ const POOL_TX_NOT_OURS = '0x6abbe003a51a29b634d8615517d231d469f3e009b4a1289a0e70
 
 /** Well-formed felt, no such transaction. Nothing can ever mine into it. */
 const ABSENT_TX = '0x' + 'a'.repeat(63) + '1'
+
+test.describe('/api/swap', () => {
+  const STRK = '0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d'
+  /** Native USDC - the one with 71 deposits in the pool, not the bridged one with 1. */
+  const USDC = '0x033068f6539f8e6e6b131e6b2b814e6c34a5224bc66947c47dab9dfee93b35fb'
+  const ROUTER = '0x008498d79ca390b34a6416cc45fb375ad9b921eefd8d4531d99a2d775feb3a7e'
+  const EXCHANGE = '0x04270219d365d6b017231b52e92b3fb5d7c8378b05e9abc97724537a80e93b0f'
+
+  test('turns an AVNU route into the fields of a step', async ({ request }) => {
+    const response = await request.get(`/api/swap?sell=${STRK}&buy=${USDC}&amount=250000000000000000`)
+    // AVNU answers "no route" for this pair now and then - five refusals in a
+    // row one minute, a route at every size the next. That is the
+    // aggregator's state, not this route's correctness, and the route reports
+    // it as 404 with AVNU's own words. Skipped on that answer; anything else
+    // that is not a route is a failure.
+    if (response.status() === 404) {
+      const { error } = (await response.json()) as ErrorResponse
+      test.skip(/no route/i.test(error), `AVNU: ${error}`)
+    }
+    const body = await json<SwapResponse>(response)
+    // The contract this app verified on chain, and the entrypoint it read the
+    // ABI of - never whatever the aggregator happened to name.
+    expect(BigInt(body.exchange)).toBe(BigInt(EXCHANGE))
+    expect(body.entrypoint).toBe('multi_route_swap')
+
+    // multi_route_swap(sell, sell_amount: u256, buy, buy_amount: u256,
+    // min: u256, beneficiary, fee_bps, fee_recipient, routes...). The
+    // beneficiary has to be the router or the plan reverts on I4.
+    expect(BigInt(body.calldata[0]!)).toBe(BigInt(STRK))
+    expect(BigInt(body.calldata[3]!)).toBe(BigInt(USDC))
+    expect(BigInt(body.calldata[8]!)).toBe(BigInt(ROUTER))
+    expect(body.calldata.length).toBeGreaterThan(12)
+
+    // A floor under the quote, never at or above it, and never zero.
+    const quoted = BigInt(body.buy.amount)
+    const floor = BigInt(body.buy.min)
+    expect(quoted).toBeGreaterThan(0n)
+    expect(floor).toBeGreaterThan(0n)
+    expect(floor).toBeLessThan(quoted)
+    expect(body.route.length).toBeGreaterThan(0)
+  })
+
+  test('refuses a token it has not looked at', async ({ request }) => {
+    const body = await json<ErrorResponse>(
+      await request.get(`/api/swap?sell=0x1234&buy=${USDC}&amount=1000`),
+      400,
+    )
+    expect(body.error).toMatch(/must be one of/)
+  })
+
+  test('refuses a swap of a token into itself, and a zero amount', async ({ request }) => {
+    expect((await request.get(`/api/swap?sell=${STRK}&buy=${STRK}&amount=1000`)).status()).toBe(400)
+    expect((await request.get(`/api/swap?sell=${STRK}&buy=${USDC}&amount=0`)).status()).toBe(400)
+  })
+})
 
 test.describe('/api/quote', () => {
   test('quotes a deposit from the Endur vault itself', async ({ request }) => {

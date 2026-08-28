@@ -130,6 +130,40 @@ an anonymizer to offer private swaps and Ekubo is writing another; every venue
 that wants private execution writes its own, and none of them compose. This is
 the alternative, and it runs today.
 
+## A DEX route as a step
+
+The same argument, made with a swap. AVNU's aggregator is asked for a quote
+with the router as taker; it builds `multi_route_swap` on its exchange —
+`0x0427…3b0f`, whose ABI was read from the chain before this was written —
+with the router named as beneficiary and the route it found across pools, and
+those 23 felts *are* the step's calldata:
+
+```ts
+callStep({
+  target: AVNU_EXCHANGE,
+  selector: getSelectorFromName('multi_route_swap'),
+  spend: { token: STRK, amount },
+  calldata: swap.calldata,           // from /api/swap, verbatim
+})
+```
+
+The composer's "Swap half on AVNU, stake half on Endur" preset puts that step
+beside the Endur deposit: two venues, two outputs, one invoke, with AVNU's own
+`buy_token_min_amount` as the USDC floor. It is fetched when clicked rather than
+written into the page, because a route is a price at a block.
+
+It buys native USDC (`0x33068f…`), not the bridged USDC.e (`0x53c9…`), and the
+reason is the pool's own history rather than a preference: over the pool's life
+native USDC has been shielded 71 times and USDC.e once. A note in USDC.e would
+sit in a cell of one — the "you, alone" the disclosure panel warns about — and
+no router can fix that; choosing the token the crowd holds can.
+
+This is not AVNU's private-swap route, and it is worth being precise about the
+difference. That route is AVNU's anonymizer — one venue, in the one invoke the
+pool allows. This is AVNU as a step among others, in the same invoke as a stake,
+which is the composition the anonymizer cannot express. The approve call AVNU
+also returns is dropped: the router grants and resets approvals itself (I3).
+
 ## Sub-accounts, and what stands in for them
 
 `sdk/src/subaccounts.ts` implements the sub-account portfolio layer — deriving a
@@ -276,7 +310,7 @@ npm test                      # 129 SDK tests, no build step
 npm run typecheck             # tsc over the whole SDK, imported or not
 npm run lint                  # eslint over the app
 npm run check:links           # every path this repository names
-npm run test:e2e              # 327 Playwright tests, three engines
+npm run test:e2e              # 334 Playwright tests, three engines
 ```
 
 The browser suite has no fixtures in it. It reads the live chain, so it asserts

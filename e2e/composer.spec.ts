@@ -154,6 +154,50 @@ test.describe('composer', () => {
     await expect(outputs).toHaveCount(before + 1)
   })
 
+  test('a swap route from AVNU becomes a step beside a stake', async ({ page }) => {
+    await page.getByRole('button', { name: /Swap half on AVNU, stake half on Endur/ }).click()
+
+    // Fetched, not written in: the route is a quote at a block. Either the
+    // exchange lands in step 1's target, or AVNU said it had no route just
+    // then - which it does, intermittently, for this pair at this size. The
+    // second is the aggregator's answer and not the page's fault, so it skips
+    // with the sentence the page showed rather than failing on it.
+    const target = page.getByLabel('Step 1 target')
+    const error = page.getByTestId('split-error')
+    await expect(target.or(error)).toBeVisible({ timeout: 30_000 })
+    await Promise.race([
+      expect(target).toHaveValue(/4270219d365d6b017231b52e92b3fb5d7c8378b05e9abc97724537a80e93b0f$/, { timeout: 30_000 }),
+      expect(error).toBeVisible({ timeout: 30_000 }),
+    ])
+    if (await error.count()) {
+      const said = await error.innerText()
+      test.skip(/no route/i.test(said), `AVNU: ${said}`)
+      throw new Error(`the split preset failed for a reason that is not "no route": ${said}`)
+    }
+    await expect(page.getByLabel('Step 1 selector')).toHaveValue('multi_route_swap')
+    // And the stake beside it, in the same plan - the composition nothing else can do.
+    await expect(page.getByLabel('Step 2 target')).toHaveValue(/28d709c875c0ceac3dce7065bec5328186dc89fe254527084d1689910954b0a$/)
+
+    // Two outputs, both with a floor: AVNU's own minimum for the USDC leg, so
+    // it is a positive number and not a placeholder.
+    const floors = page.getByLabel(/Output \d+ minimum amount/)
+    await expect(floors).toHaveCount(2)
+    expect(Number(await floors.nth(0).inputValue())).toBeGreaterThan(0)
+
+    // The calldata the router will receive names both venues, because both are
+    // public calls. The prose tab deliberately does not list addresses, so the
+    // felts are where the claim is checked.
+    await page.getByRole('button', { name: 'calldata', exact: true }).click()
+    await expect(page.locator('pre')).toContainText(
+      /0x0?4270219d365d6b017231b52e92b3fb5d7c8378b05e9abc97724537a80e93b0f/,
+    )
+    await expect(page.locator('pre')).toContainText(
+      /0x0?28d709c875c0ceac3dce7065bec5328186dc89fe254527084d1689910954b0a/,
+    )
+    await expect(page.getByRole('button', { name: 'Dry run', exact: true })).toBeEnabled()
+    await expect(page.getByTestId('split-error')).toHaveCount(0)
+  })
+
   test('renders without a console error', async ({ page }) => {
     const errors: string[] = []
     page.on('console', (m) => {

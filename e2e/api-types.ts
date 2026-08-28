@@ -19,6 +19,17 @@ export interface QuoteResponse {
   shares: string
 }
 
+/** A DEX route from AVNU, as the fields of a step. */
+export interface SwapResponse {
+  exchange: string
+  entrypoint: string
+  calldata: string[]
+  sell: { token: string; amount: string; usd: number | null }
+  buy: { token: string; amount: string; min: string; usd: number | null }
+  route: string[]
+  slippage: number
+}
+
 export type TxResponse = Verdict & { summary: string }
 
 export interface CrowdResponse extends Crowd {

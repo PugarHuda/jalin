@@ -38,6 +38,17 @@ export interface KnownToken {
 export const ENDUR_VAULT =
   '0x28d709c875c0ceac3dce7065bec5328186dc89fe254527084d1689910954b0a'
 
+/**
+ * AVNU's exchange on mainnet. Read from AVNU's own `/swap/v2/build` response
+ * for a quote with the router as taker, then checked against the class on
+ * chain: `multi_route_swap(sell_token, sell_amount: u256, buy_token,
+ * buy_amount: u256, buy_token_min_amount: u256, beneficiary,
+ * integrator_fee_amount_bps, integrator_fee_recipient, routes)`. A plain
+ * external call, which is what makes a DEX route a step.
+ */
+export const AVNU_EXCHANGE =
+  '0x04270219d365d6b017231b52e92b3fb5d7c8378b05e9abc97724537a80e93b0f'
+
 export const TOKENS: KnownToken[] = [
   {
     symbol: 'STRK',
@@ -54,10 +65,29 @@ export const TOKENS: KnownToken[] = [
     address: '0x28d709c875c0ceac3dce7065bec5328186dc89fe254527084d1689910954b0a',
     decimals: 18,
   },
+  /**
+   * Two USDCs, and the label matters. `0x33068f…` is native USDC and is what
+   * the pool actually holds: 71 of the pool's 399 deposits over its life, the
+   * second most shielded token after STRK. `0x53c9…` is the bridged "USD
+   * Coin", USDC.e, and has been shielded exactly once. A note in USDC.e is a
+   * cell of one - the "you, alone" the disclosure panel warns about - so the
+   * swap preset buys the native one. Both symbols are read from the chain.
+   */
   {
     symbol: 'USDC',
+    address: '0x033068f6539f8e6e6b131e6b2b814e6c34a5224bc66947c47dab9dfee93b35fb',
+    decimals: 6,
+  },
+  {
+    symbol: 'USDC.e',
     address: '0x053c91253bc9682c04929ca02ed00b3e423f6710d2ee7e0d5ebb06f3ecf368a8',
     decimals: 6,
+  },
+  /** 16 deposits over the pool's life; here so a balance in it has a name. */
+  {
+    symbol: 'strkBTC',
+    address: '0x0787150e306e6eae6e3f79dea881770e8bbff2c1b8eb490f969669ee945b3135',
+    decimals: 8,
   },
 ]
 
