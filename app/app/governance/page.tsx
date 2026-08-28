@@ -60,7 +60,7 @@ function ProposalCard({ proposal, governor }: { proposal: Proposal; governor: st
 
       <p className="mt-1 max-w-[68ch] text-sm text-muted">{KIND_TEXT[proposal.kind]}</p>
 
-      <dl className="mt-3 grid gap-x-6 gap-y-1 font-mono text-xs sm:grid-cols-[auto_1fr]">
+      <dl className="mt-3 grid max-w-[64ch] gap-x-6 gap-y-1 font-mono text-xs sm:grid-cols-[auto_1fr]">
         <dt className="text-muted">target</dt>
         <dd className="break-all">{label(proposal.target)}</dd>
         {proposal.label && (
@@ -110,7 +110,7 @@ export default async function Governance() {
           steps a plan may have, what the fee is, which targets are denied) belongs to the
           governor, and the governor moves only by a vote that has cleared a timelock.
         </p>
-        <p className="mt-3 font-mono text-xs text-muted">
+        <p className="mt-3 max-w-[70ch] font-mono text-xs text-muted">
           governor {GOVERNOR_ADDRESS ? label(GOVERNOR_ADDRESS) : 'not deployed'} · router{' '}
           {ROUTER_ADDRESS ? label(ROUTER_ADDRESS) : 'not deployed'}
         </p>
@@ -131,7 +131,7 @@ export default async function Governance() {
               settings.
             </p>
 
-            <dl className="mt-4 grid gap-x-6 gap-y-2 font-mono text-sm sm:grid-cols-[auto_1fr]">
+            <dl className="mt-4 grid max-w-[64ch] gap-x-6 gap-y-2 font-mono text-sm sm:grid-cols-[auto_1fr]">
               <dt className="text-muted">paused</dt>
               <dd className={governance.params.paused ? 'text-warn' : 'text-hidden'}>
                 {governance.params.paused ? 'yes — every plan reverts' : 'no'}

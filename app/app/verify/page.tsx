@@ -287,7 +287,7 @@ export default function Verify() {
                 The manifest lists no transactions yet, so there is nothing to judge.
               </p>
             ) : (
-              <ul className="mt-3 space-y-2">
+              <ul className="mt-3 max-w-[70ch] space-y-2">
                 {report.results.map((result) => (
                   <li key={result.hash} className="font-mono text-xs">
                     <span className={result.qualifies ? 'text-hidden' : 'text-warn'}>
@@ -345,11 +345,11 @@ export default function Verify() {
                 {row.verdict && (
                   <>
                     <p
-                      className={`mt-2 text-sm ${row.verdict.qualifies ? 'text-hidden' : 'text-warn'}`}
+                      className={`mt-2 max-w-[68ch] text-sm ${row.verdict.qualifies ? 'text-hidden' : 'text-warn'}`}
                     >
                       {row.verdict.summary}
                     </p>
-                    <ul className="mt-3 space-y-1">
+                    <ul className="mt-3 max-w-[70ch] space-y-1">
                       {RULES.map(([key, text]) => {
                         const value = row.verdict![key]
                         return (

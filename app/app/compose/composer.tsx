@@ -1812,7 +1812,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
         )}
       </section>
 
-      <footer className="mt-12 border-t border-thread pt-6 text-xs text-muted">
+      <footer className="mt-12 max-w-[72ch] border-t border-thread pt-6 text-xs text-muted">
         <a className="text-gold underline underline-offset-2" href="https://github.com/PugarHuda/jalin">
           github.com/PugarHuda/jalin
         </a>{' '}
@@ -1831,10 +1831,13 @@ function Panel({
   note?: string
   children: ReactNode
 }) {
+  // A rule above, not a box around. The editor's inputs are bordered blocks
+  // already, and a bordered block inside a bordered block is the nesting the
+  // craft floor calls always wrong - the panel was the outer one.
   return (
-    <div className="rounded border border-thread bg-raised p-4">
+    <div className="border-t border-thread pt-4">
       <h2 className="font-mono text-sm">{title}</h2>
-      {note && <p className="mb-3 mt-1 text-xs text-muted">{note}</p>}
+      {note && <p className="mb-3 mt-1 max-w-[68ch] text-xs text-muted">{note}</p>}
       {children}
     </div>
   )

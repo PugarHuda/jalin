@@ -153,7 +153,7 @@ function Trend({
         </text>
       </svg>
 
-      <figcaption className="mt-2 font-mono text-xs text-muted">
+      <figcaption className="mt-2 max-w-[72ch] font-mono text-xs text-muted">
         <span className="text-warn">solid</span> the typical deposit ·{' '}
         <span className="text-hidden">dashed</span> the best one · each point is a six-hour window
       </figcaption>
@@ -392,11 +392,11 @@ export default async function Landing() {
             </p>
           </div>
           <div className="space-y-4">
-            <blockquote className="border-l-2 border-gold pl-4 font-mono text-sm leading-relaxed">
+            <blockquote className="max-w-[60ch] border-l-2 border-gold pl-4 font-mono text-sm leading-relaxed">
               One <span className="text-gold">invoke</span> per transaction. At most one external
               call per pool transaction.
             </blockquote>
-            <blockquote className="border-l-2 border-gold pl-4 font-mono text-sm leading-relaxed">
+            <blockquote className="max-w-[60ch] border-l-2 border-gold pl-4 font-mono text-sm leading-relaxed">
               Every token&apos;s balance must end at exactly{' '}
               <span className="text-gold">zero</span>. No value created or destroyed.
             </blockquote>
