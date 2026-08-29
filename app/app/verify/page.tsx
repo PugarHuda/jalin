@@ -34,6 +34,15 @@ interface ManifestResult extends Verdict {
   summary: string
 }
 
+interface HubVerdict {
+  registered: boolean
+  projects: number
+  verifiedTransactions?: number
+  requirements?: { demo: boolean; video: boolean; mainnet: boolean }
+  starred?: boolean
+  status?: string | null
+}
+
 interface ManifestReport {
   source: string
   contracts: string[]
@@ -72,6 +81,8 @@ export default function Verify() {
   const [report, setReport] = useState<ManifestReport | null>(null)
   const [repoError, setRepoError] = useState<string | null>(null)
   const [reading, setReading] = useState(false)
+  /** The sprint hub's own verdict on the same repository, beside ours. */
+  const [hub, setHub] = useState<HubVerdict | null>(null)
 
   async function check() {
     const list = hashes
@@ -129,13 +140,22 @@ export default function Verify() {
 
     const [, owner, name, ref] = match
     setReading(true)
+    setHub(null)
     try {
       const query = new URLSearchParams({ owner: owner!, repo: name!, ...(ref ? { ref } : {}) })
-      const response = await fetch(`/api/manifest?${query}`)
+      // Our judgement and the hub's, asked for together. The hub's is the one
+      // the panel reads; ours is the one a team can re-run on a fresh commit
+      // before the hub has looked again. Both on screen is what makes a
+      // disagreement visible.
+      const [response, hubResponse] = await Promise.all([
+        fetch(`/api/manifest?${query}`),
+        fetch(`/api/hub?repo=${encodeURIComponent(`${owner}/${name}`)}`).catch(() => null),
+      ])
       const body: unknown = await response.json()
 
       if (response.ok) setReport(body as ManifestReport)
       else setRepoError(String((body as { error?: string }).error ?? response.status))
+      if (hubResponse?.ok) setHub((await hubResponse.json()) as HubVerdict)
     } catch (error) {
       setRepoError(error instanceof Error ? error.message : String(error))
     } finally {
@@ -270,6 +290,35 @@ export default function Verify() {
                   Links, not checks: this page does not fetch what a manifest names, so open them
                   yourself — a dead demo is the first thing a panel meets.
                 </span>
+              </p>
+            )}
+
+            {hub && (
+              <p className="mt-2 max-w-[62ch] font-mono text-xs" data-testid="hub-verdict">
+                {hub.registered ? (
+                  <>
+                    <span className={hub.verifiedTransactions === report.counted ? 'text-hidden' : 'text-warn'}>
+                      the hub counts {hub.verifiedTransactions}
+                      {hub.verifiedTransactions === report.counted ? ' · agrees' : ` · this page counts ${report.counted}`}
+                    </span>
+                    <span className="text-muted">
+                      {' '}· mainnet {hub.requirements?.mainnet ? '✓' : '✗'} · demo{' '}
+                      {hub.requirements?.demo ? '✓' : '✗'} · video {hub.requirements?.video ? '✓' : '✗'}
+                      {hub.starred ? ' · starred' : ''}
+                    </span>
+                    <span className="mt-1 block text-muted">
+                      Read from the sprint hub&apos;s own projects.json, {hub.projects} entries. The
+                      hub re-reads a repository on its own schedule, so a fix pushed a minute ago
+                      shows here first and there later.
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-warn">
+                    Not on the sprint hub&apos;s registry ({hub.projects} projects). An
+                    unregistered repository is not judged at all; see the hub&apos;s CONTRIBUTING
+                    for how to register.
+                  </span>
+                )}
               </p>
             )}
 

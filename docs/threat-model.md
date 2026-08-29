@@ -206,6 +206,38 @@ buys a fee change or a deny-list entry, bounded by the timelock and by `fee_bps`
 being capped at 1000 (10%) in the contract regardless of what a vote says. The
 router cannot be pointed at a different governor after deployment.
 
+## What the app reaches out to, and what the edge is allowed to keep
+
+The contracts are the trust boundary the sections above are about. The app in
+front of them has a smaller one, and it is worth stating because two of its
+routes call services that are not ours.
+
+| Route | Reaches | Accepts from the caller | Kept at the edge |
+|---|---|---|---|
+| `/api/params`, `/api/crowd`, `/api/quote`, `/api/tx` | a Starknet node, on one shared key | felts, bounded in count | 30 s – 5 min; a landed receipt for an hour |
+| `/api/manifest` | `raw.githubusercontent.com` | an owner, a repo and a ref, matched against GitHub's own name rules | 1 min |
+| `/api/swap` | `starknet.api.avnu.fi` | two tokens from this app's own list and an amount | nothing |
+
+**No route fetches a URL the caller supplies.** The manifest route builds its
+one URL from three validated names; the demo and video URLs a manifest names
+are rendered as links and never requested by the server. A server that fetches
+what it is told to fetches the cloud metadata endpoint on a stranger's say-so,
+and this app removed one such route already, when the landing page fetched its
+own API through the incoming `Host` header.
+
+**The swap route trusts AVNU for a route and nothing else.** The contract AVNU
+names must be the exchange this app read the ABI of; the beneficiary inside the
+calldata must be the router; the calldata must fit the router's own
+`max_calldata`, read from the governor in the same request. A quote that fails
+any of those is refused with a sentence, and none is served twice: a route is a
+price at a block.
+
+**The edge is the rate limit.** Chain reads are the same for everyone, so the
+CDN serves repeats and the node sees one cold read per region per window rather
+than one per visitor. That is what stands between the shared key and anyone
+reloading `/api/crowd` in a loop during judging; it is not authentication, and
+the routes have none, because they hold nothing that needs it.
+
 ## Audit status
 
 Unaudited. Written during an 18-day sprint. Every invariant above has a test in

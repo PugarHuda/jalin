@@ -1069,7 +1069,11 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
    * not exist the instant a transaction is accepted.
    */
   async function judge(hash: string, w: Strk20Wallet | null) {
-    for (let attempt = 0; attempt < 12; attempt += 1) {
+    // Two and a half minutes, not one. Inclusion on Starknet is usually under
+    // thirty seconds and is not always; a hash whose verdict stopped being
+    // asked for at sixty seconds sat on the page as "submitted" until a reload
+    // asked again, and the balance under it stayed stale for as long.
+    for (let attempt = 0; attempt < 30; attempt += 1) {
       try {
         const response = await fetch(`/api/tx?hash=${hash}`)
         if (response.ok) {

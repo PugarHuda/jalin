@@ -94,6 +94,23 @@ test.describe('the wallet surface', () => {
     await expect(page.getByRole('button', { name: /could not be read/ })).toBeVisible({ timeout: 30_000 })
   })
 
+  test('a keyboard alone reaches a run and gets the same answer', async ({ page }) => {
+    // Tab until the first dry-run button has focus, press Enter, and the
+    // wallet's answer lands under that run - the same path a mouse takes, with
+    // nothing on it that needs a pointer. Bounded, because a page that needs
+    // more than a hundred tabs to reach its first action has a different bug.
+    const target = page.getByRole('button', { name: 'dry run', exact: true }).first()
+    for (let i = 0; i < 120; i += 1) {
+      await page.keyboard.press('Tab')
+      if (await target.evaluate((el) => el === document.activeElement)) break
+    }
+    await expect(target).toBeFocused()
+    await page.keyboard.press('Enter')
+
+    const run = page.locator('li', { hasText: '1. Two steps, one invoke' })
+    await expect(run).toContainText(/This demo signs with Ready/, { timeout: 20_000 })
+  })
+
   test('the run buttons are not gated on a balance nobody has read', async ({ page }) => {
     // Without a wallet the page knows nothing about the account, so it must
     // not claim a shortfall. The gate only closes on the wallet's numbers.

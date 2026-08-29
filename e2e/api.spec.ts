@@ -53,6 +53,31 @@ test.describe('what the edge may keep', () => {
   })
 })
 
+test.describe('/api/hub', () => {
+  test('finds this project on the sprint hub and its verdict matches the manifest', async ({ request }) => {
+    const hub = await json<{ registered: boolean; verifiedTransactions: number; requirements: { mainnet: boolean }; projects: number }>(
+      await request.get('/api/hub?repo=PugarHuda/jalin'),
+    )
+    expect(hub.registered).toBe(true)
+    expect(hub.projects).toBeGreaterThan(100)
+    expect(hub.requirements.mainnet).toBe(true)
+
+    // The number the panel will read, against the number this repository's
+    // own checker produces from the same manifest.
+    const ours = await json<{ counted: number }>(await request.get('/api/manifest?owner=PugarHuda&repo=jalin'))
+    expect(hub.verifiedTransactions).toBe(ours.counted)
+  })
+
+  test('says so for a repository the hub has never heard of', async ({ request }) => {
+    const hub = await json<{ registered: boolean }>(await request.get('/api/hub?repo=PugarHuda/no-such-project-here'))
+    expect(hub.registered).toBe(false)
+  })
+
+  test('refuses anything that is not owner/name', async ({ request }) => {
+    expect((await request.get('/api/hub?repo=https://example.com/x')).status()).toBe(400)
+  })
+})
+
 test.describe('/api/swap', () => {
   const STRK = '0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d'
   /** Native USDC - the one with 71 deposits in the pool, not the bridged one with 1. */

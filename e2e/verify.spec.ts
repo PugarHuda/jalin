@@ -94,6 +94,15 @@ test.describe('reading a whole submission', () => {
     expect(counted).toBe(listed)
     expect(Number(listed)).toBeGreaterThan(0)
     await expect(page.locator('main')).toContainText('2 contracts declared')
+    // The sprint hub's own verdict, beside ours. For this repository the two
+    // must agree: the hub's verifier and this page apply the same four rules
+    // to the same three hashes, and a disagreement would be a bug in one of
+    // them that the panel would meet before we did.
+    const hub = page.getByTestId('hub-verdict')
+    await expect(hub).toBeVisible({ timeout: 30_000 })
+    await expect(hub).toContainText(/the hub counts \d+ · agrees/)
+    await expect(hub).toContainText(/mainnet ✓/)
+
     // The demo URL is what a panel opens first, so it is a link here - and only
     // a link: the server never fetches what a manifest names.
     await expect(page.getByTestId('demo-links').getByRole('link', { name: /jalin-five\.vercel\.app/ })).toBeVisible()
