@@ -280,6 +280,10 @@ It is read-only and takes any manifest, which is also how it was checked: agains
 a transaction known to touch the pool, one known not to, and a hash that does not
 exist. Point it at your own entry if it is useful.
 
+The verify page also reads the sprint hub's own `projects.json` and shows its
+verdict beside this one — the count the panel will read, which requirements it
+marks met, and whether the two verifiers agree. For this repository they do.
+
 ## Building and testing
 
 Cairo:
