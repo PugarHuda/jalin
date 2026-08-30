@@ -104,8 +104,14 @@ test.describe('reading a whole submission', () => {
     await expect(hub).toContainText(/mainnet ✓/)
 
     // The demo URL is what a panel opens first, so it is a link here - and only
-    // a link: the server never fetches what a manifest names.
-    await expect(page.getByTestId('demo-links').getByRole('link', { name: /jalin-five\.vercel\.app/ })).toBeVisible()
+    // a link: the server never fetches what a manifest names. Since the demo
+    // video is served from the app itself, two links in this panel share that
+    // host and matching on it alone is ambiguous. Name each one.
+    const demoLinks = page.getByTestId('demo-links')
+    await expect(
+      demoLinks.getByRole('link', { name: 'https://jalin-five.vercel.app', exact: true }),
+    ).toBeVisible()
+    await expect(demoLinks.getByRole('link', { name: /jalin-demo\.mp4$/ })).toBeVisible()
     // The video is the one field still allowed to be missing while this is
     // written; whichever it is, the page must say which.
     await expect(page.locator('main')).toContainText(/demo video (present|missing)/)
