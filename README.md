@@ -235,6 +235,27 @@ for days, and the types that refuse both were installed the whole time.
 Support is detected by asking, per method, per session. A wallet that answers the
 balance call and not the shadow-account one gets a page that says exactly that.
 
+## The demo video
+
+[jalin-five.vercel.app/jalin-demo.mp4](https://jalin-five.vercel.app/jalin-demo.mp4) —
+two minutes forty-nine, captioned, and named in `strk20.json`.
+
+It is not a screen recording of a rehearsal. Playwright drives the deployed app
+through the same selectors the end-to-end suite uses, so the transaction it
+checks on screen is one of the three mainnet hashes listed above and the verdict
+beside it is computed from the chain while the recording runs. The narration is
+synthesised, the captions come from the speech engine's own sentence timings,
+and the whole thing rebuilds from this repository:
+
+```sh
+python scripts/demo-video/tts.py        # narration and caption cues
+node scripts/record-demo.mjs <dir>      # footage, against the live site
+python scripts/demo-video/compose.py    # cut to the narration, burn captions
+```
+
+Recording against production rather than a local build is deliberate: a demo of
+something that only works on a laptop is a demo of nothing.
+
 ## Repository layout
 
 | Path | What it holds |

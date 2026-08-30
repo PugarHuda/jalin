@@ -1,0 +1,50 @@
+[
+  {
+    "id": "01-constraint",
+    "url": "/",
+    "shot": "hero",
+    "text": "STRK20 reaches the outside world through one primitive. Two protocol rules shape everything downstream. At most one external call per pool transaction. And every token's balance must end at exactly zero."
+  },
+  {
+    "id": "02-consequence",
+    "url": "/",
+    "shot": "constraint",
+    "text": "Together they mean a private action is only as expressive as the single helper contract it calls. Want a private swap? Deploy and audit a swap helper. Lend? Another one. Swap, then lend? A third. Every new interaction is a new Cairo contract. That is why almost everything built on STRK20 today is a payment app. Payments are the only thing you can ship without writing Cairo."
+  },
+  {
+    "id": "03-plan",
+    "url": "/",
+    "shot": "plan",
+    "text": "Jalin is one helper that takes a plan instead of fixed parameters. A plan is a bounded list of steps. Each step names a target, a selector, calldata, and the approvals it needs. Jalin runs them in order inside the single privacy invoke, credits each declared output, enforces the floor the caller set on it, and hands the deposits back to the pool."
+  },
+  {
+    "id": "04-general",
+    "url": "/compose",
+    "shot": "composer",
+    "text": "Nothing is whitelisted. Any Starknet contract is a valid target and the calldata is free form. That is what makes a bridge call, a DEX route, and a lending deposit the same object. A plan. Composition moves inside the single invoke, where the protocol allows it."
+  },
+  {
+    "id": "05-safety",
+    "url": "/compose",
+    "shot": "composer-detail",
+    "text": "Free calldata sounds unsafe, so safety is carried by invariants in Cairo rather than by a whitelist. The router holds nothing between transactions. Anything left on it is unreachable. That is why each output can be credited its whole balance instead of a measured delta, and it is one less thing to get wrong."
+  },
+  {
+    "id": "06-mainnet",
+    "url": "/verify",
+    "shot": "verify-hash",
+    "text": "This runs on Starknet mainnet against the live pool. Here is one of its transactions being checked against the chain right now. The page reads the receipt and answers four questions. Does it exist, did it succeed, did it touch the STRK20 pool, and did it run through our own contract."
+  },
+  {
+    "id": "07-hub",
+    "url": "/verify",
+    "shot": "verify-manifest",
+    "text": "It reads a whole submission too, and beside its own verdict it shows the sprint hub's. Three transactions, all counted, and the two agree. This endpoint answers for any team's repository, not just ours. Another team already took a mainnet measurement from our documentation and caught a seven day window in their own code that would have closed in three hours."
+  },
+  {
+    "id": "08-close",
+    "url": "/",
+    "shot": "hero",
+    "text": "One general router instead of a new contract per interaction. Cairo tests, a published SDK, a threat model, and every claim on this page verifiable against mainnet. Jalin. To weave separate strands into one."
+  }
+]
