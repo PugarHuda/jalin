@@ -361,6 +361,32 @@ share, that the crowd count is bounded by the deposit count, that a real mainnet
 transaction which touched the pool without going through our router does not
 qualify. A test that asserts a fixture only proves the fixture loaded.
 
+## Why three mainnet transactions and not thirty
+
+The sprint asks for three and this project lists three. That is the ceiling, not
+the effort.
+
+Every plan the router executes goes through `privacy_invoke`, and the SDK routes
+every `execute()` through a proving provider — register included, though the
+protocol itself does not require a proof there. The mainnet proving service URL
+has not been published. Six teams have asked for it on the hub and all six
+issues are open: [#121](https://github.com/starkience/strk20-hackathon/issues/121),
+[#124](https://github.com/starkience/strk20-hackathon/issues/124),
+[#135](https://github.com/starkience/strk20-hackathon/issues/135),
+[#147](https://github.com/starkience/strk20-hackathon/issues/147),
+[#204](https://github.com/starkience/strk20-hackathon/issues/204),
+[#221](https://github.com/starkience/strk20-hackathon/issues/221).
+
+`node scripts/mainnet.mjs plan` says so itself rather than failing obscurely, and
+the alternative route — a wallet implementing the STRK20 methods — answers "Not
+implemented" when the composer asks it, which the composer shows verbatim instead
+of a constant.
+
+So the steps that cannot be proven on mainnet today are exercised against a
+mainnet fork instead, with real contracts at their real addresses: the AVNU
+multi-route swap and the Endur stake run as one plan there. What could be settled
+on mainnet was, and its hashes are in `strk20.json`.
+
 ## What we found on mainnet
 
 [`docs/what-mainnet-says.md`](./docs/what-mainnet-says.md) collects the findings
