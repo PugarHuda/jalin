@@ -240,13 +240,25 @@ balance call and not the shadow-account one gets a page that says exactly that.
 | Path | What it holds |
 |---|---|
 | `contracts/` | Cairo: the router, the governor, the private ballot |
-| `sdk/` | TypeScript: plan encoding, recipes, sub-account portfolio |
+| `sdk/` | TypeScript: plan encoding, recipes, sub-account portfolio — published as [`@jalin/sdk`](./sdk/README.md) |
 | `app/` | The demo anyone can open |
 | `prover/` | Self-hosted discovery and screening services |
 | `docs/` | [Threat model](./docs/threat-model.md), [deploying](./docs/deploying.md), [cross-chain](./docs/cross-chain.md) |
 
 There is no `bridge/`. Cross-chain is not a feature of the router, it is a plan —
 which is the whole argument, and it is made in [docs/cross-chain.md](./docs/cross-chain.md).
+
+The SDK is meant to be usable without this repository:
+
+```sh
+npm install @jalin/sdk
+```
+
+What it publishes is compiled JavaScript with its own declarations, staged by
+[`scripts/publish-sdk.mjs`](./scripts/publish-sdk.mjs). The workspace itself
+still resolves the TypeScript source, because the entry a consumer needs and
+the entry the app builds against are not the same file — and the production
+build is not worth risking to ship a tarball.
 
 ## Is the mainnet code this code?
 

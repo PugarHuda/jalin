@@ -17,6 +17,9 @@ export default defineConfig([
   globalIgnores([
     'app/**',
     'node_modules/**',
+    // Build output, written by scripts/publish-sdk.mjs. Linting it lints the
+    // compiler.
+    'sdk/dist/**',
     'vendor/**',
     'contracts/target/**',
     'test-results/**',
