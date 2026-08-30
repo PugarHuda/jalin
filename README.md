@@ -367,6 +367,21 @@ qualify. A test that asserts a fixture only proves the fixture loaded.
 that came from reading the chain rather than the documentation — including the
 one that removed a feature from this SDK.
 
+They were written down for other people to use, and at least one measurement has
+been: another team took the block time from that document, checked it against the
+thirty seconds they had hardcoded, and found a seven-day campaign window that
+would really have closed in under three hours. The re-measurement that followed
+is in there too, across five sample sizes, because the first figure this project
+published was itself drawn from a sample short enough to lie.
+
+Two other things here answer for anybody, not only for this project.
+[`/api/manifest`](https://jalin-five.vercel.app/api/manifest?owner=PugarHuda&repo=jalin)
+reads any repository's `strk20.json` and says which of its hashes count and why
+one does not — a transaction that succeeded but never reached the pool is
+invisible in a block explorer unless you already know to look for it.
+[`/api/hub`](https://jalin-five.vercel.app/api/hub?repo=PugarHuda/jalin) returns
+the sprint hub's own verdict on any entry without reading a file of 174 of them.
+
 ## Status
 
 Built for the STRK20 Private Sprint, 14–31 August 2026. Deployed addresses,
