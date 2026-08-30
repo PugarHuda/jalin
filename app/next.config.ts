@@ -27,6 +27,16 @@ const nextConfig: NextConfig = {
           { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
         ],
       },
+      {
+        /**
+         * The demo video is twenty megabytes and never changes once published.
+         * Served with the default `max-age=0, must-revalidate` every seek in a
+         * player is a fresh conditional request, which is a scrub bar that
+         * stalls. Immutable, because a new cut would be a new file.
+         */
+        source: '/jalin-demo.mp4',
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }],
+      },
     ]
   },
 }
