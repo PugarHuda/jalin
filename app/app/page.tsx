@@ -549,7 +549,8 @@ export default async function Landing() {
             terminal for.
           */}
           <p className="mt-6 max-w-[62ch] border-t border-thread pt-4 font-mono text-xs text-muted">
-            129 SDK tests, 348 Playwright tests across four projects, and 44 Cairo tests, four of
+            129 SDK tests, 348 Playwright tests across six projects on three engines, and 44 Cairo
+            tests, four of
             which fork mainnet and run the router against Endur&apos;s vault and AVNU&apos;s
             exchange. The reasoning behind these six rules is in{' '}
             <a
