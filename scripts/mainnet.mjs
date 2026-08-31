@@ -126,6 +126,36 @@ async function shield(amountStrk) {
 }
 
 /**
+ * A private transfer: pool to pool, no public leg at either end.
+ *
+ * The one STRK20 operation this project had never exercised from its own code,
+ * and the sprint names it in the 30% integration criterion. It was not built
+ * because `requireProver` said no mainnet prover existed; that was wrong, so
+ * this is what the correction is for rather than a note about it.
+ *
+ * The recipient is a pool address - a registered account's public viewing key
+ * owner - not an ordinary Starknet address. Sending to an unregistered account
+ * is the one mistake here that cannot be undone, so it is checked before the
+ * proof is paid for rather than after.
+ */
+async function transfer(recipient, amountStrk) {
+  requireProver('transfer')
+  if (!recipient || !amountStrk) {
+    console.error('usage: node scripts/mainnet.mjs transfer <recipient> <amount in STRK> [--execute]')
+    process.exit(1)
+  }
+
+  const amount = BigInt(Math.round(Number(amountStrk) * 1e6)) * 10n ** 12n
+  console.log(`transferring ${amountStrk} STRK (${amount} wei) to ${recipient}`)
+
+  const { callAndProof } = await transfers
+    .build()
+    .with(STRK, (t) => t.transfer({ recipient, amount }))
+    .execute({ provingBlockId: await provingBlockId() })
+  return submit(callAndProof, 'transfer')
+}
+
+/**
  * A two-step plan through the router. Two steps rather than one on purpose: a
  * single private swap is something AVNU already does with its own anonymizer,
  * and one invoke per transaction means Jalin and that anonymizer compete for the
@@ -199,11 +229,38 @@ async function ballot(proposalId = '1') {
 
 // ---------------------------------------------------------------------------
 
-const phases = { register, shield, plan, ballot }
+const phases = { register, shield, transfer, plan, ballot }
 if (!phases[phase]) {
   console.error(`usage: node scripts/mainnet.mjs <${Object.keys(phases).join('|')}> [--execute]`)
   process.exit(1)
 }
 
 if (!EXECUTE) console.log('DRY RUN - nothing will be submitted\n')
-await phases[phase](...rest)
+
+/**
+ * The SDK's own errors, printed rather than thrown.
+ *
+ * A stack trace out of `compiler.js` is the library's failure, and every one of
+ * them here is really a statement about this account: no notes, not registered,
+ * not enough for the fee. Those are answers, and a script whose whole argument
+ * is that a failure should name its blocker cannot end in a stack.
+ */
+try {
+  await phases[phase](...rest)
+} catch (error) {
+  const message = error instanceof Error ? error.message : String(error)
+  console.error('')
+  console.error(`${phase} stopped: ${message}`)
+  console.error('')
+
+  if (/Insufficient balance/i.test(message)) {
+    console.error("That is this account's shielded balance, not its public one.")
+    console.error('Shield first:  node scripts/mainnet.mjs shield <amount> --execute')
+    console.error('The pool also charges a flat fee per private operation on top of')
+    console.error('whatever the action moves, so shield more than you mean to send.')
+  } else if (/NOT_REGISTERED/i.test(message)) {
+    console.error('This account has published no viewing key yet:')
+    console.error('  node scripts/mainnet.mjs register --execute')
+  }
+  process.exit(1)
+}
