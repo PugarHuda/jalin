@@ -205,14 +205,14 @@ interface MainnetRun {
 }
 
 const SHIELD: MainnetRun = {
-  title: 'Shield the whole run',
+  title: 'Shield',
   note: 'Moves your public STRK into the pool as an encrypted note, and everything below spends from it. It has to land before anything else will run: the wallet checks a spend against the balance you already hold, so it will not fold the two into one transaction.',
   amount: 0n,
   shieldOnly: true,
 }
 
 /**
- * What to shield so all three runs can be paid for.
+ * What to shield so the fee is covered rather than discovered.
  *
  * This used to be the constant 1 STRK, with a comment reasoning that runs 1 and
  * 2 are round trips and only the ballot's stake leaves for good. The arithmetic
@@ -232,19 +232,16 @@ function shieldAmount(poolFee: bigint): bigint {
   return poolFee * BigInt(RUNS.length + 1) + spent
 }
 
+/**
+ * One entry, and it is the only one that was ever more than a preset.
+ *
+ * Runs 1 and 2 were "Two deposits, one invoke" and "Stake on Endur" under
+ * different names - the same plans the buttons above build, sent by the same
+ * button below them. Two ways to send one transaction is one way too many, and
+ * the numbered list implied an order that the editor does not have. A ballot is
+ * not a router plan and cannot be built in the editor, so it stays.
+ */
 const RUNS: MainnetRun[] = [
-  {
-    title: 'Two steps, one invoke',
-    note: 'Two calls inside the one invoke the pool allows. Nothing leaves — the whole balance is credited straight back into a note — so this costs you the pool fee and nothing else.',
-    amount: ONE / 2n,
-    plan: proofOfMechanism(2),
-  },
-  {
-    title: 'Stake on Endur, privately',
-    note: 'A real deposit into Endur’s liquid staking vault. The xSTRK comes back into a shielded note, so you hold the staked position without it being linked to you.',
-    amount: ONE / 4n,
-    plan: endurStake(ONE / 4n),
-  },
   {
     title: 'Private ballot',
     note: 'A vote on whichever proposal is open. The weight of your vote is public; that it was you is not. Your stake stays escrowed until voting closes, then you redeem it with the secret this page gives you — keep that secret.',
@@ -525,12 +522,20 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
     } catch {}
   }, [account, hashes, shieldHash])
 
-  // The Endur run's floor comes from the vault rather than from a constant. A
-  // constant cannot know the share price moved, so it is either too loose to
-  // protect anything or tight enough to revert for no reason.
+  /**
+   * The vault's own price for a reference quarter of a STRK, read from
+   * `preview_deposit` rather than written down. A constant cannot know the share
+   * price moved, so it is either too loose to protect anything or tight enough
+   * to revert for no reason.
+   *
+   * It used to take its amount from the Endur run, and when that run went - it
+   * was the "Stake on Endur" preset under another name - this read silently
+   * stopped happening and the number left the page without anything saying so.
+   * The amount is stated on screen, so it is a reference rather than a claim
+   * about the plan in the editor.
+   */
   useEffect(() => {
-    const assets = RUNS.find((r) => r.plan && r.title.includes('Endur'))?.amount
-    if (!assets) return
+    const assets = ONE / 4n
 
     /**
      * Aborted on cleanup, not merely ignored.
@@ -1245,12 +1250,12 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
         argument, which builds to those runs rather than opening with them.
       */}
       <p className="mt-4 max-w-[60ch] rounded border border-strand bg-raised px-3 py-2 text-xs leading-relaxed text-muted">
-        <span className="text-cloth">First time here?</span> Start with{' '}
-        <a href="#mainnet-run" className="text-gold underline underline-offset-2">
-          the three numbered runs
-        </a>{' '}
-        below — shield once, then run them in order. The editor signs whatever you build, and
-        spending needs a shielded balance you may not hold yet.
+        <span className="text-cloth">First time here?</span> Pick a preset, read what it
+        reveals, then sign it. Spending happens from your{' '}
+        <a href="#account" className="text-gold underline underline-offset-2">
+          shielded balance
+        </a>
+        , not your public one — so shield first if you hold nothing in the pool yet.
       </p>
 
       <div className="mt-6 flex flex-wrap items-center gap-2">
@@ -1299,6 +1304,251 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
           </span>
         )}
       </div>
+
+      <section id="account" className="mt-6 scroll-mt-6 rounded border border-thread bg-raised p-5">
+        <h2 className="font-mono text-sm">This account, in the pool</h2>
+        <p className="mt-1 max-w-[62ch] text-xs text-muted">
+          What you hold inside the pool, and the two things that cannot be built in the editor
+          above: moving public STRK in, and voting.
+        </p>
+
+        {/*
+          Only for an account that has not joined the pool. Once the wallet says
+          it has, this paragraph is a step already taken, and leaving it on the
+          page made the reader parse a prerequisite that no longer applied.
+        */}
+        {!caps?.registered && !caps?.declined && (
+          <p className="mt-3 max-w-[62ch] border-t border-thread pt-3 text-xs leading-relaxed text-muted">
+            <span className="font-mono">0.</span> First time on this account? Shield any amount
+            from inside your wallet — that one transaction publishes your viewing key and
+            registers you. No dapp can do it for you; the Wallet API has no register method, and
+            skipping it gives <span className="font-mono">NOT_REGISTERED</span>. Verified in{' '}
+            <a
+              className="text-gold underline underline-offset-2"
+              href="https://voyager.online/tx/0x04816dbb3ec04d21cc5da879358e485afdbfe52a3d8f6b8bf4a678003b6e0278"
+              target="_blank"
+              rel="noreferrer"
+            >
+              0x04816dbb…0278
+            </a>
+            .
+          </p>
+        )}
+
+        {feedback(-2, 'this page')}
+
+        {connected && caps?.declined && (
+          <button
+            onClick={() => void askAgain()}
+            className="mt-3 rounded border border-strand px-3 py-1.5 text-xs hover:border-gold"
+          >
+            ask again
+          </button>
+        )}
+
+        {connected && (
+          <p className="mt-4 font-mono text-xs text-muted" data-testid="wallet-says">
+            {!caps
+              ? `${connected} is connected and has not been asked what it supports yet - the first dry run or run asks.`
+              : caps.declined
+              ? `${connected} was asked for this account's shielded balances and the request was declined. Nothing is wrong with the wallet or the account.`
+              : !caps.strk20
+              ? `${connected} does not answer wallet_strk20Balances. It said: ${caps.refusal}`
+              : !caps.registered
+              ? `${connected} supports STRK20, but this account has not joined the pool: shield once from inside the wallet and it registers you in that transaction.`
+              : `${connected} · STRK20 ${caps.versions.length ? `· Wallet API ${caps.versions.join(', ')}` : ''} · balances read from the wallet`}
+          </p>
+        )}
+
+        {caps?.registered && (
+          <div className="mt-4 border-t border-thread pt-3" data-testid="shielded">
+            <div className="flex items-baseline justify-between gap-4">
+              <span className="font-mono text-sm">In the pool, for this account</span>
+              <button
+                onClick={() => wallet && refreshBalances(wallet)}
+                className="shrink-0 rounded border border-strand px-2 py-1 text-xs hover:border-gold"
+              >
+                re-read
+              </button>
+            </div>
+            <p className="mt-1 max-w-[60ch] text-xs leading-relaxed text-muted">
+              Read from the wallet with <span className="font-mono">wallet_strk20Balances</span>.
+              The viewing key that decrypts them never left it; this page sees only the totals.
+            </p>
+            {balances.length === 0 ? (
+              <p className="mt-2 font-mono text-xs text-muted">no shielded tokens yet</p>
+            ) : (
+              <ul className="mt-2 space-y-0.5 font-mono text-xs">
+                {balances.map((entry) => (
+                  <li key={entry.token} className="flex justify-between gap-4">
+                    <span>{label(entry.token)}</span>
+                    <span>{formatUnits(BigInt(entry.balance), decimalsOf(entry.token))}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+
+        {caps?.strk20 && (
+          <div className="mt-3 border-t border-thread pt-3" data-testid="shadow">
+            <span className="font-mono text-sm">Shadow account</span>
+            <p className="mt-1 max-w-[60ch] text-xs leading-relaxed text-muted">
+              An account the wallet derives for this dapp, with no public link to your main
+              wallet. It can hold a position between transactions — a lending deposit, a vault
+              subscription — which the router cannot.
+            </p>
+            {caps.shadow ? (
+              <p className="mt-2 break-all font-mono text-xs text-gold">
+                {shadow
+                  ? `dapp ${SHADOW_DAPP} · partial commitment ${shadow}`
+                  : `dapp ${SHADOW_DAPP} · asking the wallet for the commitment…`}
+                <span className="mt-1 block font-sans text-muted">
+                  Computed inside the wallet from your identity key and this dapp&apos;s name.
+                  Nothing was sent, and it reveals no individual account.
+                </span>
+              </p>
+            ) : (
+              <p className="mt-2 break-all font-mono text-xs leading-relaxed text-warn">
+                {connected} does not answer{' '}
+                <span className="font-mono">wallet_strk20ShadowAccountCommitment</span> yet.
+                {caps.shadowRefusal ? ` It said: ${caps.shadowRefusal}` : ''}
+              </p>
+            )}
+          </div>
+        )}
+
+        <div className="mt-4 border-t border-thread py-3">
+          <div className="flex items-baseline justify-between gap-4">
+            <span className="font-mono text-sm text-muted">{shield.title}</span>
+            <button
+              onClick={() => pickWallet(-1)}
+              disabled={!ROUTER_ADDRESS || !poolFee}
+              className="shrink-0 rounded border border-strand px-3 py-1 text-xs hover:border-gold disabled:opacity-40"
+            >
+              {!poolFee
+                ? paramsFailed
+                  ? 'the pool could not be read — reload to try again'
+                  : 'reading the pool fee…'
+                : shieldHash
+                ? 'shield again'
+                : `shield · ${Number(shield.amount) / 1e18} STRK`}
+            </button>
+          </div>
+          <p className="mt-1 max-w-[60ch] text-xs leading-relaxed text-muted">{shield.note}</p>
+          {poolFee && (
+            <p className="mt-1 max-w-[60ch] font-mono text-xs leading-relaxed text-gold">
+              the pool charges {Number(poolFee) / 1e18} STRK for every private operation, read
+              from its own get_fee_amount — the shield is one, and so is every plan you sign
+              afterwards. This amount covers {RUNS.length + 1}: itself and a ballot. Shield more
+              if you mean to send more, because a second shield pays the fee twice
+            </p>
+          )}
+          {shieldHash && (
+            <a
+              className="mt-1 block break-all font-mono text-xs text-gold"
+              href={`https://voyager.online/tx/${shieldHash}`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              {shieldHash}
+            </a>
+          )}
+          {shieldHash && verdicts[shieldHash] && (
+            <p className="mt-1 text-xs text-muted">{verdicts[shieldHash]}</p>
+          )}
+          {feedback(-1, shield.title)}
+        </div>
+
+        <ol className="mt-4">
+          {RUNS.map((run, i) => (
+            <li key={run.title} className="border-t border-thread py-3">
+              <div className="flex items-baseline justify-between gap-4">
+                <span className="font-mono text-sm">
+                  {i + 1}. {run.title}
+                </span>
+                <span className="flex shrink-0 gap-2">
+                  <button
+                    onClick={() => pickWallet(i, 'simulate')}
+                    disabled={!ROUTER_ADDRESS || (run.ballot && !params?.openProposal)}
+                    title="Assembled by the wallet, not proved, not sent, not charged."
+                    className="rounded border border-strand px-3 py-1 text-xs hover:border-gold disabled:opacity-40"
+                  >
+                    dry run
+                  </button>
+                  <button
+                    onClick={() => pickWallet(i)}
+                    // A ballot with no open proposal is a transaction that reverts
+                    // after it has been paid for and proved. Offering the button
+                    // anyway would be charging somebody to find that out. A short
+                    // balance is the same shape of mistake, and the same button.
+                    disabled={
+                      !ROUTER_ADDRESS ||
+                      (run.ballot && !params?.openProposal) ||
+                      shortfall(run) !== null
+                    }
+                    className="rounded border border-strand px-3 py-1 text-xs hover:border-gold disabled:opacity-40"
+                  >
+                    {hashes[i] ? 'run again' : `run · ${Number(run.amount) / 1e18} STRK`}
+                  </button>
+                </span>
+              </div>
+              <p className="mt-1 max-w-[60ch] text-xs leading-relaxed text-muted">{run.note}</p>
+              {shortfall(run) && (
+                <p className="mt-1 max-w-[62ch] font-mono text-xs leading-relaxed text-warn">
+                  {shortfall(run)}
+                </p>
+              )}
+
+              {run.ballot &&
+                params &&
+                (params.openProposal ? (
+                  <p className="mt-1 max-w-[62ch] font-mono text-xs text-gold">
+                    voting on proposal {params.openProposal.id} · closes in{' '}
+                    {params.openProposal.blocksLeft.toLocaleString()} blocks
+                    {minutes(params.openProposal.blocksLeft)}
+                  </p>
+                ) : (
+                  <p className="mt-1 max-w-[62ch] font-mono text-xs leading-relaxed text-warn">
+                    No proposal is taking votes. Make one on the{' '}
+                    <a className="underline underline-offset-2" href="/governance">
+                      governance page
+                    </a>
+                    , then come back within the hour.
+                  </p>
+                ))}
+              {hashes[i] && (
+                <a
+                  className="mt-1 block break-all font-mono text-xs text-gold"
+                  href={`https://voyager.online/tx/${hashes[i]}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {hashes[i]}
+                </a>
+              )}
+              {hashes[i] && verdicts[hashes[i]!] && (
+                <p className="mt-1 text-xs text-muted">{verdicts[hashes[i]!]}</p>
+              )}
+              {feedback(i, `${i + 1}. ${run.title}`)}
+            </li>
+          ))}
+        </ol>
+
+        {ballotSecret && (
+          <p className="mt-3 break-all rounded border border-warn/40 bg-warn/10 p-3 font-mono text-xs text-warn">
+            Ballot secret, save it: {ballotSecret}
+            <span className="mt-1 block font-sans">
+              The only thing that redeems the stake once voting closes. It exists nowhere else —
+              not on chain, not on a server. Lose it and the stake stays in the governor for good.
+            </span>
+            <span className="mt-2 block font-sans">
+              It is a bearer instrument: redeeming publishes it in calldata, so whoever sees the
+              pending transaction first can spend it instead. Do not paste it anywhere.
+            </span>
+          </p>
+        )}
+      </section>
 
       <div className="mt-2 flex flex-wrap items-center gap-2">
         <button
@@ -1594,6 +1844,26 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
                 The deny list is a circuit breaker, not an allow list.
               </p>
             )}
+            {/*
+              The floor under an Endur step comes from `preview_deposit`, not a
+              constant. It used to hang off a numbered run; the run was the same
+              plan as a preset and went, so the number moved to the thing it was
+              always about - the plan in the editor.
+            */}
+            {quote &&
+              draft.steps.some((step) => {
+                // `BigInt` throws on the half-typed target this page exists to
+                // report rather than crash on, and a render that throws takes
+                // the error message with it. The test for that caught this.
+                const target = step.target.trim()
+                if (!/^0x[0-9a-fA-F]{1,64}$/.test(target)) return false
+                return BigInt(target) === BigInt(ENDUR_VAULT)
+              }) && (
+                <p className="mt-2 max-w-[62ch] font-mono text-xs text-gold">
+                  vault quotes {(Number(quote.shares) / 1e18).toFixed(6)} xSTRK for 0.25 STRK ·
+                  floor {(Number((quote.shares * 96n) / 100n) / 1e18).toFixed(6)}
+                </p>
+              )}
             <p className="mt-2 max-w-[60ch] text-xs text-muted">
               {draftIncomplete
                 ? 'One of the steps has no target yet — a step needs the contract it calls. To send something that already works, use the numbered runs below.'
@@ -1606,275 +1876,6 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
         </section>
       </div>
 
-      <section id="mainnet-run" className="mt-10 scroll-mt-6 rounded border border-thread bg-raised p-5">
-        <h2 className="font-mono text-sm">The mainnet run</h2>
-        <p className="mt-1 max-w-[62ch] text-xs text-muted">
-          Four things you can send from here, each a real transaction on Starknet mainnet.
-          Shield first: everything below spends from that balance, not from your public one.
-        </p>
-        {/*
-          The composite plan is the one this whole project argues for, and it is
-          the one claim with no mainnet hash behind it - it exists as a mainnet
-          fork test and as a preset, not as a transaction. It cannot be a
-          numbered run because a swap route is a quote at a block, so it has to
-          be fetched rather than written down. Pointing at it costs a sentence.
-        */}
-        <p className="mt-2 max-w-[62ch] text-xs leading-relaxed text-muted">
-          <span className="text-cloth">Swap on AVNU and stake on Endur, in one transaction.</span>{' '}
-          It has no number because the swap route is a live quote — it is fetched when you press
-          it, not written here. Press{' '}
-          <span className="text-cloth">Swap half on AVNU, stake half on Endur</span> at the top of
-          this page, wait for the route, then <span className="text-cloth">Sign and submit</span>.
-          If it comes back red, AVNU had no route that second; wait and press it again. Costs the
-          same pool fee as any run below.
-        </p>
-
-        {/*
-          Only for an account that has not joined the pool. Once the wallet says
-          it has, this paragraph is a step already taken, and leaving it on the
-          page made the reader parse a prerequisite that no longer applied.
-        */}
-        {!caps?.registered && !caps?.declined && (
-          <p className="mt-3 max-w-[62ch] border-t border-thread pt-3 text-xs leading-relaxed text-muted">
-            <span className="font-mono">0.</span> First time on this account? Shield any amount
-            from inside your wallet — that one transaction publishes your viewing key and
-            registers you. No dapp can do it for you; the Wallet API has no register method, and
-            skipping it gives <span className="font-mono">NOT_REGISTERED</span>. Verified in{' '}
-            <a
-              className="text-gold underline underline-offset-2"
-              href="https://voyager.online/tx/0x04816dbb3ec04d21cc5da879358e485afdbfe52a3d8f6b8bf4a678003b6e0278"
-              target="_blank"
-              rel="noreferrer"
-            >
-              0x04816dbb…0278
-            </a>
-            .
-          </p>
-        )}
-
-        {feedback(-2, 'this page')}
-
-        {connected && caps?.declined && (
-          <button
-            onClick={() => void askAgain()}
-            className="mt-3 rounded border border-strand px-3 py-1.5 text-xs hover:border-gold"
-          >
-            ask again
-          </button>
-        )}
-
-        {connected && (
-          <p className="mt-4 font-mono text-xs text-muted" data-testid="wallet-says">
-            {!caps
-              ? `${connected} is connected and has not been asked what it supports yet - the first dry run or run asks.`
-              : caps.declined
-              ? `${connected} was asked for this account's shielded balances and the request was declined. Nothing is wrong with the wallet or the account.`
-              : !caps.strk20
-              ? `${connected} does not answer wallet_strk20Balances. It said: ${caps.refusal}`
-              : !caps.registered
-              ? `${connected} supports STRK20, but this account has not joined the pool: shield once from inside the wallet and it registers you in that transaction.`
-              : `${connected} · STRK20 ${caps.versions.length ? `· Wallet API ${caps.versions.join(', ')}` : ''} · balances read from the wallet`}
-          </p>
-        )}
-
-        {caps?.registered && (
-          <div className="mt-4 border-t border-thread pt-3" data-testid="shielded">
-            <div className="flex items-baseline justify-between gap-4">
-              <span className="font-mono text-sm">In the pool, for this account</span>
-              <button
-                onClick={() => wallet && refreshBalances(wallet)}
-                className="shrink-0 rounded border border-strand px-2 py-1 text-xs hover:border-gold"
-              >
-                re-read
-              </button>
-            </div>
-            <p className="mt-1 max-w-[60ch] text-xs leading-relaxed text-muted">
-              Read from the wallet with <span className="font-mono">wallet_strk20Balances</span>.
-              The viewing key that decrypts them never left it; this page sees only the totals.
-            </p>
-            {balances.length === 0 ? (
-              <p className="mt-2 font-mono text-xs text-muted">no shielded tokens yet</p>
-            ) : (
-              <ul className="mt-2 space-y-0.5 font-mono text-xs">
-                {balances.map((entry) => (
-                  <li key={entry.token} className="flex justify-between gap-4">
-                    <span>{label(entry.token)}</span>
-                    <span>{formatUnits(BigInt(entry.balance), decimalsOf(entry.token))}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        )}
-
-        {caps?.strk20 && (
-          <div className="mt-3 border-t border-thread pt-3" data-testid="shadow">
-            <span className="font-mono text-sm">Shadow account</span>
-            <p className="mt-1 max-w-[60ch] text-xs leading-relaxed text-muted">
-              An account the wallet derives for this dapp, with no public link to your main
-              wallet. It can hold a position between transactions — a lending deposit, a vault
-              subscription — which the router cannot.
-            </p>
-            {caps.shadow ? (
-              <p className="mt-2 break-all font-mono text-xs text-gold">
-                {shadow
-                  ? `dapp ${SHADOW_DAPP} · partial commitment ${shadow}`
-                  : `dapp ${SHADOW_DAPP} · asking the wallet for the commitment…`}
-                <span className="mt-1 block font-sans text-muted">
-                  Computed inside the wallet from your identity key and this dapp&apos;s name.
-                  Nothing was sent, and it reveals no individual account.
-                </span>
-              </p>
-            ) : (
-              <p className="mt-2 break-all font-mono text-xs leading-relaxed text-warn">
-                {connected} does not answer{' '}
-                <span className="font-mono">wallet_strk20ShadowAccountCommitment</span> yet.
-                {caps.shadowRefusal ? ` It said: ${caps.shadowRefusal}` : ''}
-              </p>
-            )}
-          </div>
-        )}
-
-        <div className="mt-4 border-t border-thread py-3">
-          <div className="flex items-baseline justify-between gap-4">
-            <span className="font-mono text-sm text-muted">{shield.title}</span>
-            <button
-              onClick={() => pickWallet(-1)}
-              disabled={!ROUTER_ADDRESS || !poolFee}
-              className="shrink-0 rounded border border-strand px-3 py-1 text-xs hover:border-gold disabled:opacity-40"
-            >
-              {!poolFee
-                ? paramsFailed
-                  ? 'the pool could not be read — reload to try again'
-                  : 'reading the pool fee…'
-                : shieldHash
-                ? 'shield again'
-                : `shield · ${Number(shield.amount) / 1e18} STRK`}
-            </button>
-          </div>
-          <p className="mt-1 max-w-[60ch] text-xs leading-relaxed text-muted">{shield.note}</p>
-          {poolFee && (
-            <p className="mt-1 max-w-[60ch] font-mono text-xs leading-relaxed text-gold">
-              the pool charges {Number(poolFee) / 1e18} STRK for every private operation, read
-              from its own get_fee_amount. This one shield pays for{' '}
-              {RUNS.length + 1} of them — itself and the three runs — so{' '}
-              {Number(poolFee * BigInt(RUNS.length + 1)) / 1e18} STRK of it is fee and{' '}
-              {Number(shield.amount - poolFee * BigInt(RUNS.length + 1)) / 1e18} is what the runs
-              actually move
-            </p>
-          )}
-          {shieldHash && (
-            <a
-              className="mt-1 block break-all font-mono text-xs text-gold"
-              href={`https://voyager.online/tx/${shieldHash}`}
-              target="_blank"
-              rel="noreferrer"
-            >
-              {shieldHash}
-            </a>
-          )}
-          {shieldHash && verdicts[shieldHash] && (
-            <p className="mt-1 text-xs text-muted">{verdicts[shieldHash]}</p>
-          )}
-          {feedback(-1, shield.title)}
-        </div>
-
-        <ol className="mt-4">
-          {RUNS.map((run, i) => (
-            <li key={run.title} className="border-t border-thread py-3">
-              <div className="flex items-baseline justify-between gap-4">
-                <span className="font-mono text-sm">
-                  {i + 1}. {run.title}
-                </span>
-                <span className="flex shrink-0 gap-2">
-                  <button
-                    onClick={() => pickWallet(i, 'simulate')}
-                    disabled={!ROUTER_ADDRESS || (run.ballot && !params?.openProposal)}
-                    title="Assembled by the wallet, not proved, not sent, not charged."
-                    className="rounded border border-strand px-3 py-1 text-xs hover:border-gold disabled:opacity-40"
-                  >
-                    dry run
-                  </button>
-                  <button
-                    onClick={() => pickWallet(i)}
-                    // A ballot with no open proposal is a transaction that reverts
-                    // after it has been paid for and proved. Offering the button
-                    // anyway would be charging somebody to find that out. A short
-                    // balance is the same shape of mistake, and the same button.
-                    disabled={
-                      !ROUTER_ADDRESS ||
-                      (run.ballot && !params?.openProposal) ||
-                      shortfall(run) !== null
-                    }
-                    className="rounded border border-strand px-3 py-1 text-xs hover:border-gold disabled:opacity-40"
-                  >
-                    {hashes[i] ? 'run again' : `run · ${Number(run.amount) / 1e18} STRK`}
-                  </button>
-                </span>
-              </div>
-              <p className="mt-1 max-w-[60ch] text-xs leading-relaxed text-muted">{run.note}</p>
-              {shortfall(run) && (
-                <p className="mt-1 max-w-[62ch] font-mono text-xs leading-relaxed text-warn">
-                  {shortfall(run)}
-                </p>
-              )}
-
-              {run.ballot &&
-                params &&
-                (params.openProposal ? (
-                  <p className="mt-1 max-w-[62ch] font-mono text-xs text-gold">
-                    voting on proposal {params.openProposal.id} · closes in{' '}
-                    {params.openProposal.blocksLeft.toLocaleString()} blocks
-                    {minutes(params.openProposal.blocksLeft)}
-                  </p>
-                ) : (
-                  <p className="mt-1 max-w-[62ch] font-mono text-xs leading-relaxed text-warn">
-                    No proposal is taking votes. Make one on the{' '}
-                    <a className="underline underline-offset-2" href="/governance">
-                      governance page
-                    </a>
-                    , then come back within the hour.
-                  </p>
-                ))}
-              {run.title.includes('Endur') && quote && (
-                <p className="mt-1 max-w-[62ch] font-mono text-xs text-gold">
-                  vault quotes {(Number(quote.shares) / 1e18).toFixed(6)} xSTRK for{' '}
-                  {Number(run.amount) / 1e18} STRK · floor{' '}
-                  {(Number((quote.shares * 96n) / 100n) / 1e18).toFixed(6)}
-                </p>
-              )}
-              {hashes[i] && (
-                <a
-                  className="mt-1 block break-all font-mono text-xs text-gold"
-                  href={`https://voyager.online/tx/${hashes[i]}`}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  {hashes[i]}
-                </a>
-              )}
-              {hashes[i] && verdicts[hashes[i]!] && (
-                <p className="mt-1 text-xs text-muted">{verdicts[hashes[i]!]}</p>
-              )}
-              {feedback(i, `${i + 1}. ${run.title}`)}
-            </li>
-          ))}
-        </ol>
-
-        {ballotSecret && (
-          <p className="mt-3 break-all rounded border border-warn/40 bg-warn/10 p-3 font-mono text-xs text-warn">
-            Ballot secret, save it: {ballotSecret}
-            <span className="mt-1 block font-sans">
-              The only thing that redeems the stake once voting closes. It exists nowhere else —
-              not on chain, not on a server. Lose it and the stake stays in the governor for good.
-            </span>
-            <span className="mt-2 block font-sans">
-              It is a bearer instrument: redeeming publishes it in calldata, so whoever sees the
-              pending transaction first can spend it instead. Do not paste it anywhere.
-            </span>
-          </p>
-        )}
-      </section>
 
       <footer className="mt-12 max-w-[62ch] border-t border-thread pt-6 text-xs text-muted">
         <a className="text-gold underline underline-offset-2" href="https://github.com/PugarHuda/jalin">

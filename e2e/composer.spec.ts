@@ -97,18 +97,22 @@ test.describe('composer', () => {
   test('the run buttons are live because the router is deployed', async ({ page }) => {
     await expect(page.getByRole('button', { name: /^shield · / })).toBeEnabled()
 
+    /**
+     * One, not three. Runs 1 and 2 were the "Two deposits, one invoke" and
+     * "Stake on Endur" presets under other names - the same plans the editor
+     * sends - so they went and the ballot stayed, because a ballot is not a
+     * router plan and cannot be built in the editor.
+     */
     const runs = page.getByRole('button', { name: /^run · / })
-    await expect(runs).toHaveCount(3)
+    await expect(runs).toHaveCount(1)
 
     /**
-     * The first two only need the router, which is deployed. The third needs a
-     * proposal taking votes, which is a property of the chain right now rather
-     * than of the deployment - so it has its own tests and is not asserted
-     * here. This test claimed all three and was right until the ballot stopped
-     * pointing at a vote that had closed.
+     * Whether that one is enabled is not asserted here. It is the ballot, and a
+     * ballot needs a proposal taking votes - a property of the chain right now
+     * rather than of the deployment. It has its own two tests below, which is
+     * where that belongs; this one is about the router being live, and the
+     * shield button above answers that.
      */
-    await expect(runs.nth(0)).toBeEnabled()
-    await expect(runs.nth(1)).toBeEnabled()
   })
 
   test('the shield covers the pool fee on every operation it pays for', async ({ page }) => {
