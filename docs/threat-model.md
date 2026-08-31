@@ -201,10 +201,37 @@ whose effective anonymity set is 1.00. The composer says so for your specific
 amount before you sign, because a privacy tool that lets you believe otherwise is
 worse than none.
 
-**Governance capture.** Ballot weight is stake routed through the pool. Enough stake
-buys a fee change or a deny-list entry, bounded by the timelock and by `fee_bps`
-being capped at 1000 (10%) in the contract regardless of what a vote says. The
-router cannot be pointed at a different governor after deployment.
+**Governance capture, and a defect in how weight is counted.** The intent is that
+ballot weight is stake routed through the pool, so enough stake buys a fee change
+or a deny-list entry, bounded by the timelock and by `fee_bps` being capped at
+1000 (10%) in the contract regardless of what a vote says. The router cannot be
+pointed at a different governor after deployment.
+
+The deployed governor does not enforce that intent, and this document said it did
+until 31 August. `cast` (`contracts/src/governor.cairo:229`) takes `amount: u128`
+straight off the `privacy_invoke` calldata and credits it to the tally; the string
+`balance_of` does not appear in `governor.cairo` at all. The router, in the same
+repository and the same week, does the opposite — `router.cairo:145` reads
+`erc20.balance_of(self)` and never trusts a caller-supplied figure. So the
+discipline this project argues for is applied in one contract and missing from
+the other.
+
+The consequence is worse than a miscount. `redeem` approves the pool for
+`ballot.amount` and returns an `OpenNoteDeposit` of that amount, so a ballot cast
+with weight that was never escrowed can be redeemed against whatever the governor
+does hold — which is other voters' stake.
+
+Why nothing is at risk today: the governor has emitted no `BallotCast` event in
+its history and holds no ballot token, so there is no tally to capture and
+nothing to take. The defect is real, reachable in principle, and currently
+unexploitable for profit because the escrow is empty.
+
+The fix is the shape Aperture's anonymizer already uses: keep an `outstanding`
+total, assert `balance_of(self) >= outstanding + amount` on cast, and decrement
+it on redeem. It is not in this repository, because the Cairo toolchain could not
+be run on the machine this was found on and shipping an unverified change to a
+contract that holds funds is worse than shipping a disclosed one. Treat the
+governance path as unaudited and unfunded rather than as protected.
 
 ## What the app reaches out to, and what the edge is allowed to keep
 

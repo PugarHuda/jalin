@@ -281,7 +281,7 @@ missing:
 |---|---|
 | Shielded notes | Every plan output is credited straight back into one, above a floor the caller sets |
 | `privacy_invoke` | The router *is* a helper the pool calls; the plan executes inside that single invoke |
-| Anonymizer contract | `contracts/` — the router, a governor and a private ballot, in Cairo, on mainnet |
+| Anonymizer contract | `contracts/` — the router, a governor and a private ballot, in Cairo. The router is exercised by every listed transaction; the ballot path is deployed but has never been cast, and its weight accounting has a disclosed defect ([threat model](./docs/threat-model.md)) |
 | Privacy SDK | Built from source into `vendor/` by [`scripts/build-privacy-sdk.sh`](./scripts/build-privacy-sdk.sh) and used by [`scripts/mainnet.mjs`](./scripts/mainnet.mjs) |
 | Proving and discovery | Self-hosted: the official discovery service and proof interceptor run from [`prover/`](./prover/) |
 | Shadow accounts | Asked of the wallet at runtime and shown verbatim, including the refusal — the SDK route needs a mainnet proving URL that is not published |

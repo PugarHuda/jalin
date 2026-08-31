@@ -246,6 +246,14 @@ struct Step {
             the whole of the safety argument, and nobody outside this project has checked them.
           </li>
           <li className="border-t border-thread pt-2">
+            <span className="text-cloth">The governor counts ballot weight it never measures.</span>{' '}
+            The router reads <span className="font-mono">balance_of</span> and trusts nothing;
+            the governor takes the weight off calldata. Same repository, same week, and the
+            discipline is only in one of them. No ballot has ever been cast and the escrow is
+            empty, so nothing is at risk today — but it is a defect, it is written up in the
+            threat model, and the fix is not deployed.
+          </li>
+          <li className="border-t border-thread pt-2">
             <span className="text-cloth">It does not beat a venue&apos;s own anonymizer at that
             venue&apos;s own job.</span>{' '}
             A single swap is better done on AVNU or Ekubo directly. Jalin is for the plan that

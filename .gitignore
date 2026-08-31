@@ -34,3 +34,11 @@ contracts/snfoundry_trace/
 
 # built SDK, produced by npm run build -w jalin-sdk on publish
 sdk/dist/
+
+# Demo video intermediates. The finished film ships from app/public; the clips,
+# the per-scene audio and the ffmpeg build directory are 69 MB of things that
+# regenerate from tts.py, record-demo.mjs and compose.py in that order.
+scripts/demo-video/audio/
+scripts/demo-video/build/
+scripts/demo-video/clips/
+scripts/demo-video/jalin-demo.mp4
