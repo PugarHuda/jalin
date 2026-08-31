@@ -66,6 +66,7 @@ export function Wordmark({ home = false }: { home?: boolean }) {
 const DESTINATIONS = [
   { key: 'home', href: '/', label: 'what this is' },
   { key: 'compose', href: '/compose', label: 'composer' },
+  { key: 'slides', href: '/slides', label: 'slides' },
   { key: 'verify', href: '/verify', label: 'verify' },
   { key: 'governance', href: '/governance', label: 'governance' },
 ] as const

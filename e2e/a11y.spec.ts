@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { settled } from './settled'
 
-for (const path of ['/', '/compose', '/verify', '/governance']) {
+for (const path of ['/', '/compose', '/verify', '/governance', '/slides']) {
   test(`${path} shows where the keyboard is`, async ({ page }) => {
     await page.goto(path)
     await settled(page)
@@ -110,7 +110,7 @@ for (const path of ['/', '/compose', '/verify', '/governance']) {
  * measurement. The replacement reads the palette off the live page and puts
  * every pair through the WCAG formula, worst case included.
  */
-for (const path of ['/', '/compose', '/verify', '/governance']) {
+for (const path of ['/', '/compose', '/verify', '/governance', '/slides']) {
   test(`${path} passes axe at WCAG 2.1 AA`, async ({ page }) => {
     // axe injects and walks the whole tree. On a machine running three engines
     // at once that overran the default budget on Firefox, which is a fact about
