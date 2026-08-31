@@ -67,7 +67,11 @@ const exported = Object.keys(await import(entry))
 if (exported.length === 0) throw new Error('the staged package exports nothing')
 console.log(`\nstaged ${stage}\n${exported.length} exports resolve from the built entry`)
 
-run('npm', process.argv.includes('--publish') ? ['publish'] : ['pack', '--dry-run'], stage)
+// An account with two-factor authentication asks for a one-time code at publish
+// time, and there is no prompt to answer it from here: pass --otp=123456 through.
+const otp = process.argv.find((a) => a.startsWith('--otp='))
+const publishArgs = otp ? ['publish', otp] : ['publish']
+run('npm', process.argv.includes('--publish') ? publishArgs : ['pack', '--dry-run'], stage)
 
 if (!process.argv.includes('--publish')) {
   console.log('\nDry run. To publish, authenticate first.')
