@@ -414,9 +414,42 @@ published. Six teams have open issues asking for it:
 [#147](https://github.com/starkience/strk20-hackathon/issues/147),
 [#204](https://github.com/starkience/strk20-hackathon/issues/204),
 [#221](https://github.com/starkience/strk20-hackathon/issues/221). The script
-says so plainly rather than failing obscurely. The prover binary is not in the
-public monorepo either, though nothing stops a team from operating a proving
-service of its own, and at least one in this sprint did.
+says so plainly rather than failing obscurely.
+
+**Those six issues ask for the wrong artifact.** There is no hosted mainnet
+endpoint and StarkWare's own demo ships `TODO_MAINNET_PROVER_URL`, but the prover
+is public and has been all along — just not in the repository everyone was
+searching:
+
+```sh
+docker run --rm -p 3000:3000   -e RPC_URL=<a mainnet RPC on JSON-RPC spec 0.10> -e CHAIN_ID=SN_MAIN   ghcr.io/starkware-libs/starknet-privacy/transaction-prover:PRIVACY-0.14.3-RC.2
+```
+
+Then `provingProvider: { url: 'http://localhost:3000' }`. The image is
+anonymously pullable — an unauthenticated `ghcr.io/token` request returns a
+token and the tag list answers. The source is
+`crates/starknet_transaction_prover/` in `starkware-libs/sequencer`, not in
+`starkware-libs/starknet-privacy`, which is why looking there finds nothing.
+
+It is not free, and it does not run everywhere. Upstream recommends 48 vCPU and
+96 GB; one team in this sprint ran it on 32 GB at about fifty seconds a proof.
+The published build also carries an undisclosed `-C target-cpu`, and on the
+machine this was written on — a 12th-generation Core i3-12100F, where AVX-512 is
+fused off — the container dies immediately:
+
+```
+docker run … transaction-prover:PRIVACY-0.14.3-RC.2
+Exited (132)          # SIGILL, no log output at all
+```
+
+The escape is a portable rebuild from
+`crates/starknet_transaction_prover/Dockerfile` in `starkware-libs/sequencer`
+with `TARGET_CPU=""`, which is a nightly-Rust build of the sequencer workspace
+and not a ten-minute job.
+
+So the count here is three rather than thirty because that cost was not paid. A
+decision, and now a documented one — with the part that is genuinely blocked
+named separately below.
 
 That gap is why scripted, repeatable runs are not part of this repository, and
 why the steps that need one — the AVNU multi-route swap beside the Endur stake,
