@@ -208,16 +208,32 @@ test.describe('composer', () => {
    * The alternative was to stop handing the signal to `fetch`, and the comment
    * beside those effects records why that is not better: without it WebKit logs
    * the abandoned fetch on navigation instead. It logs either way, so the
-   * assertion is what has to learn the difference. Matched narrowly - the origin
-   * must be ours - so a real access-control failure against somebody else's host
-   * still fails this test.
+   * assertion is what has to learn the difference.
+   *
+   * Not only our own reads. Adding /slides to the header gave Next a fourth link
+   * to prefetch, and a preset click cancels those too - the first version of this
+   * filter matched `/api/` and missed `/?_rsc=`, `/slides?_rsc=` and the rest,
+   * which is how it passed in isolation and failed in a full run. The origin is
+   * what has to match, not the path: a real access-control failure against
+   * somebody else's host still fails this test.
    */
-  const CANCELLED_IN_WEBKIT = /^Fetch API cannot load http:\s*\/\/?127\.0\.0\.1:\d+\/api\/.* due to access control checks\.$/
+  /**
+   * Matched on its ends rather than with a pattern over the whole line. The
+   * first attempt was a regex and it never fired: the runs that passed were the
+   * runs where nothing happened to be in flight, which read as a fix for two
+   * rounds. Whatever WebKit puts between "load" and the host does not survive
+   * being guessed at, so this checks the two stable ends and requires our own
+   * host in the middle.
+   */
+  const cancelledSameOrigin = (text: string) =>
+    text.startsWith('Fetch API cannot load') &&
+    text.endsWith('due to access control checks.') &&
+    (text.includes('127.0.0.1:') || text.includes('localhost:'))
 
   test('renders without a console error', async ({ page }) => {
     const errors: string[] = []
     page.on('console', (m) => {
-      if (m.type() === 'error' && !CANCELLED_IN_WEBKIT.test(m.text())) errors.push(m.text())
+      if (m.type() === 'error' && !cancelledSameOrigin(m.text())) errors.push(m.text())
     })
     page.on('pageerror', (e) => errors.push(String(e)))
 
