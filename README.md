@@ -269,10 +269,16 @@ something that only works on a laptop is a demo of nothing.
 There is no `bridge/`. Cross-chain is not a feature of the router, it is a plan —
 which is the whole argument, and it is made in [docs/cross-chain.md](./docs/cross-chain.md).
 
-The SDK is packaged to be used without this repository. It is **not published
-yet**: until it is, `jalin-sdk` is an unclaimed name on the registry and nobody
-should install it by name — take it from this repository instead. Claiming the
-name is the first thing the publish below does. What ships is compiled
+The SDK is published, so it can be used without this repository:
+
+```sh
+npm install jalin-sdk
+```
+
+Verified the way a stranger would: installed from the registry into an empty
+directory, imported, and typechecked under both `bundler` and `NodeNext`
+resolution with `skipLibCheck` off. Thirty-eight exports resolve, and a plan
+encodes to felts. What ships is compiled
 JavaScript with its own declarations, staged by
 [`scripts/publish-sdk.mjs`](./scripts/publish-sdk.mjs), which builds the tarball
 and imports its entry point before packing — a package nobody imported is a

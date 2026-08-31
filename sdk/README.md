@@ -18,11 +18,6 @@ the router's limits before you spend gas, and encodes them as calldata.
 npm install jalin-sdk
 ```
 
-> **Not on the registry yet.** Until this package is published, `jalin-sdk` is an
-> unclaimed name, and installing it would fetch whatever anyone else has put
-> there. Use it from the repository — `npm install github:PugarHuda/jalin` — or
-> wait for the published version.
-
 ## Building a plan
 
 ```js
