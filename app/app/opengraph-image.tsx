@@ -15,11 +15,11 @@ export const alt = 'Jalin — a programmable execution router for the STRK20 shi
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 
-const GROUND = '#101423'
-const WARP = '#2f3a5c'
-const WEFT = '#c9a227'
-const CLOTH = '#e6e2d8'
-const MUTED = '#8b93ad'
+const GROUND = '#0b0e0d'
+const WARP = '#26302c'
+const WEFT = '#e0a53c'
+const CLOTH = '#e9ece7'
+const MUTED = '#9aa8a0'
 
 const BANDS = 5
 const THICK = 48

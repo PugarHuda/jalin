@@ -1,6 +1,8 @@
 /** Where this is served. One place, so robots, sitemap and metadata agree. */
 export const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://jalin-five.vercel.app'
 
+export const REPO = 'https://github.com/PugarHuda/jalin'
+
 /**
  * Proposal kinds, in the order the governor numbers them - index is the `kind`
  * felt, matching `types::kinds` in the contract.

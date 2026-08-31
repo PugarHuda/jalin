@@ -1,41 +1,40 @@
 ---
 name: Jalin
-description: A programmable execution router for the STRK20 shielded pool — weaving a plan inside one invoke.
+description: A programmable execution router for the STRK20 shielded pool — a plan routed through the one invoke the protocol allows.
 colors:
-  ground: "#101423"
-  raised: "#171d31"
-  thread: "#2a3350"
-  strand: "#5a67a0"
-  cloth: "#e6e2d8"
-  muted: "#8b93ad"
-  gold: "#c9a227"
-  hidden: "#6fbf9a"
-  warn: "#d4674f"
+  ground: "#0b0e0d"
+  raised: "#131816"
+  thread: "#26302c"
+  strand: "#7d9287"
+  cloth: "#e9ece7"
+  muted: "#9aa8a0"
+  gold: "#e0a53c"
+  hidden: "#3fae74"
+  warn: "#e2694a"
 typography:
   display:
-    fontFamily: "Bricolage Grotesque, ui-sans-serif, system-ui, sans-serif"
+    fontFamily: "Archivo, ui-sans-serif, system-ui, sans-serif"
     fontSize: "clamp(2.25rem, 6vw, 3.75rem)"
     fontWeight: 800
     lineHeight: 1.05
     letterSpacing: "-0.025em"
   headline:
-    fontFamily: "Bricolage Grotesque, ui-sans-serif, system-ui, sans-serif"
-    fontSize: "1.875rem"
+    fontFamily: "Archivo, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "1.5rem"
     fontWeight: 600
     lineHeight: 1.2
-    letterSpacing: "-0.025em"
   title:
-    fontFamily: "Bricolage Grotesque, ui-sans-serif, system-ui, sans-serif"
+    fontFamily: "Archivo, ui-sans-serif, system-ui, sans-serif"
     fontSize: "1.25rem"
     fontWeight: 600
     lineHeight: 1.3
   body:
-    fontFamily: "IBM Plex Sans, ui-sans-serif, system-ui, sans-serif"
+    fontFamily: "Archivo, ui-sans-serif, system-ui, sans-serif"
     fontSize: "0.875rem"
     fontWeight: 400
     lineHeight: 1.625
   label:
-    fontFamily: "IBM Plex Mono, ui-monospace, monospace"
+    fontFamily: "Azeret Mono, ui-monospace, monospace"
     fontSize: "0.75rem"
     fontWeight: 400
     lineHeight: 1.5
@@ -54,7 +53,7 @@ components:
     textColor: "{colors.ground}"
     typography: "{typography.body}"
     rounded: "{rounded.sm}"
-    padding: "8px 16px"
+    padding: "12px 20px"
   button-secondary:
     backgroundColor: "transparent"
     textColor: "{colors.cloth}"
@@ -71,210 +70,240 @@ components:
     backgroundColor: "transparent"
     textColor: "{colors.muted}"
     typography: "{typography.label}"
-    padding: "0"
+    padding: "10px 4px"
 ---
 
 # Design System: Jalin
 
 ## Overview
 
-**Creative North Star: "The Loom at Night"**
+**Creative North Star: "The Gerber Set"**
 
-A weaver's workshop after dark. The ground is indigo — tarum dye, not a crypto
-template's navy — and across it run fixed vertical threads, faint, the warp the
-whole page is woven on. Content sits on that warp in thin strands of a lighter
-indigo; one thread of songket gold runs through the whole cloth and is spent
-only where value passes: the primary action, the `privacy_invoke` line in the
-hero, a hash that landed. Everything else is cloth-coloured text on the dark,
-set in a grotesque that reads as assembled rather than drawn, with an
-engineering mono for anything that is data.
+The file family a circuit board is manufactured from: copper layers, solder
+mask, silkscreen legend, drill table, board outline. Not a board glowing in a
+stock photograph — the *fabrication drawing*, where nothing exists until it is
+dimensioned, designated and tabulated.
 
-The register is a craftsman's precision, not a product's shine. Surfaces are
-flat; depth is a hairline, never a shadow. The name means *to weave separate
-strands into one*, and the protocol constraint the product exists for — one
-invoke per transaction — has the same shape, so the mark, the hero diagram and
-the vocabulary all draw the same figure: strands entering apart and leaving as
-one. The one confirmed rejection: nothing that reads as a category default —
-no kicker over a heading, no card inside a card, no gradient text, no glass.
+The mechanism chose it. A board's whole job is routing many signals across one
+substrate, which is Jalin's sentence in another material: many calls through
+the one invoke the pool allows. The product's pinned figure survives the change
+of world rather than fighting it — the strands of the mark are conductors, and
+the trunk they converge into is the `privacy_invoke` trace.
 
-**Key Characteristics:**
-- Indigo ground with a fixed vertical warp; content woven across it in hairlines
-- One gold thread, spent only on value and action
+Gold stopped being a brand accent. An immersion-gold pad is the place electrical
+contact is actually made, so spending gold only where value lands is a
+fabrication fact rather than a style rule: the primary action, a hash that
+landed, the trunk trace. Mask green is what is covered, which is what the pool
+does. Rework red is what would fail.
+
+The register is a drawing released to a fab house: every figure dimensioned,
+every absence deliberate. Flat surfaces, hairline rules, no shadows.
+
+**This replaced "The Loom at Night"** — indigo and songket gold — on 2026-08-31,
+at the user's instruction, through a full direction round. The previous world
+was not failing: a dual-agent critique scored the page 21/36 and found the visual
+identity its strongest dimension. It was replaced because the user asked for a
+replacement, and the reasons the score was low (evidence not surfaced, the fold,
+silent failure states, mobile diagrams) were fixed in the same pass rather than
+by the change of world.
+
+**Key characteristics:**
+- Matte solder-mask ground with a 0.1-inch drill grid behind everything
+- Gold only where contact is made; never to index, rank or decorate
 - Flat surfaces, hairline rules for structure, no shadows anywhere
-- Grotesque display, Plex Sans body, Plex Mono for every number, address and felt
-- Green for what is hidden, gold for what is visible, red-clay for what would fail
-- Only self-drawn SVG: the strand mark, the weave, the anonymity chart
+- One lettering system: Archivo for the legend, Azeret Mono for every figure
+- Tabular numerals by default, because a drill table that does not align is not a table
+- Green for what is covered, gold for what is contacted, rework red for what would fail
+- Only self-drawn SVG: the mark, the weave, the anonymity chart
 
 ## Colors
 
-Two indigos and two threads for structure, one cloth for reading, one gold for
-value, and three colours that mean something.
+Two mask tones and two conductor tones for structure, one legend white for
+reading, one gold for contact, and two colours that mean something.
 
 ### Primary
-- **Songket Gold** (#c9a227): the one thread. Primary buttons, the
-  `privacy_invoke` line, a landed hash, the focus ring, text selection. Its
-  rarity is the point.
+- **Immersion Gold** (#e0a53c): the pad. Primary buttons, the `privacy_invoke`
+  trace, the marker beside a hash that landed, the focus ring, text selection.
+  Its rarity is the point, and it is never an ordinal or an index.
 
 ### Neutral
-- **Tarum Ground** (#101423): the page. Every page, every state; there is no
-  light mode and no reason for one at a loom after dark.
-- **Raised Indigo** (#171d31): the surface a form or a section sits on. One
-  step up, never two.
-- **Thread** (#2a3350): the hairline. Rules between sections, dividers in a
-  list, the warp behind the page at 55% strength.
-- **Strand** (#5a67a0): the thread you are meant to see. Control edges (3.6:1
-  on the ground), the weave diagram, the scrollbar thumb.
-- **Cloth** (#e6e2d8): text. Warm, not white; it is the fabric the gold runs
-  through.
-- **Muted Cloth** (#8b93ad): secondary text, notes, labels. Tinted from the
-  indigo, never plain grey.
+- **Solder Mask** (#0b0e0d): the page. Every page, every state. Dark is not a
+  default here: the scene is a builder reading a trace at night and a judge on a
+  laptop between two other submissions, and the drawing is legible in both.
+- **Mask Over Pour** (#131816): the surface a form or a section sits on. One step
+  up, never two.
+- **Dimension Line** (#26302c): the hairline. Rules between sections, dividers,
+  and the drill grid behind the page at 55% strength.
+- **Exposed Trace** (#7d9287): the conductor you are meant to follow. Control
+  edges (5.85:1 on the mask), the weave, the scrollbar thumb.
+- **Legend White** (#e9ece7): text. Silkscreen, not paper white.
+- **Legend Grey** (#9aa8a0): secondary text, notes, labels. Tinted from the mask,
+  never plain grey.
 
 ### Semantic
-- **Hidden Green** (#6fbf9a): what the pool conceals, a transaction that
-  qualifies, a connected wallet's dot.
-- **Songket Gold** (#c9a227): doubles as *visible* — what a plan reveals, what
-  is public. The same colour as action, deliberately: what you do is what is
-  seen.
-- **Red Clay** (#d4674f): what would fail — a shortfall, a refusal, a warning
-  the wallet gave. Text colour only; the tinted box it used to sit in is gone.
+- **Mask Green** (#3fae74): what the pool conceals, a transaction that qualifies,
+  a connected wallet.
+- **Immersion Gold** (#e0a53c): doubles as *visible* — what a plan reveals. The
+  same colour as action, deliberately: what you do is what is seen.
+- **Rework Red** (#e2694a): what would fail — a shortfall, a refusal, a read that
+  did not come back. Text colour only.
+
+Every pair that occurs on the page is computed against WCAG AA by
+`e2e/contrast.spec.ts`, which reads the tokens off the live document rather than
+a copy of them. The tightest pair that ships is rework red on a grid dot at 4.96.
 
 ### Named Rules
-**The One Thread Rule.** Gold appears on at most one control and a handful of
-data points per viewport. If two things on a screen are gold, one of them is
-wrong.
+**The Pad Rule.** Gold appears on at most one control and a handful of data
+points per viewport, and only where value or contact actually lands. An ordinal,
+a bullet or a section number is never gold. If two things on a screen are gold
+and neither is the action, one of them is wrong.
 
-**The Meaning Rule.** Green, gold and red-clay carry meaning (hidden, visible,
-would fail) and are never used decoratively.
+**The Meaning Rule.** Green, gold and rework red carry meaning (covered,
+contacted, would fail) and are never used decoratively.
+
+**The Absent Slot Rule.** A value that could not be read renders as an em-dash in
+its own slot, with a rework-red line naming the read that failed. Nothing is
+deleted for being unavailable: a reader cannot tell a product with no evidence
+from a page whose evidence did not load.
 
 ## Typography
 
-**Display Font:** Bricolage Grotesque (with ui-sans-serif, system-ui)
-**Body Font:** IBM Plex Sans (with ui-sans-serif, system-ui)
-**Label/Mono Font:** IBM Plex Mono (with ui-monospace)
+**Legend:** Archivo (with ui-sans-serif, system-ui) — display, headings and body.
+**Drill table:** Azeret Mono (with ui-monospace) — every address, amount, block,
+hash, felt and verdict.
 
-**Character:** Bricolage reads as assembled rather than drawn — the right voice
-for a product whose whole idea is composition. Plex carries the engineering
-register underneath it: sober, legible, made for numbers.
+**Character:** a fabrication drawing letters everything in one system, so this
+world runs one family for the legend and one for the figures rather than three
+faces. Archivo carries an industrial spine and is variable, so the display weight
+and the caption weight are the same drawing at two masses. Azeret Mono is
+engineered rather than editorial, and its numerals hold a column.
+
+Bricolage Grotesque and IBM Plex were the previous pair. They were dropped
+because both are on the list of faces Impeccable names as the sign that the
+search stopped, not because they read badly.
 
 ### Hierarchy
-- **Display** (800, clamp 2.25–3.75rem, 1.05): the landing h1 only. Two lines,
-  balanced, tracking -0.025em.
-- **Headline** (600, 1.875rem, 1.2): page titles — Composer, Governance, "Will
-  these transactions count?"
-- **Title** (600, 1.25rem, 1.3): section headings inside a page.
-- **Body** (400, 0.875rem, 1.625): running text, in Plex Sans, at a measure of
-  60–62ch.
-- **Label** (400, 0.75rem, 1.5, mono): field labels, notes, every address,
-  amount, hash and felt. Never below 12px.
+- **Display** (800, clamp 2.25–3.75rem, 1.05): the landing h1 only.
+- **Headline** (600, 1.5rem): page and section titles.
+- **Title** (600, 1.25rem): section headings inside a page.
+- **Body** (400, 0.875–1.125rem, 1.625): running text at a measure of 60–62ch.
+- **Label** (400, 0.75rem, mono): field labels, notes, and every figure. Never
+  below 12px *as rendered* — see the Rendered Size Rule.
 
 ### Named Rules
 **The Data Is Mono Rule.** Anything read from the chain or the wallet — an
-address, an amount, a block, a felt, a verdict — is set in Plex Mono. Prose is
-never mono; mono is never a costume.
+address, an amount, a block, a felt, a verdict — is Azeret Mono with tabular
+figures. Prose is never mono; mono is never a costume.
 
-**The Measure Rule.** Running text is capped at 60–62ch, which the design
-detector counts as ~76 characters. Data rows get the same cap; a 66-character
-hash fits in 62ch of mono.
+**The Measure Rule.** Running text is capped at 60–62ch. Data rows get the same
+cap; a 66-character hash fits in 62ch of mono.
+
+**The Rendered Size Rule.** Type inside an SVG is in user units, so its rendered
+size is the declared size times the viewBox scale. Both diagrams are lettered
+per breakpoint rather than once: the weave's labels were landing at 5.5 CSS px on
+a 390px screen at the size that reads correctly on a desktop. Declare the size
+the reader actually gets.
 
 ## Layout
 
-A single centred column: 72rem (max-w-6xl) for the composer's two-column
-editor, 64rem for the landing page, 56rem for governance, 48rem for verify.
-Horizontal padding 1.25rem on the app pages and 1.5rem on the landing. Behind
-everything, the warp: fixed 1px vertical lines every 88px in Thread at 55%,
-masked out at the very top and fading past 70% of the viewport.
+A single centred column: 72rem for the composer, 64rem for the landing page,
+56rem for governance, 48rem for verify. Horizontal padding 1.25rem on the app
+pages and 1.5rem on the landing. Behind everything, the drill grid: a fixed 1px
+dot at every 48px, in Dimension Line at 55%, masked at the top and fading past
+70% of the viewport.
 
-Spacing follows Tailwind's 4px scale. Related things sit tight (4–8px);
-distinct groups separate generously (24–40px); a heading has more space above
-it than below. The composer is a two-column grid at ≥1024px with the disclosure
-column sticky at 1.5rem from the top, so it stays level with the step being
-edited; below that, one column, editor first.
+Spacing follows Tailwind's 4px scale. Related things sit tight (4–8px); distinct
+groups separate generously (24–40px); a heading has more space above than below.
+
+**First viewport contract.** On the landing page the heading, the deck, the
+primary action, the mainnet claim and the qualifying transaction hashes all land
+above the fold at 1280×800. The action used to sit under the hero diagram, which
+put its top edge at y=770 and pushed it off a 1366×768 laptop entirely. The
+diagram is the argument and it survives being read second.
 
 ## Elevation & Depth
 
-None. No shadows anywhere; depth is conveyed by one step of tonal layering
-(Ground → Raised) and by hairline rules in Thread. Sections and lists are
-separated by a 1px rule above, never by a box. Controls carry a 1px edge in
-Strand because a control's boundary is a component and needs 3:1 against what
-is behind it (WCAG 1.4.11); Thread is a rule, not an edge.
+None. No shadows anywhere; depth is one step of tonal layering (Mask → Mask Over
+Pour) and hairline rules in Dimension Line. Controls carry a 1px edge in Exposed
+Trace because a control's boundary is a component and needs 3:1 against what is
+behind it (WCAG 1.4.11).
 
 ### Named Rules
-**The Flat Rule.** A bordered block never contains another bordered block. If
-a panel needs structure, it gets a rule above it.
+**The Flat Rule.** A bordered block never contains another bordered block. If a
+panel needs structure, it gets a rule above it.
 
-**The Only Alert Rule.** One box is allowed on a page: an alert the reader has
-to find again (the ballot secret). Everything else that is a warning is red-clay
-text on the page's own surface.
+**The Only Alert Rule.** One box is allowed on a page: an alert the reader has to
+find again (the ballot secret). Every other warning is rework-red text on the
+page's own surface.
 
 ## Shapes
 
-Near-square. Corners are 2px on primary buttons and 4px on everything else
-(`rounded-sm`, `rounded`). Nothing is pill-shaped. Borders are 1px; the only
-thicker stroke on the site is the 2px gold left rule on the landing page's two
-quotations and the 5px gold `privacy_invoke` strand in the hero SVG. Recurring
-geometry is the strand: a bezier that enters at the left and converges on a
-single horizontal line.
+Near-square. 2px on primary buttons, 4px elsewhere. Nothing is pill-shaped.
+Borders are 1px; the only thicker strokes are the 2px gold rule on the landing
+page's two quotations and the 5px gold `privacy_invoke` trunk in the hero.
+Recurring geometry is the conductor: a bezier entering at the left and converging
+on a single horizontal line. A landed value is marked by a 6px gold square — a
+pad, not a bullet.
 
 ## Components
 
 ### Buttons
-- **Shape:** near-square (2px primary, 4px secondary)
-- **Primary:** Songket Gold on Tarum Ground, Plex Sans 500 at 0.875rem, padding
-  8px 16px. One per view.
-- **Hover / Focus:** primary dims to 90% opacity; every focusable element gets
-  a 2px gold outline at 2px offset on `:focus-visible`.
-- **Secondary:** transparent, 1px Strand edge, Plex Mono 0.75rem, padding 4px
-  12px; edge turns gold on hover. Disabled: 40% opacity, no hover.
-- **Tertiary (preset chips):** as secondary, on the Raised surface.
+- **Primary:** Immersion Gold on Solder Mask, 500 at 0.875rem, padding 12px 20px.
+  One per viewport.
+- **Hover / Focus:** primary dims to 90%; every focusable element gets a 2px gold
+  outline at 2px offset on `:focus-visible`.
+- **Secondary:** transparent, 1px Exposed Trace edge, mono 0.75rem, padding
+  4px 12px; edge turns gold on hover. Disabled: 40% opacity, no hover.
+
+### The Legend Strip (signature)
+Every page opens with the same row: the mark and wordmark at the left, the other
+three destinations plus `source ↗` at the right, mono 0.75rem in Legend Grey, a
+Dimension Line rule beneath. It wraps, it carries a real gap, and its links are
+padded to a hit area rather than a 16px line box. It is one component, because
+four hand-rolled copies is how three of them ended up without `flex-wrap` and
+collided at 390px.
 
 ### Cards / Containers
-- **Corner Style:** 4px
-- **Background:** Raised Indigo for a section that holds a form or a list;
-  Ground for everything inside it.
-- **Shadow Strategy:** none (see Elevation).
-- **Border:** 1px Thread on the outer section only. Inside, rules above, never
-  boxes.
-- **Internal Padding:** 16–20px.
+- 4px corners, Mask Over Pour for a section holding a form or a list, no shadow,
+  1px Dimension Line on the outer section only. Inside, rules above, never boxes.
 
 ### Inputs / Fields
-- **Style:** Raised Indigo fill, 1px Strand edge, 4px radius, Plex Mono
-  0.75rem, padding 6px 8px. Placeholder in Muted Cloth at 70%. Caret in gold.
-- **Focus:** 2px gold outline, 2px offset.
-- **Error:** the message beneath in Red Clay; the field's edge does not change.
-
-### Navigation
-- Plex Mono 0.75rem in Muted Cloth, lowercase page names, 1.25rem gaps; gold
-  on hover; the strand mark and wordmark at the left link home on every page
-  but home.
+- Mask Over Pour fill, 1px Exposed Trace edge, 4px radius, mono 0.75rem.
+  Placeholder in Legend Grey at 70%. Caret in gold. Focus: 2px gold outline.
+  Error: the message beneath in Rework Red; the field's edge does not change.
 
 ### The Feedback Line (signature)
 Every button that asks the wallet for something renders the wallet's answer
 directly beneath itself — the wallet list, the proving status, the refusal, the
-dry-run verdict — separated from the button by a rule above, in Plex Mono at
-0.75rem. Green for a pass, red-clay for a refusal, cloth for status. Nothing the
-machine says appears anywhere but under the thing that asked.
+dry-run verdict — separated by a rule above, in mono 0.75rem. Green for a pass,
+rework red for a refusal, legend white for status. Nothing the machine says
+appears anywhere but under the thing that asked.
 
-### The Weave (signature)
-The hero's SVG: four strands in Strand (the ones drawn last carry a ground-
-coloured halo so they read as passing over), converging on a 5px gold line
-labelled `privacy_invoke`, then fanning into notes. Drawn once with
-`stroke-dashoffset`, 1.1s exponential ease-out, staggered 120ms; it never
-loops. The strand mark in the header is the fan-in half of the same figure.
+### The Weave (signature, pinned)
+Four conductors in Exposed Trace (the ones drawn last carry a mask-coloured halo
+so they read as passing over), converging on a 5px gold trunk labelled
+`privacy_invoke`, then fanning into notes. Drawn once with `stroke-dashoffset`,
+1.1s exponential ease-out, staggered 120ms; it never loops. The mark in the
+legend strip is the fan-in half of the same figure. This figure, the name, and
+the vocabulary (`plan`, `step`, `note`) are pinned in PRODUCT.md and survive any
+change of world.
 
 ## Do's and Don'ts
 
 ### Do:
-- **Do** set every chain or wallet value in Plex Mono, at 12px or larger.
+- **Do** set every chain or wallet value in Azeret Mono with tabular figures.
 - **Do** cap running text and data rows at 60–62ch.
-- **Do** separate sections and panels with a 1px Thread rule above them.
-- **Do** spend gold on one action per view and on landed value only.
-- **Do** keep the 2px gold `:focus-visible` outline on every control.
-- **Do** draw diagrams and marks as SVG in Strand, Gold and Ground.
+- **Do** separate sections and panels with a 1px rule above them.
+- **Do** spend gold on one action per viewport and on landed value only.
+- **Do** render an em-dash and name the failed read, rather than deleting a slot.
+- **Do** letter SVG type for the size it is actually rendered at.
 
 ### Don't:
+- **Don't** draw a glowing circuit trace. This world is the fabrication drawing,
+  not the sci-fi board; the moment a trace glows, the direction is dead.
 - **Don't** put a bordered block inside a bordered block.
 - **Don't** add a shadow, a gradient, a glass effect or a pill.
 - **Don't** place a kicker or eyebrow above a heading.
-- **Don't** use grey for secondary text; tint it from the indigo (Muted Cloth).
+- **Don't** use grey for secondary text; tint it from the mask.
 - **Don't** render a number the chain or the wallet did not give.
 - **Don't** add a light theme.

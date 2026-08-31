@@ -1,8 +1,8 @@
 'use client'
-import Link from 'next/link'
 
 import { useState } from 'react'
-import { Wordmark } from '../wordmark'
+import { REPO } from '@/lib/config'
+import { SiteNav } from '../wordmark'
 
 /**
  * Check a submission against the sprint's rules before the panel does.
@@ -168,17 +168,7 @@ export default function Verify() {
   return (
     <main className="mx-auto w-full max-w-3xl px-5 py-10">
       <header className="border-b border-thread pb-6">
-        <div className="flex items-baseline justify-between">
-          <Wordmark />
-          <nav className="flex gap-5 font-mono text-xs text-muted">
-            <Link href="/compose" className="hover:text-gold">
-              composer
-            </Link>
-            <Link href="/governance" className="hover:text-gold">
-              governance
-            </Link>
-          </nav>
-        </div>
+        <SiteNav current="verify" repo={REPO} />
         <h1 className="mt-6 font-display text-3xl font-semibold tracking-tight">
           Will these transactions count?
         </h1>

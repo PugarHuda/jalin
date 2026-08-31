@@ -1,26 +1,30 @@
 import type { Metadata } from 'next'
-import { Bricolage_Grotesque, IBM_Plex_Mono, IBM_Plex_Sans } from 'next/font/google'
+import { Archivo, Azeret_Mono } from 'next/font/google'
 import './globals.css'
 import { SITE } from '@/lib/config'
 import { Hydrated } from './hydrated'
 
-// Bricolage reads as assembled rather than drawn, which is the right register for
-// something whose whole idea is composition. Plex carries the engineering voice
-// without sounding like every other developer tool.
-const bricolage = Bricolage_Grotesque({
-  variable: '--font-bricolage',
+/*
+ * A fabrication drawing letters everything in one system, so this world has one
+ * family for the legend and one for the drill table, not three faces.
+ *
+ * Archivo carries the silkscreen legend: a grotesque with an industrial spine,
+ * variable so the display weight and the caption weight are the same drawing at
+ * two masses. Azeret Mono sets every figure the chain or the wallet hands back -
+ * engineered rather than editorial, and its numerals hold a column.
+ *
+ * The faces that were here, Bricolage and IBM Plex, are on the list of defaults
+ * Impeccable names as the sign you stopped looking. They were replaced for that
+ * reason, not for taste.
+ */
+const legend = Archivo({
+  variable: '--font-legend',
   subsets: ['latin'],
-  weight: ['400', '600', '800'],
+  weight: ['400', '500', '600', '700'],
 })
 
-const plexSans = IBM_Plex_Sans({
-  variable: '--font-plex-sans',
-  subsets: ['latin'],
-  weight: ['400', '500', '600'],
-})
-
-const plexMono = IBM_Plex_Mono({
-  variable: '--font-plex-mono',
+const drill = Azeret_Mono({
+  variable: '--font-drill',
   subsets: ['latin'],
   weight: ['400', '500'],
 })
@@ -53,7 +57,7 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
     <html
       lang="en"
-      className={`${bricolage.variable} ${plexSans.variable} ${plexMono.variable} h-full`}
+      className={`${legend.variable} ${drill.variable} h-full`}
     >
       <body className="min-h-full">
         <Hydrated />

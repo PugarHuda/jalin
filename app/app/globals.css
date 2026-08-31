@@ -1,22 +1,27 @@
 @import "tailwindcss";
 
 /*
- * Indigo and gold: tarum dye and songket thread. The name means to weave
- * separate strands into one, and the protocol constraint - one invoke per
- * transaction - is the same shape, so the cloth is where the palette comes from
- * rather than from a crypto template.
+ * The Gerber set: the file family a board is manufactured from - copper, solder
+ * mask, silkscreen legend, drill table, board outline. Jalin routes many calls
+ * through one invoke, which is what a board does with many signals, so the
+ * palette comes from the materials rather than from a crypto template.
+ *
+ * Gold is not a brand accent here. An immersion-gold pad is the place contact
+ * is actually made, so spending gold only where value lands is a fabrication
+ * fact, not a style rule. Mask green is what is covered. Rework red is what
+ * would fail.
  */
 :root {
-  --ground: #101423;
-  --raised: #171d31;
-  --thread: #2a3350;
-  --strand: #5a67a0;
-  --cloth: #e6e2d8;
-  --muted: #8b93ad;
-  --gold: #c9a227;
-  --hidden: #6fbf9a;
-  --visible: #c9a227;
-  --warn: #d4674f;
+  --ground: #0b0e0d;
+  --raised: #131816;
+  --thread: #26302c;
+  --strand: #7d9287;
+  --cloth: #e9ece7;
+  --muted: #9aa8a0;
+  --gold: #e0a53c;
+  --hidden: #3fae74;
+  --visible: #e0a53c;
+  --warn: #e2694a;
 }
 
 @theme inline {
@@ -30,29 +35,35 @@
   --color-hidden: var(--hidden);
   --color-visible: var(--visible);
   --color-warn: var(--warn);
-  --font-display: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
-  --font-sans: var(--font-plex-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+  --font-display: var(--font-legend), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-legend), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-drill), ui-monospace, monospace;
 }
 
 body {
   background: var(--ground);
   color: var(--cloth);
-  font-family: var(--font-plex-sans), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-legend), ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
-/* The warp: fixed vertical threads the content is woven across. */
+/*
+ * The drill grid. A fabrication drawing is dimensioned against a pitch, and
+ * 0.1 inch is the one every through-hole part on earth is built to. Held at
+ * the same strength the contrast suite assumes for the substrate, so the worst
+ * case it measures is still the worst case that ships.
+ */
 .warp {
   position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 0;
-  background-image: repeating-linear-gradient(
-    to right,
-    color-mix(in srgb, var(--thread) 55%, transparent) 0 1px,
-    transparent 1px 88px
+  background-image: radial-gradient(
+    circle at 1px 1px,
+    color-mix(in srgb, var(--thread) 55%, transparent) 1px,
+    transparent 0
   );
+  background-size: 48px 48px;
   mask-image: linear-gradient(to bottom, transparent, black 12rem, black 70%, transparent);
 }
 
@@ -61,7 +72,7 @@ select,
 textarea,
 pre,
 code {
-  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-family: var(--font-drill), ui-monospace, monospace;
 }
 
 input,
@@ -69,10 +80,9 @@ select,
 textarea {
   color: var(--cloth);
   /* WCAG 1.4.11: a control's boundary is a UI component and needs 3:1 against
-     what is behind it. --thread is 1.47 against the ground - fine for a rule
-     between two paragraphs, invisible as the edge of a text field. --strand
-     is 3.6, and is already the colour the diagram uses for a thread you are
-     meant to see. */
+     what is behind it. --thread is a dimension line and disappears at that job;
+     --strand is the exposed trace, the conductor you are meant to follow, and
+     it clears 3:1 on both the mask and the raised pour. */
   border-color: var(--strand);
 }
 
@@ -90,7 +100,7 @@ summary:focus-visible {
   outline-offset: 2px;
 }
 
-/* The weave draws itself once, then holds. */
+/* The trunk trace draws itself once, then holds. */
 @keyframes thread-in {
   from {
     stroke-dashoffset: var(--len);
@@ -157,4 +167,18 @@ textarea {
 * {
   scrollbar-color: var(--strand) var(--ground);
   scrollbar-width: thin;
+}
+
+/*
+ * Numbers in a drill table line up or they are not a table. Every figure this
+ * product renders comes off a chain or a wallet, so tabular figures are the
+ * default rather than an opt-in.
+ */
+.font-mono,
+input,
+select,
+textarea,
+pre,
+code {
+  font-variant-numeric: tabular-nums;
 }

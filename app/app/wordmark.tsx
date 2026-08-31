@@ -61,3 +61,55 @@ export function Wordmark({ home = false }: { home?: boolean }) {
     </Link>
   )
 }
+
+/** Every destination this site has, in the order a first reader wants them. */
+const DESTINATIONS = [
+  { key: 'home', href: '/', label: 'what this is' },
+  { key: 'compose', href: '/compose', label: 'composer' },
+  { key: 'verify', href: '/verify', label: 'verify' },
+  { key: 'governance', href: '/governance', label: 'governance' },
+] as const
+
+export type Surface = (typeof DESTINATIONS)[number]['key']
+
+/**
+ * The legend strip every page opens with. The page owns its own measure and its
+ * own rule; this owns only the row.
+ *
+ * Four pages each hand-rolled this: the landing one at `gap-6`, the other three
+ * at `gap-5`, and not one of them with `flex-wrap` - while the footer beside
+ * them had both. At 390px the result measured 399.5px of content, so the
+ * wordmark's right edge and the nav's left edge both landed on x=87.5 and
+ * "jalin" and "composer" rendered as one word, with `source` pushed to 4.5px
+ * from the screen against the 24px gutter every section keeps.
+ *
+ * So it wraps, it carries a real gap, and the links are padded to a hit area
+ * instead of a 16px line box. Written once, because a header written four times
+ * is a header fixed once and wrong three times.
+ */
+export function SiteNav({ current, repo }: { current: Surface; repo?: string }) {
+  return (
+    <div className="-my-2.5 flex flex-wrap items-center justify-between gap-x-6 gap-y-0">
+      <span className="py-2.5">
+        <Wordmark home={current === 'home'} />
+      </span>
+      <nav className="-mx-1 flex flex-wrap items-center gap-x-5 gap-y-0 font-mono text-xs text-muted">
+        {DESTINATIONS.filter((d) => d.key !== current).map((d) => (
+          <Link key={d.key} href={d.href} className="px-1 py-2.5 hover:text-gold">
+            {d.label}
+          </Link>
+        ))}
+        {repo && (
+          <a
+            className="px-1 py-2.5 hover:text-gold"
+            href={repo}
+            target="_blank"
+            rel="noreferrer"
+          >
+            source ↗
+          </a>
+        )}
+      </nav>
+    </div>
+  )
+}

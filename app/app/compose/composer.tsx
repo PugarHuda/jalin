@@ -1,5 +1,4 @@
 'use client'
-import Link from 'next/link'
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { StarknetWindowObject } from 'get-starknet-core'
@@ -19,16 +18,7 @@ import {
   type SharedDraft,
   type Strk20Action,
 } from 'jalin-sdk'
-import {
-  ENDUR_VAULT,
-  GOVERNOR_ADDRESS,
-  POOL_ADDRESS,
-  ROUTER_ADDRESS,
-  TOKENS,
-  label,
-  toBaseUnits,
-  tokenOf,
-} from '@/lib/config'
+import { ENDUR_VAULT, GOVERNOR_ADDRESS, POOL_ADDRESS, REPO, ROUTER_ADDRESS, TOKENS, label, toBaseUnits, tokenOf } from '@/lib/config'
 import type { STRK20_BALANCE_ENTRY } from '@starknet-io/types-js'
 import {
   SHADOW_DAPP,
@@ -43,7 +33,7 @@ import {
   type Capabilities,
   type Strk20Wallet,
 } from '@/lib/wallet'
-import { Wordmark } from '../wordmark'
+import { SiteNav } from '../wordmark'
 
 interface StepForm {
   target: string
@@ -1208,20 +1198,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
   return (
     <main className="mx-auto w-full max-w-6xl px-5 py-10">
       <header className="border-b border-thread pb-6">
-        <div className="flex items-baseline justify-between">
-          <Wordmark />
-          <nav className="flex gap-5 font-mono text-xs text-muted">
-            <Link href="/governance" className="hover:text-gold">
-              governance
-            </Link>
-            <Link href="/verify" className="hover:text-gold">
-              verify
-            </Link>
-            <Link href="/" className="hover:text-gold">
-              what this is
-            </Link>
-          </nav>
-        </div>
+        <SiteNav current="compose" repo={REPO} />
         <h1 className="mt-6 font-display text-3xl font-semibold tracking-tight">Composer</h1>
         <p className="mt-2 max-w-[60ch] text-sm text-muted">
           The pool allows one invoke per private transaction. Jalin runs a whole plan —

@@ -1,10 +1,9 @@
-import Link from 'next/link'
 import { readGovernance, type Proposal, type Stage } from '@/lib/governance'
-import { GOVERNOR_ADDRESS, ROUTER_ADDRESS, TOKENS, label } from '@/lib/config'
+import { GOVERNOR_ADDRESS, REPO, ROUTER_ADDRESS, TOKENS, label } from '@/lib/config'
 import { Execute } from './execute'
 import { Propose } from './propose'
 import { Sweep } from './sweep'
-import { Wordmark } from '../wordmark'
+import { SiteNav } from '../wordmark'
 
 /**
  * The governor, visible at last.
@@ -93,17 +92,7 @@ export default async function Governance() {
   return (
     <main className="mx-auto w-full max-w-4xl px-5 py-10">
       <header className="border-b border-thread pb-6">
-        <div className="flex items-baseline justify-between">
-          <Wordmark />
-          <nav className="flex gap-5 font-mono text-xs text-muted">
-            <Link href="/compose" className="hover:text-gold">
-              composer
-            </Link>
-            <Link href="/verify" className="hover:text-gold">
-              verify
-            </Link>
-          </nav>
-        </div>
+        <SiteNav current="governance" repo={REPO} />
         <h1 className="mt-6 font-display text-3xl font-semibold tracking-tight">Governance</h1>
         <p className="mt-2 max-w-[60ch] text-sm text-muted">
           The router holds no admin key. Every parameter it reads (whether it is paused, how many
