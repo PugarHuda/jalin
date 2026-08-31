@@ -30,7 +30,7 @@ With Jalin it is one transaction, because composition happens inside the invoke
 rather than across invokes:
 
 ```ts
-import { callStep, oneWay } from '@jalin/sdk'
+import { callStep, oneWay } from 'jalin-sdk'
 
 const plan = oneWay(
   callStep({

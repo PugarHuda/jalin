@@ -1,5 +1,5 @@
 import { expect, type APIResponse } from '@playwright/test'
-import type { CellSummary, Crowd, Prospect, Verdict } from '@jalin/sdk'
+import type { CellSummary, Crowd, Prospect, Verdict } from 'jalin-sdk'
 
 /**
  * What each route promises, declared once.

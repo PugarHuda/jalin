@@ -1,5 +1,5 @@
 import { cached } from '@/lib/cache'
-import { checkReceipt, describeVerdict } from '@jalin/sdk'
+import { checkReceipt, describeVerdict } from 'jalin-sdk'
 import { RpcError, rpc } from '@/lib/rpc'
 import { GOVERNOR_ADDRESS, POOL_ADDRESS, ROUTER_ADDRESS } from '@/lib/config'
 

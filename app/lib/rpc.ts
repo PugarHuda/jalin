@@ -1,6 +1,6 @@
 import 'server-only'
 import { hash } from 'starknet'
-import { interpretRpc } from '@jalin/sdk'
+import { interpretRpc } from 'jalin-sdk'
 
 /**
  * One place that talks to a Starknet node.

@@ -4,7 +4,7 @@ const nextConfig: NextConfig = {
   // The SDK is shipped as TypeScript source with explicit .ts specifiers, which
   // is what lets `node --test` run it without a build step. Next has to compile
   // it rather than expect a dist/.
-  transpilePackages: ['@jalin/sdk'],
+  transpilePackages: ['jalin-sdk'],
 
   /**
    * This page asks people to connect a wallet and sign. Framing it inside

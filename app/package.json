@@ -10,7 +10,7 @@
     "typecheck": "next typegen && tsc --noEmit"
   },
   "dependencies": {
-    "@jalin/sdk": "*",
+    "jalin-sdk": "*",
     "@starknet-io/types-js": "^0.10.4-beta.2",
     "get-starknet-core": "^4.0.0",
     "next": "16.3.3",

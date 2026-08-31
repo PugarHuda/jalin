@@ -1,5 +1,5 @@
 {
-  "name": "@jalin/sdk",
+  "name": "jalin-sdk",
   "version": "0.1.0",
   "description": "Plan encoding and sub-account portfolio helpers for the Jalin router on STRK20",
   "license": "MIT",

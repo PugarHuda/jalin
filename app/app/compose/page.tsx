@@ -1,4 +1,4 @@
-import { decodeDraft } from '@jalin/sdk'
+import { decodeDraft } from 'jalin-sdk'
 import { Composer } from './composer'
 
 /**

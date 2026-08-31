@@ -261,7 +261,7 @@ something that only works on a laptop is a demo of nothing.
 | Path | What it holds |
 |---|---|
 | `contracts/` | Cairo: the router, the governor, the private ballot |
-| `sdk/` | TypeScript: plan encoding, recipes, sub-account portfolio — packaged as [`@jalin/sdk`](./sdk/README.md) |
+| `sdk/` | TypeScript: plan encoding, recipes, sub-account portfolio — packaged as [`jalin-sdk`](./sdk/README.md) |
 | `app/` | The demo anyone can open |
 | `prover/` | Self-hosted discovery and screening services |
 | `docs/` | [Threat model](./docs/threat-model.md), [deploying](./docs/deploying.md), [cross-chain](./docs/cross-chain.md) |

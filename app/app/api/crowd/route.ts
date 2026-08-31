@@ -1,5 +1,5 @@
 import { cached } from '@/lib/cache'
-import { prospectFor } from '@jalin/sdk'
+import { prospectFor } from 'jalin-sdk'
 import { readCrowd, readDeposits } from '@/lib/crowd-source'
 
 /**

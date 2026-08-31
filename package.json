@@ -6,16 +6,16 @@
     "app"
   ],
   "scripts": {
-    "test": "npm test --workspace @jalin/sdk",
+    "test": "npm test --workspace jalin-sdk",
     "test:contracts": "sh contracts/test.sh",
     "dev": "npm run dev --workspace app",
     "build": "npm run build --workspace app",
-    "build:sdk": "npm run build --workspace @jalin/sdk",
+    "build:sdk": "npm run build --workspace jalin-sdk",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "check:links": "node scripts/check-links.mjs",
     "lint": "eslint sdk e2e scripts playwright.config.ts && npm run lint --workspace app",
-    "typecheck": "tsc --noEmit -p tsconfig.json && npm run typecheck --workspace @jalin/sdk && npm run typecheck --workspace app",
+    "typecheck": "tsc --noEmit -p tsconfig.json && npm run typecheck --workspace jalin-sdk && npm run typecheck --workspace app",
     "check:dead": "knip",
     "publish:sdk": "node scripts/publish-sdk.mjs"
   },
@@ -25,7 +25,7 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
-    "@jalin/sdk": "^0.1.0",
+    "jalin-sdk": "^0.1.0",
     "@playwright/test": "^1.62.1",
     "eslint": "^9.39.5",
     "knip": "^5.88.1",

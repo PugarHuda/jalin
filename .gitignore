@@ -32,5 +32,5 @@ playwright-report/
 contracts/coverage/
 contracts/snfoundry_trace/
 
-# built SDK, produced by npm run build -w @jalin/sdk on publish
+# built SDK, produced by npm run build -w jalin-sdk on publish
 sdk/dist/

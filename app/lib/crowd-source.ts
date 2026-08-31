@@ -10,7 +10,7 @@ import {
   type CellSummary,
   type Period,
   type PoolEvent,
-} from '@jalin/sdk'
+} from 'jalin-sdk'
 import { POOL_ADDRESS } from './config'
 import { rpc } from './rpc'
 

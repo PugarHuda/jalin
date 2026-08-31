@@ -1,4 +1,4 @@
-# @jalin/sdk
+# jalin-sdk
 
 Plan encoding and sub-account portfolio helpers for [Jalin](https://github.com/PugarHuda/jalin),
 a programmable execution router for the STRK20 shielded pool on Starknet.
@@ -15,13 +15,13 @@ This package is the client half: it builds those plans, validates them against
 the router's limits before you spend gas, and encodes them as calldata.
 
 ```sh
-npm install @jalin/sdk
+npm install jalin-sdk
 ```
 
 ## Building a plan
 
 ```js
-import { PlanBuilder, callStep, openNote } from '@jalin/sdk'
+import { PlanBuilder, callStep, openNote } from 'jalin-sdk'
 
 const plan = PlanBuilder.create()
   .call(

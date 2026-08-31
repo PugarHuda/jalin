@@ -1,6 +1,6 @@
 import { cached } from '@/lib/cache'
 import { RpcError, rpc } from '@/lib/rpc'
-import { u256 } from '@jalin/sdk'
+import { u256 } from 'jalin-sdk'
 import { ENDUR_VAULT } from '@/lib/config'
 
 /**

@@ -18,7 +18,7 @@ import {
   type Plan,
   type SharedDraft,
   type Strk20Action,
-} from '@jalin/sdk'
+} from 'jalin-sdk'
 import {
   ENDUR_VAULT,
   GOVERNOR_ADDRESS,

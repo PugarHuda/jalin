@@ -5,7 +5,7 @@ import {
   findDuplicates,
   parseManifest,
   type Verdict,
-} from '@jalin/sdk'
+} from 'jalin-sdk'
 import { RpcError, rpc } from '@/lib/rpc'
 import { POOL_ADDRESS } from '@/lib/config'
 import { cached } from '@/lib/cache'

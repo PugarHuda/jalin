@@ -1,5 +1,5 @@
 /**
- * Stage and publish @jalin/sdk.
+ * Stage and publish jalin-sdk.
  *
  * The package this repository develops against and the package other people
  * install are not the same shape. Here the entry is `src/index.ts`, because the

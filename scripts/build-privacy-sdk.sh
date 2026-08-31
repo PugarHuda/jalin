@@ -39,4 +39,4 @@ npm run build --silent
 echo
 echo "built $(node -p "require('./package.json').version")"
 echo "install it into the workspace with:"
-echo "  npm install ./$DEST/sdk --workspace @jalin/sdk"
+echo "  npm install ./$DEST/sdk --workspace jalin-sdk"
