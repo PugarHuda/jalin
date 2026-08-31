@@ -391,40 +391,42 @@ share, that the crowd count is bounded by the deposit count, that a real mainnet
 transaction which touched the pool without going through our router does not
 qualify. A test that asserts a fixture only proves the fixture loaded.
 
-## Why three mainnet transactions and not thirty
+## Three mainnet transactions, and what each route costs
 
-The sprint asks for three and this project lists three. That is the ceiling, not
-the effort.
+The sprint asks for three and this project lists three. All three are plan
+executions: each one carries a `PlanExecuted` event emitted by the router at
+`0x008498d79…`, not merely a transaction that brushed the pool.
 
-Every plan the router executes goes through `privacy_invoke`, and the SDK routes
-every `execute()` through a proving provider — register included, though the
-protocol itself does not require a proof there. The mainnet proving service URL
-has not been published. Six teams have asked for it on the hub and all six
-issues are open: [#121](https://github.com/starkience/strk20-hackathon/issues/121),
+There are two ways to reach `privacy_invoke`, and they fail differently.
+
+**Through a wallet.** `wallet_strk20InvokeTransaction` has the wallet build and
+prove the transaction itself, which takes about thirty seconds. This works, and
+it is how all three of these landed — from the composer, in a browser, against
+Ready. Anyone with a wallet implementing the STRK20 methods and a shielded
+balance can run a plan today.
+
+**Through the SDK, headlessly.** `scripts/mainnet.mjs` needs a
+`PROVING_SERVICE_URL`, and the mainnet proving service URL has not been
+published. Six teams have open issues asking for it:
+[#121](https://github.com/starkience/strk20-hackathon/issues/121),
 [#124](https://github.com/starkience/strk20-hackathon/issues/124),
 [#135](https://github.com/starkience/strk20-hackathon/issues/135),
 [#147](https://github.com/starkience/strk20-hackathon/issues/147),
 [#204](https://github.com/starkience/strk20-hackathon/issues/204),
-[#221](https://github.com/starkience/strk20-hackathon/issues/221).
+[#221](https://github.com/starkience/strk20-hackathon/issues/221). The script
+says so plainly rather than failing obscurely. The prover binary is not in the
+public monorepo either, though nothing stops a team from operating a proving
+service of its own, and at least one in this sprint did.
 
-`node scripts/mainnet.mjs plan` says so itself rather than failing obscurely, and
-the alternative route — a wallet implementing the STRK20 methods — answers "Not
-implemented" when the composer asks it, which the composer shows verbatim instead
-of a constant.
+That gap is why scripted, repeatable runs are not part of this repository, and
+why the steps that need one — the AVNU multi-route swap beside the Endur stake,
+as a single plan — are exercised against a mainnet fork with the real contracts
+at their real addresses.
 
-**This is a limit accepted, not a wall.** The prover binary is not in the public
-monorepo, but nothing stops a team from operating a proving service of its own,
-and at least one in this sprint did. The effort here went into self-hosting the
-two components that are published — the discovery service, where a viewing key
-would otherwise be handed to somebody else, and the screening interceptor — and
-into proving the router against a mainnet fork. Standing up a prover as well was
-a cost we did not pay, and the transaction count is what that decision looks like
-from outside.
-
-So the steps that cannot be proven on mainnet today are exercised against a
-mainnet fork instead, with real contracts at their real addresses: the AVNU
-multi-route swap and the Endur stake run as one plan there. What could be settled
-on mainnet was, and its hashes are in `strk20.json`.
+What is genuinely unreachable from here is narrower than the transaction count
+suggests: the shadow-account route. `wallet_strk20ShadowAccountCommitment`
+answers "Not implemented" on the wallet the composer asks, and the composer
+prints that refusal verbatim rather than a constant.
 
 ## What we found on mainnet
 
