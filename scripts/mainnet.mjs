@@ -91,13 +91,14 @@ function requireProver(phaseName) {
   if (process.env.PROVING_SERVICE_URL) return
   console.error(
     `\n${phaseName} needs PROVING_SERVICE_URL.\n\n` +
-      'The mainnet proving service URL is not published yet - see\n' +
-      'starkience/strk20-hackathon#121, #124, #135, #147, all open.\n\n' +
+      'A hosted mainnet prover answers today:\n' +
+      '  PROVING_SERVICE_URL=https://transaction-prover.alpha-mainnet.sw-dev.io\n\n' +
+      'This message used to say no such endpoint was published, and six open\n' +
+      "issues on the hub said the same. It was in another team's .env.example\n" +
+      'the whole time.\n\n' +
       'Registering and shielding are proof-free at the protocol level, but the\n' +
       'SDK routes every execute() through the proving provider regardless, so\n' +
-      'there is no partial path here. The alternatives are a wallet that\n' +
-      'implements the STRK20 methods (ours answers "Not implemented"), or the\n' +
-      'URL landing on one of those issues.',
+      'there is no partial path here.',
   )
   process.exit(1)
 }

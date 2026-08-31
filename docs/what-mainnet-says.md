@@ -117,11 +117,23 @@ The effective set is `2^H` over the flow distribution rather than a headcount,
 because a cell where one address carries most of the volume is not the crowd its
 headcount claims. See `sdk/src/anonymity.ts`.
 
-## The proving service is still the wall
+## The proving service was never the wall, and this document said it was
 
-`PROVING_SERVICE_URL` for mainnet is unpublished. Measurement needs nothing and
-a contract can be deployed and verified, but acting on a plan stops here. Four
-issues on the hackathon repository say the same thing:
+`https://transaction-prover.alpha-mainnet.sw-dev.io` answers `/health` with
+`{"status":"ok"}` and proves: pointed at it, `scripts/mainnet.mjs register`
+builds a real `apply_actions` against the pool with proof data attached.
+
+This section previously read "the proving service is still the wall" and stated
+that `PROVING_SERVICE_URL` for mainnet is unpublished. That was false. The URL
+sits in another team's `.env.example` in a public repository, and it was found
+by reading their repository rather than by anyone publishing anything new.
+
+The error is worth keeping visible rather than editing away, because of its
+direction: it excused the shallowest part of this project's integration. Every
+claim in this file was measured except the one that let something go unbuilt,
+and that is the one that was wrong.
+
+Four issues on the hackathon repository still say the same thing:
 [#121](https://github.com/starkience/strk20-hackathon/issues/121),
 [#124](https://github.com/starkience/strk20-hackathon/issues/124),
 [#135](https://github.com/starkience/strk20-hackathon/issues/135),

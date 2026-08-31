@@ -195,10 +195,11 @@ is a separate question, so the composer asks the connected wallet and shows its
 answer verbatim: the partial commitment when it has one, the refusal when it
 does not. Nothing on that panel is rendered from a constant.
 
-The SDK route (`transfers.build().shadowAccounts(name).invoke(...)`, rc.5) still
-needs a proving service URL that is not published for mainnet — see
-[starkience/strk20-hackathon#121](https://github.com/starkience/strk20-hackathon/issues/121)
-and the three issues alongside it.
+The SDK route (`transfers.build().shadowAccounts(name).invoke(...)`, rc.5) needs
+a proving service URL, and one is hosted at
+`https://transaction-prover.alpha-mainnet.sw-dev.io` — see "Through the SDK,
+headlessly" below for how that was found and what this document claimed before
+it was.
 
 **What the router does instead.** Every external step is dispatched by the router
 itself, so from the venue's side the caller is always the same address. Endur sees
@@ -284,7 +285,7 @@ missing:
 | Anonymizer contract | `contracts/` — the router, a governor and a private ballot, in Cairo. The router is exercised by every listed transaction; the ballot path is deployed but has never been cast, and its weight accounting has a disclosed defect ([threat model](./docs/threat-model.md)) |
 | Privacy SDK | Built from source into `vendor/` by [`scripts/build-privacy-sdk.sh`](./scripts/build-privacy-sdk.sh) and used by [`scripts/mainnet.mjs`](./scripts/mainnet.mjs) |
 | Proving and discovery | Self-hosted: the official discovery service and proof interceptor run from [`prover/`](./prover/) |
-| Shadow accounts | Asked of the wallet at runtime and shown verbatim, including the refusal — the SDK route needs a mainnet proving URL that is not published |
+| Shadow accounts | Asked of the wallet at runtime and shown verbatim, including the refusal. The SDK route is open now that a hosted mainnet prover is known |
 | Private transfers | Not the product. Jalin routes value through venues; a note-to-note transfer is what the pool already does without a helper |
 
 The last two rows are the honest ones. Shadow accounts are reachable in the
@@ -420,20 +421,32 @@ Ready. Anyone with a wallet implementing the STRK20 methods and a shielded
 balance can run a plan today.
 
 **Through the SDK, headlessly.** `scripts/mainnet.mjs` needs a
-`PROVING_SERVICE_URL`, and the mainnet proving service URL has not been
-published. Six teams have open issues asking for it:
+`PROVING_SERVICE_URL`, and there is a hosted one:
+
+```
+https://transaction-prover.alpha-mainnet.sw-dev.io
+```
+
+It answers `/health` with `{"status":"ok"}` and it proves — the register phase
+builds a real `apply_actions` against the pool with proof data attached, which
+is the only test of a prover that means anything.
+
+**This section said for a week that no such endpoint existed**, and six open
+issues on the hub said the same:
 [#121](https://github.com/starkience/strk20-hackathon/issues/121),
 [#124](https://github.com/starkience/strk20-hackathon/issues/124),
 [#135](https://github.com/starkience/strk20-hackathon/issues/135),
 [#147](https://github.com/starkience/strk20-hackathon/issues/147),
 [#204](https://github.com/starkience/strk20-hackathon/issues/204),
-[#221](https://github.com/starkience/strk20-hackathon/issues/221). The script
-says so plainly rather than failing obscurely.
+[#221](https://github.com/starkience/strk20-hackathon/issues/221). It was wrong,
+and it was wrong in the direction that excused a shallower integration. The URL
+is in another team's `.env.example`, which is where it was found; nothing about
+it was secret and nobody had looked there.
 
-**Those six issues ask for the wrong artifact.** There is no hosted mainnet
-endpoint and StarkWare's own demo ships `TODO_MAINNET_PROVER_URL`, but the prover
-is public and has been all along — just not in the repository everyone was
-searching:
+**Running the prover yourself is still possible and still documented**, because
+a hosted endpoint is somebody else's uptime. StarkWare's own demo ships
+`TODO_MAINNET_PROVER_URL`, and the image is public — just not in the repository
+everyone was searching:
 
 ```sh
 docker run --rm -p 3000:3000   -e RPC_URL=<a mainnet RPC on JSON-RPC spec 0.10> -e CHAIN_ID=SN_MAIN   ghcr.io/starkware-libs/starknet-privacy/transaction-prover:PRIVACY-0.14.3-RC.2

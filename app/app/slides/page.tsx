@@ -260,9 +260,10 @@ struct Step {
             crosses venues.
           </li>
           <li className="border-t border-thread pt-2">
-            <span className="text-cloth">The mainnet proving service is unpublished.</span> The
-            prover image is public and pullable, and we ran it — it exits 132 on a CPU without
-            AVX-512. Signing goes through the wallet, which proves.
+            <span className="text-cloth">Self-hosting the prover needs hardware we do not have.</span>{' '}
+            The image is public and we ran it: it exits 132 on a CPU without AVX-512. A hosted
+            mainnet prover does answer — this deck said for a week that none was published, which
+            was wrong and excused a shallower integration.
           </li>
         </ul>
       </Slide>
