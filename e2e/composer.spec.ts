@@ -198,10 +198,26 @@ test.describe('composer', () => {
     await expect(page.getByTestId('split-error')).toHaveCount(0)
   })
 
+  /**
+   * WebKit reports a cancelled request at console.error, with the text of a CORS
+   * failure: "Fetch API cannot load <same-origin url> due to access control
+   * checks". It is neither CORS nor an error - it is the composer aborting three
+   * in-flight reads because the plan changed under them, which is the behaviour
+   * the effects are written to have.
+   *
+   * The alternative was to stop handing the signal to `fetch`, and the comment
+   * beside those effects records why that is not better: without it WebKit logs
+   * the abandoned fetch on navigation instead. It logs either way, so the
+   * assertion is what has to learn the difference. Matched narrowly - the origin
+   * must be ours - so a real access-control failure against somebody else's host
+   * still fails this test.
+   */
+  const CANCELLED_IN_WEBKIT = /^Fetch API cannot load http:\s*\/\/?127\.0\.0\.1:\d+\/api\/.* due to access control checks\.$/
+
   test('renders without a console error', async ({ page }) => {
     const errors: string[] = []
     page.on('console', (m) => {
-      if (m.type() === 'error') errors.push(m.text())
+      if (m.type() === 'error' && !CANCELLED_IN_WEBKIT.test(m.text())) errors.push(m.text())
     })
     page.on('pageerror', (e) => errors.push(String(e)))
 
