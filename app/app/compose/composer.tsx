@@ -143,25 +143,6 @@ const ONE = 10n ** 18n
 const BALLOT_TAG = 'JALIN_BALLOT:V1'
 
 /**
- * A plan whose steps are real external calls that move nothing: `approve(router, 0)`
- * on a token contract. The sandwich runs end to end, the whole withdrawn balance
- * is credited back into a note, and no market risk is taken to demonstrate it.
- */
-function proofOfMechanism(stepCount: number): Plan {
-  const approve = hash.getSelectorFromName('approve')
-  const targets = [TOKENS[0]!.address, TOKENS[1]!.address]
-  return {
-    steps: Array.from({ length: stepCount }, (_, i) => ({
-      target: targets[i % targets.length]!,
-      selector: approve,
-      approvals: [],
-      calldata: [ROUTER_ADDRESS, 0n, 0n],
-    })),
-    outputs: [{ token: TOKENS[0]!.address, noteId: openNote(0), minAmount: 0n }],
-  }
-}
-
-/**
  * Endur liquid staking as a plan.
  *
  * The router approves the vault, calls the standard ERC-4626

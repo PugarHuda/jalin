@@ -117,6 +117,59 @@ The effective set is `2^H` over the flow distribution rather than a headcount,
 because a cell where one address carries most of the volume is not the crowd its
 headcount claims. See `sdk/src/anonymity.ts`.
 
+## The headless SDK path costs three times what the browser does
+
+`register` through the SDK landed at
+[`0x2c72e438…855753`](https://voyager.online/tx/0x2c72e438b9572da3c36048491d6c90bce1234588582818e860dff017c855753),
+block 14,157,582, four events, pool among the emitters. It cost:
+
+```
+pool fee     6.00 STRK
+gas          2.79 STRK   proof verification is not cheap
+approve      ~0.05 STRK  the pool must be allowed to pull its own fee
+```
+
+Nine STRK for one operation. The same operation from the browser costs the six,
+because Ready relays through a paymaster and the pool fee pays for the relay.
+Anyone budgeting a headless run should triple the number they expect.
+
+Two blockers found on the way, both of which return errors that name something
+else:
+
+- `register` fails with `Insufficient ERC20 allowance` from the pool, not from a
+  wallet. The SDK does not include the `approve` the pool needs to draw its own
+  fee; it has to be sent first, as an ordinary public transaction.
+- Every builder path that carries `surplusTo(...)` fails with `Missing channel
+  context for recipient` until the account is registered - including `shield`,
+  which is the operation people reach for to register. Register is genuinely
+  first, and it is the one that costs nine STRK before anything is shielded.
+
+## Note discovery is a service, and it reads your viewing key
+
+`https://discovery-service.alpha-mainnet.sw-dev.io` answers, and without it the
+SDK cannot resolve which notes an account owns: the shadow-account flow stops at
+`discoverChannels` with a TypeError rather than a message. It takes the viewing
+key in cleartext, so the operator of that service can read the balances of any
+account pointed at it. That is a real trade for a headless integration and it is
+not mentioned where the endpoint is.
+
+## The shadow-account anonymizer is deployed, and almost nobody has used it
+
+`0x04f33230dc57855c6e7eabe66dfa0fde82c5458fd0e54827cdb7cb4c474888a7`, class
+`0x7ffaf4f4…7f5e6`. Verified rather than copied: `get_privacy_contract()` on it
+returns this project's pool, so it is bound to the same pool the router runs
+against.
+
+It is documented in starknet.js under "Address of a shadow account" and in none
+of the places this project looked first - not beside the Ekubo and Vesu entries
+in the privacy monorepo's README, not in the docs mirror, not in the SDK's own
+package, which is not on public npm at all.
+
+Do not derive the address locally. The SDK's derivation does not reproduce what
+this anonymizer deploys; the on-chain `get_shadow_account(commitment)` view
+does, and returns `0x0` for a commitment whose account has not been deployed
+yet.
+
 ## The proving service was never the wall, and this document said it was
 
 `https://transaction-prover.alpha-mainnet.sw-dev.io` answers `/health` with

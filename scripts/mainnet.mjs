@@ -60,6 +60,7 @@ const transfers = createPrivateTransfers({
     : undefined,
   discoveryProvider: process.env.INDEXER_URL ? { url: process.env.INDEXER_URL } : undefined,
   poolContractAddress: POOL,
+  shadowAccountAnonymizerAddress: process.env.SHADOW_ACCOUNT_ANONYMIZER,
 })
 
 async function submit(callAndProof, label) {
@@ -156,6 +157,56 @@ async function transfer(recipient, amountStrk) {
 }
 
 /**
+ * A shadow account: a real Starknet account the anonymizer derives per
+ * (identity, dapp, nonce), with no public link to the account that owns it.
+ *
+ * This is the one thing on the sprint's integration list this project could
+ * only ever describe. The SDK route needs a deployed shadow_account_anonymizer
+ * and no address for one was published where anyone was looking - not beside
+ * the Ekubo and Vesu entries in the monorepo README, not in the docs mirror.
+ * It is deployed, at 0x04f33230..., and starknet.js documents it under
+ * "Address of a shadow account".
+ *
+ * Verified before use rather than trusted: get_privacy_contract() on that
+ * anonymizer returns this project's pool, so it is bound to the same pool the
+ * router already runs against.
+ *
+ * Read the address from the contract, never derive it. The SDK's local
+ * derivation does not reproduce what this anonymizer deploys - the on-chain
+ * get_shadow_account(commitment) view does.
+ */
+async function shadow(nonce = '0') {
+  requireProver('shadow')
+  const anonymizer = env('SHADOW_ACCOUNT_ANONYMIZER')
+  const dapp = 'JALIN'
+
+  const accounts = transfers.build().shadowAccounts(dapp)
+  const partial = await accounts.partialCommitment()
+  const commitment = await accounts.commitment(nonce)
+  console.log(`dapp ${dapp} · nonce ${nonce}`)
+  console.log(`partial commitment ${num.toHex(partial)}`)
+  console.log(`commitment         ${num.toHex(commitment)}`)
+
+  const [derived] = await provider.callContract({
+    contractAddress: anonymizer,
+    entrypoint: 'get_shadow_account',
+    calldata: [num.toHex(commitment)],
+  })
+  console.log(`shadow account     ${derived}`)
+
+  // An approve of zero: the smallest call that proves the account can act.
+  const { callAndProof } = await transfers
+    .build({ autoSetup: true })
+    .surplusTo(account.address)
+    .shadowAccounts(dapp)
+    .invoke(nonce, {
+      calls: [{ contractAddress: STRK, entrypoint: 'approve', calldata: [derived, '0x0', '0x0'] }],
+    })
+    .execute({ provingBlockId: await provingBlockId() })
+
+  return submit(callAndProof, 'shadow')
+}
+/**
  * A two-step plan through the router. Two steps rather than one on purpose: a
  * single private swap is something AVNU already does with its own anonymizer,
  * and one invoke per transaction means Jalin and that anonymizer compete for the
@@ -229,7 +280,7 @@ async function ballot(proposalId = '1') {
 
 // ---------------------------------------------------------------------------
 
-const phases = { register, shield, transfer, plan, ballot }
+const phases = { register, shield, transfer, plan, shadow, ballot }
 if (!phases[phase]) {
   console.error(`usage: node scripts/mainnet.mjs <${Object.keys(phases).join('|')}> [--execute]`)
   process.exit(1)
