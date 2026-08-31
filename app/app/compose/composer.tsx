@@ -857,7 +857,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
     if (wallets.length === 0 && !status && !lastPayload && !dryRun) return null
 
     return (
-      <div className="mt-3 border-t border-thread pt-3">
+      <div className="mt-3 border-t border-thread pt-3" data-testid={`asked-${siteKey(site)}`}>
         {wallets.length > 0 && (
           <>
             <p className="text-xs text-muted">

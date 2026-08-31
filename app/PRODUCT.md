@@ -64,8 +64,12 @@ enforced in Cairo, not from an allow-list.
 - Composer: build a plan by hand or from presets (Endur stake, two deposits in
   one invoke, round trip, AVNU swap beside an Endur stake with a live route),
   see what it reveals, dry-run it in the wallet, sign it.
-- Guided mainnet run: shield sized from the live pool fee, then three numbered
-  runs, gated on the account's shielded balance with the shortfall named.
+- Account block at the top of the composer: the shielded balance read from the
+  wallet, a shield sized from the live pool fee, and the ballot - which is the
+  one action that is not a router plan and so cannot be built in the editor. It
+  is gated on the shielded balance with the shortfall named. There were three
+  numbered runs here until 31 August; two of them were the "Two deposits, one
+  invoke" and "Stake on Endur" presets under other names, so they went.
 - Governance page: every router parameter read from the governor; propose,
   execute and sweep as public transactions.
 - Verify page: judge pasted hashes or a whole repository's `strk20.json`.

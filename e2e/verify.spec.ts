@@ -94,13 +94,27 @@ test.describe('reading a whole submission', () => {
     expect(counted).toBe(listed)
     expect(Number(listed)).toBeGreaterThan(0)
     await expect(page.locator('main')).toContainText('2 contracts declared')
-    // The sprint hub's own verdict, beside ours. For this repository the two
-    // must agree: the hub's verifier and this page apply the same four rules
-    // to the same three hashes, and a disagreement would be a bug in one of
-    // them that the panel would meet before we did.
+    /**
+     * The sprint hub's own verdict, beside ours.
+     *
+     * This asserted that the two always agree, and that was a false invariant
+     * rather than a strict one: the hub re-reads a repository on its own
+     * schedule, so the hour after a fourth hash was pushed it read "the hub
+     * counts 3 · this page counts 4" and this test went red for the page
+     * telling the truth.
+     *
+     * What must hold is that the page never claims agreement it does not have.
+     * Agreement is one legitimate state and a lagging hub is the other, and in
+     * the second the page has to name both numbers and say why they differ.
+     */
     const hub = page.getByTestId('hub-verdict')
     await expect(hub).toBeVisible({ timeout: 30_000 })
-    await expect(hub).toContainText(/the hub counts \d+ · agrees/)
+    await expect(hub).toContainText(
+      /the hub counts \d+ · (agrees|this page counts \d+)/,
+    )
+    if (!/· agrees/.test(await hub.innerText())) {
+      await expect(hub).toContainText(/re-reads a repository on its own schedule/)
+    }
     await expect(hub).toContainText(/mainnet ✓/)
 
     // The demo URL is what a panel opens first, so it is a link here - and only

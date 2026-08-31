@@ -71,7 +71,7 @@ correct behaviour rather than a bug.
 
 | | |
 |---|---|
-| Where | `/compose`, any of the three numbered runs |
+| Where | `/compose`, the editor's **Dry run**, or the ballot's |
 | Do | Press **dry run** |
 | Expect | Ready opens its own screen and reports what it would refuse. Nothing is proved, sent or charged either way. |
 | Watch for | A dry run that costs STRK, or that reports success for a plan the run button says you cannot afford. Those two must agree. |
@@ -80,17 +80,17 @@ correct behaviour rather than a bug.
 
 | | |
 |---|---|
-| Where | `/compose`, with less shielded STRK than a run needs |
-| Do | Read the line under the run |
+| Where | `/compose`, with less shielded STRK than the ballot needs |
+| Do | Read the line under the ballot |
 | Expect | The exact arithmetic: what the run spends, what the pool charges, what you hold, and what you are short by |
-| Watch for | A run button that is enabled while the shortfall line is showing. The button must be disabled — otherwise you pay a proof to discover you could not afford the transaction. |
+| Watch for | A run button that is enabled while the shortfall line is showing. The button must be disabled — otherwise you pay a proof to discover you could not afford the transaction. The editor's own button does not do this arithmetic; there the wallet is what refuses, and it names the shortfall in its own words. |
 
 ### 5. A plan lands and the hash is kept
 
 | | |
 |---|---|
-| Where | `/compose`, run 1 or 2 |
-| Do | Press **run**, sign in Ready, and **wait for the hash to appear** |
+| Where | `/compose`, any preset plus **Sign and submit** |
+| Do | Press a preset, then **Sign and submit**, sign in Ready, and **wait for the hash to appear** |
 | Expect | A hash, linked to Voyager, and a verdict line under it computed from the chain |
 | Watch for | **Do not press another button while "Proving" is still on screen.** This is the one defect this project has actually shipped: a second click replaced the proving line, the hash lived nowhere else, and a transaction that succeeded on mainnet was reported here as never sent. The page now keeps landed hashes per account, but the discipline still matters. |
 
@@ -98,7 +98,7 @@ correct behaviour rather than a bug.
 
 | | |
 |---|---|
-| Where | `/compose`, run 3 |
+| Where | `/compose`, the ballot |
 | Do | Look at it while no proposal is open |
 | Expect | The run button disabled, and a line saying no proposal is taking votes |
 | Why it matters | A ballot with no open proposal is a transaction that reverts *after* it has been paid for and proved. Offering the button would be charging somebody to find that out. |
@@ -130,7 +130,7 @@ then come back within the hour.
 If you have time for one pass and not eight:
 
 1. Connect Ready on `/compose` and check the shielded balance matches the wallet.
-2. Dry-run a numbered run; confirm nothing is charged.
+2. Dry-run the plan in the editor; confirm nothing is charged.
 3. Run it, wait for the hash, and paste that hash into `/verify`.
 4. Kill your network, reload `/`, and confirm the page says what failed.
 

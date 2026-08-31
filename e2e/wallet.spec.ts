@@ -41,28 +41,36 @@ test.describe('the wallet surface', () => {
 
   test('every run can be dry-run, and the draft plan too', async ({ page }) => {
     const dryRuns = page.getByRole('button', { name: /^dry run$/i })
-    // Three numbered runs and the editor's own.
-    await expect(dryRuns).toHaveCount(4)
+    // The ballot and the editor's own. It was four while two of the runs were
+    // the presets under numbers.
+    await expect(dryRuns).toHaveCount(2)
 
     // The draft's dry run is live: the default preset is a complete plan.
     // `exact`, because role names match case-insensitively by substring and
-    // the three run buttons are called "dry run" - four matches is a strict-
-    // mode violation, and was.
+    // the ballot's button is also called "dry run".
     await expect(page.getByRole('button', { name: 'Dry run', exact: true })).toBeEnabled()
 
-    // The first two runs need only the router; the ballot follows the chain.
-    const runDryRuns = page.getByRole('button', { name: 'dry run', exact: true })
-    await expect(runDryRuns.nth(0)).toBeEnabled()
-    await expect(runDryRuns.nth(1)).toBeEnabled()
+    // The ballot's exists. Whether it is enabled follows the chain - a
+    // proposal has to be taking votes - so that is asserted where the ballot
+    // is tested, not here.
+    await expect(page.getByRole('button', { name: 'dry run', exact: true })).toHaveCount(1)
   })
 
   test('a dry run asks for a wallet and says what it would assemble', async ({ page }) => {
-    await page.getByRole('button', { name: 'dry run', exact: true }).first().click()
+    await page.getByRole('button', { name: 'Dry run', exact: true }).click()
 
-    // No wallet, so the request stops at the picker's honest answer - under
-    // the run that asked, not in the editor.
-    const run = page.locator('li', { hasText: '1. Two steps, one invoke' })
-    await expect(run).toContainText(/This demo signs with Ready/, { timeout: 20_000 })
+    /**
+     * No wallet, so the request stops at the picker's honest answer - and it
+     * lands under the thing that asked rather than anywhere on the page. This
+     * used to press the first numbered run's dry run; that run was a preset
+     * under a number and went, and the ballot that replaced it as "first" is
+     * gated on a proposal being open, which would have made this test follow
+     * the chain instead of the wiring.
+     */
+    await expect(page.getByTestId('asked-draft')).toContainText(
+      /This demo signs with Ready/,
+      { timeout: 20_000 },
+    )
     await expect(page.getByTestId('dry-run')).toHaveCount(0)
   })
 
@@ -99,7 +107,7 @@ test.describe('the wallet surface', () => {
     // wallet's answer lands under that run - the same path a mouse takes, with
     // nothing on it that needs a pointer. Bounded, because a page that needs
     // more than a hundred tabs to reach its first action has a different bug.
-    const target = page.getByRole('button', { name: 'dry run', exact: true }).first()
+    const target = page.getByRole('button', { name: 'Dry run', exact: true })
     for (let i = 0; i < 120; i += 1) {
       await page.keyboard.press('Tab')
       if (await target.evaluate((el) => el === document.activeElement)) break
@@ -107,15 +115,20 @@ test.describe('the wallet surface', () => {
     await expect(target).toBeFocused()
     await page.keyboard.press('Enter')
 
-    const run = page.locator('li', { hasText: '1. Two steps, one invoke' })
-    await expect(run).toContainText(/This demo signs with Ready/, { timeout: 20_000 })
+    await expect(page.getByTestId('asked-draft')).toContainText(
+      /This demo signs with Ready/,
+      { timeout: 20_000 },
+    )
   })
 
   test('the run buttons are not gated on a balance nobody has read', async ({ page }) => {
     // Without a wallet the page knows nothing about the account, so it must
     // not claim a shortfall. The gate only closes on the wallet's numbers.
     await expect(page.locator('main')).not.toContainText(/Short by/)
-    const runs = page.getByRole('button', { name: /^run · / })
-    await expect(runs.nth(0)).toBeEnabled()
+
+    // The shield, because it is the one button here that no chain condition
+    // gates - the ballot needs an open proposal, so its state says nothing
+    // about whether a balance was assumed.
+    await expect(page.getByRole('button', { name: /^shield · / })).toBeEnabled()
   })
 })
