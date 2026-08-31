@@ -256,6 +256,27 @@ python scripts/demo-video/compose.py    # cut to the narration, burn captions
 Recording against production rather than a local build is deliberate: a demo of
 something that only works on a laptop is a demo of nothing.
 
+## How far into STRK20 this goes
+
+Automated stack detection reads `package.json`, so it records this project as not
+using the privacy SDK. It does — built from source rather than depended on, which
+is the one shape a dependency scan cannot see. The whole of it, including what is
+missing:
+
+| Part of the stack | Here |
+|---|---|
+| Shielded notes | Every plan output is credited straight back into one, above a floor the caller sets |
+| `privacy_invoke` | The router *is* a helper the pool calls; the plan executes inside that single invoke |
+| Anonymizer contract | `contracts/` — the router, a governor and a private ballot, in Cairo, on mainnet |
+| Privacy SDK | Built from source into `vendor/` by [`scripts/build-privacy-sdk.sh`](./scripts/build-privacy-sdk.sh) and used by [`scripts/mainnet.mjs`](./scripts/mainnet.mjs) |
+| Proving and discovery | Self-hosted: the official discovery service and proof interceptor run from [`prover/`](./prover/) |
+| Shadow accounts | Asked of the wallet at runtime and shown verbatim, including the refusal — the SDK route needs a mainnet proving URL that is not published |
+| Private transfers | Not the product. Jalin routes value through venues; a note-to-note transfer is what the pool already does without a helper |
+
+The last two rows are the honest ones. Shadow accounts are reachable in the
+protocol and not from here yet, and private transfer is deliberately somebody
+else's problem.
+
 ## Repository layout
 
 | Path | What it holds |
