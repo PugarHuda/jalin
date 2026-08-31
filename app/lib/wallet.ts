@@ -161,6 +161,12 @@ export interface Capabilities {
   /** What the wallet reports through `wallet_supportedWalletApi`. */
   versions: string[]
   strk20: boolean
+  /**
+   * The wallet asked and the person said no. Not a capability: a refusal
+   * answers "do you want to right now", and the page must not read it as
+   * "this wallet cannot".
+   */
+  declined: boolean
   /** The account has joined the pool, so balances and spends are possible. */
   registered: boolean
   /** `wallet_strk20ShadowAccountCommitment` answered. */
@@ -176,6 +182,7 @@ export async function probe(wallet: Strk20Wallet): Promise<Capabilities> {
   const out: Capabilities = {
     versions: [],
     strk20: false,
+    declined: false,
     registered: false,
     shadow: false,
     refusal: null,
@@ -198,6 +205,15 @@ export async function probe(wallet: Strk20Wallet): Promise<Capabilities> {
     const message = describeError(error)
     if (/NOT_REGISTERED/i.test(message)) {
       out.strk20 = true
+    } else if (/USER_REFUSED|113/i.test(message)) {
+      // Reject in the wallet. The third time this file has had to separate a
+      // wallet's answer from a wallet's absence: NOT_REGISTERED means the pool
+      // knows the method, INVALID_REQUEST_PAYLOAD meant the params were wrong,
+      // and this means the person declined. Reporting it as missing support
+      // sent the page back to its first-run state and told somebody with 24
+      // STRK in the pool that they had not joined it.
+      out.declined = true
+      out.refusal = message
     } else {
       out.refusal = message
     }

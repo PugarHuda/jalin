@@ -206,7 +206,7 @@ interface MainnetRun {
 
 const SHIELD: MainnetRun = {
   title: 'Shield the whole run',
-  note: 'Moves public STRK into the pool as an encrypted note. Not one of the three: it touches the pool but no contract of ours, so it does not count. The wallet will not fold it into a run either — a spend is checked against the balance you already hold.',
+  note: 'Moves your public STRK into the pool as an encrypted note, and everything below spends from it. It has to land before anything else will run: the wallet checks a spend against the balance you already hold, so it will not fold the two into one transaction.',
   amount: 0n,
   shieldOnly: true,
 }
@@ -235,19 +235,19 @@ function shieldAmount(poolFee: bigint): bigint {
 const RUNS: MainnetRun[] = [
   {
     title: 'Two steps, one invoke',
-    note: 'Two external calls inside the single invoke the pool allows — the composition a fixed-parameter helper cannot express, whatever it points at. The calls move nothing and the whole balance is credited back, so it costs only fees.',
+    note: 'Two calls inside the one invoke the pool allows. Nothing leaves — the whole balance is credited straight back into a note — so this costs you the pool fee and nothing else.',
     amount: ONE / 2n,
     plan: proofOfMechanism(2),
   },
   {
     title: 'Stake on Endur, privately',
-    note: 'A real ERC-4626 deposit into Endur’s liquid staking vault; xSTRK lands straight in a shielded note. Nothing was written for Endur — the vault has an ABI, so it is reachable as a step.',
+    note: 'A real deposit into Endur’s liquid staking vault. The xSTRK comes back into a shielded note, so you hold the staked position without it being linked to you.',
     amount: ONE / 4n,
     plan: endurStake(ONE / 4n),
   },
   {
     title: 'Private ballot',
-    note: 'A vote through JalinGovernor, an anonymizer helper in its own right: the weight is public, the voter is not. It votes on whichever proposal is open.',
+    note: 'A vote on whichever proposal is open. The weight of your vote is public; that it was you is not. Your stake stays escrowed until voting closes, then you redeem it with the secret this page gives you — keep that secret.',
     amount: ONE / 10n,
     ballot: true,
   },
@@ -919,6 +919,27 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
    * when the shield was sized at 1 STRK against a 6 STRK fee: nothing on screen
    * knew what the account held, so nothing could say it was short.
    */
+  /**
+   * Asks the wallet the same question again after a refusal.
+   *
+   * The re-read button lives inside the shielded-balance block, which a refusal
+   * hides - so the one instruction the page could give was to press something
+   * that was not on screen. The wallet is already connected at that point;
+   * only the answer is missing.
+   */
+  async function askAgain() {
+    if (!wallet) return
+    setStatus('Asking the wallet again…')
+    const found = await probe(wallet)
+    setCaps(found)
+    setBalances(found.balances)
+    setStatus(
+      found.declined
+        ? 'Declined again. The balances stay hidden until the wallet is allowed to answer.'
+        : null,
+    )
+  }
+
   async function refreshBalances(w: Strk20Wallet) {
     try {
       setBalances(await shieldedBalances(w))
@@ -962,6 +983,12 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
     const who = `${raw.name ?? 'unknown wallet'}${raw.version ? ` ${raw.version}` : ''}`
     const api = found.versions.length ? `Wallet API ${found.versions.join(', ')}` : 'Wallet API version unknown'
 
+    if (found.declined) {
+      setStatus(
+        `${who} asked you to approve reading this account's shielded balances and the request was declined. Nothing is wrong with the wallet or the account - press "ask again" and approve it.`,
+      )
+      return null
+    }
     if (!found.strk20) {
       setStatus(
         `${who} does not answer wallet_strk20Balances, so it cannot sign a Jalin plan yet. ${api}. It said: ${found.refusal}`,
@@ -1582,8 +1609,8 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
       <section id="mainnet-run" className="mt-10 scroll-mt-6 rounded border border-thread bg-raised p-5">
         <h2 className="font-mono text-sm">The mainnet run</h2>
         <p className="mt-1 max-w-[62ch] text-xs text-muted">
-          Three transactions on mainnet, each an invoke through a contract of ours. Run them in
-          order — the shield funds the note the runs spend.
+          Four things you can send from here, each a real transaction on Starknet mainnet.
+          Shield first: everything below spends from that balance, not from your public one.
         </p>
         {/*
           The composite plan is the one this whole project argues for, and it is
@@ -1593,13 +1620,13 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
           be fetched rather than written down. Pointing at it costs a sentence.
         */}
         <p className="mt-2 max-w-[62ch] text-xs leading-relaxed text-muted">
-          <span className="text-cloth">The fourth one is not numbered.</span> Two venues in one
-          invoke — a live AVNU route beside an Endur stake — is the plan the argument rests on,
-          and a swap route is a quote at a block rather than something this page can write down
-          ahead of time. Press{' '}
-          <span className="text-cloth">Swap half on AVNU, stake half on Endur</span> at the top,
-          then <span className="text-cloth">Sign and submit</span>. It costs the same pool fee as
-          a numbered run.
+          <span className="text-cloth">Swap on AVNU and stake on Endur, in one transaction.</span>{' '}
+          It has no number because the swap route is a live quote — it is fetched when you press
+          it, not written here. Press{' '}
+          <span className="text-cloth">Swap half on AVNU, stake half on Endur</span> at the top of
+          this page, wait for the route, then <span className="text-cloth">Sign and submit</span>.
+          If it comes back red, AVNU had no route that second; wait and press it again. Costs the
+          same pool fee as any run below.
         </p>
 
         {/*
@@ -1607,7 +1634,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
           it has, this paragraph is a step already taken, and leaving it on the
           page made the reader parse a prerequisite that no longer applied.
         */}
-        {!caps?.registered && (
+        {!caps?.registered && !caps?.declined && (
           <p className="mt-3 max-w-[62ch] border-t border-thread pt-3 text-xs leading-relaxed text-muted">
             <span className="font-mono">0.</span> First time on this account? Shield any amount
             from inside your wallet — that one transaction publishes your viewing key and
@@ -1627,10 +1654,21 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
 
         {feedback(-2, 'this page')}
 
+        {connected && caps?.declined && (
+          <button
+            onClick={() => void askAgain()}
+            className="mt-3 rounded border border-strand px-3 py-1.5 text-xs hover:border-gold"
+          >
+            ask again
+          </button>
+        )}
+
         {connected && (
           <p className="mt-4 font-mono text-xs text-muted" data-testid="wallet-says">
             {!caps
               ? `${connected} is connected and has not been asked what it supports yet - the first dry run or run asks.`
+              : caps.declined
+              ? `${connected} was asked for this account's shielded balances and the request was declined. Nothing is wrong with the wallet or the account.`
               : !caps.strk20
               ? `${connected} does not answer wallet_strk20Balances. It said: ${caps.refusal}`
               : !caps.registered
@@ -1717,11 +1755,12 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
           <p className="mt-1 max-w-[60ch] text-xs leading-relaxed text-muted">{shield.note}</p>
           {poolFee && (
             <p className="mt-1 max-w-[60ch] font-mono text-xs leading-relaxed text-gold">
-              {Number(poolFee) / 1e18} STRK per private operation, read from get_fee_amount ·{' '}
-              {RUNS.length + 1} operations here, so{' '}
-              {Number(poolFee * BigInt(RUNS.length + 1)) / 1e18} STRK of the amount above is fee
-              and {Number(shield.amount - poolFee * BigInt(RUNS.length + 1)) / 1e18} is what the
-              runs spend
+              the pool charges {Number(poolFee) / 1e18} STRK for every private operation, read
+              from its own get_fee_amount. This one shield pays for{' '}
+              {RUNS.length + 1} of them — itself and the three runs — so{' '}
+              {Number(poolFee * BigInt(RUNS.length + 1)) / 1e18} STRK of it is fee and{' '}
+              {Number(shield.amount - poolFee * BigInt(RUNS.length + 1)) / 1e18} is what the runs
+              actually move
             </p>
           )}
           {shieldHash && (
