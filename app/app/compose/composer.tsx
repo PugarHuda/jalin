@@ -216,7 +216,7 @@ interface MainnetRun {
 
 const SHIELD: MainnetRun = {
   title: 'Shield the whole run',
-  note: 'Moves public STRK into the pool as an encrypted note. Not one of the three - it goes through the pool but not through a contract of ours, so it does not count. Combining it with the plan below would be quieter, and the wallet will not have it: a withdrawal is checked against the private balance you already hold, and a deposit in the same action set does not arrive in time to cover it.',
+  note: 'Moves public STRK into the pool as an encrypted note. Not one of the three: it touches the pool but no contract of ours, so it does not count. The wallet will not fold it into a run either — a spend is checked against the balance you already hold.',
   amount: 0n,
   shieldOnly: true,
 }
@@ -245,19 +245,19 @@ function shieldAmount(poolFee: bigint): bigint {
 const RUNS: MainnetRun[] = [
   {
     title: 'Two steps, one invoke',
-    note: 'Two external calls inside the single invoke the pool allows - the composition nothing else can do. The calls move nothing and the whole balance is credited back, so this proves the sandwich for the price of fees.',
+    note: 'Two external calls inside the single invoke the pool allows — the composition nothing else can do. The calls move nothing and the whole balance is credited back, so it costs only fees.',
     amount: ONE / 2n,
     plan: proofOfMechanism(2),
   },
   {
     title: 'Stake on Endur, privately',
-    note: 'A real ERC-4626 deposit into Endur’s liquid staking vault, which returns xSTRK straight into a shielded note. No Jalin-specific adapter and no contract written for Endur - the vault has an ABI, so it is reachable as a step.',
+    note: 'A real ERC-4626 deposit into Endur’s liquid staking vault; xSTRK lands straight in a shielded note. Nothing was written for Endur — the vault has an ABI, so it is reachable as a step.',
     amount: ONE / 4n,
     plan: endurStake(ONE / 4n),
   },
   {
     title: 'Private ballot',
-    note: 'A vote through JalinGovernor, which is an anonymizer helper in its own right: the weight is public and the voter is not. It votes on whichever proposal is currently open — a proposal takes votes for about an hour, so if none is, make one on the governance page first.',
+    note: 'A vote through JalinGovernor, an anonymizer helper in its own right: the weight is public, the voter is not. It votes on whichever proposal is open.',
     amount: ONE / 10n,
     ballot: true,
   },
@@ -1224,10 +1224,8 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
         </div>
         <h1 className="mt-6 font-display text-3xl font-semibold tracking-tight">Composer</h1>
         <p className="mt-2 max-w-[60ch] text-sm text-muted">
-          A programmable execution router for the STRK20 shielded pool. The pool allows one
-          invoke per transaction, so a private DeFi action is normally only as expressive as
-          the single helper contract it calls. Jalin takes a plan instead, and composition
-          happens inside that one invoke.
+          The pool allows one invoke per private transaction. Jalin runs a whole plan —
+          any steps, any contracts — inside that one invoke.
         </p>
         <p className="mt-3 font-mono text-xs text-muted">
           pool {label(POOL_ADDRESS)} · router {ROUTER_ADDRESS ? label(ROUTER_ADDRESS) : 'not deployed yet'}
@@ -1243,12 +1241,12 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
         argument, which builds to those runs rather than opening with them.
       */}
       <p className="mt-4 max-w-[60ch] rounded border border-strand bg-raised px-3 py-2 text-xs leading-relaxed text-muted">
-        <span className="text-cloth">First time here?</span> This editor signs whatever plan you
-        build, and spending needs a shielded balance you may not hold yet. The guided path is{' '}
+        <span className="text-cloth">First time here?</span> Start with{' '}
         <a href="#mainnet-run" className="text-gold underline underline-offset-2">
           the three numbered runs
         </a>{' '}
-        at the foot of this page — shield once, then run them in order.
+        below — shield once, then run them in order. The editor signs whatever you build, and
+        spending needs a shielded balance you may not hold yet.
       </p>
 
       <div className="mt-6 flex flex-wrap items-center gap-2">
@@ -1510,11 +1508,13 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
                   colour={prospect.effectiveSetAfter < 2 ? 'text-warn' : 'text-hidden'}
                   items={[
                     prospect.headcount === 0
-                      ? `Nobody else has shielded this much of this token in the current window. Your effective anonymity set would be ${prospect.effectiveSetAfter.toFixed(2)} — you, alone. The public deposit leg would identify this transaction completely.`
+                      ? `Nobody else has shielded this much of this token in the current window. Your effective anonymity set would be ${prospect.effectiveSetAfter.toFixed(2)} — you, alone.`
                       : `${prospect.headcount} other ${prospect.headcount === 1 ? 'address is' : 'addresses are'} in the same cell — same token, same order of magnitude, same six-hour window. Your effective anonymity set would be ${prospect.effectiveSetAfter.toFixed(2)}.`,
+                    `Cell closes in ${prospect.blocksLeftInCell.toLocaleString()} blocks${minutes(prospect.blocksLeftInCell)}. Round the amount to your neighbours' and you land in a busier one.`,
+                  ]}
+                  more={[
                     'A cell, not the pool. An observer of the public leg sees the asset, the magnitude and roughly when, so only deposits agreeing on all three cover each other. The figure is a perplexity over the flow, because a cell one address dominates is not the crowd its headcount claims.',
-                    'Changing the amount moves you to a different cell. Rounding to whatever your neighbours used is the cheapest privacy available here.',
-                    `This cell closes in ${prospect.blocksLeftInCell.toLocaleString()} blocks${minutes(prospect.blocksLeftInCell)}. Sign after that and the deposit lands in the next one, which starts empty.`,
+                    'Sign after the cell closes and the deposit lands in the next one, which starts empty.',
                   ]}
                 />
               )}
@@ -1523,7 +1523,9 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
                   title="The pool"
                   colour="text-muted"
                   items={[
-                    `${crowd.depositors} distinct addresses have shielded into the pool. Across every cell the median effective set is ${crowd.cells.medianEffectiveSet.toFixed(2)} and ${Math.round(crowd.cells.aloneShare * 100)}% of cells hold exactly one person; the largest crowd anywhere is ${crowd.cells.largestEffectiveSet.toFixed(1)}.`,
+                    `${crowd.depositors} distinct addresses have shielded into the pool. Median effective set per cell ${crowd.cells.medianEffectiveSet.toFixed(2)}; ${Math.round(crowd.cells.aloneShare * 100)}% of cells hold one person; the largest crowd anywhere is ${crowd.cells.largestEffectiveSet.toFixed(1)}.`,
+                  ]}
+                  more={[
                     'Withdrawals are not counted. Most of them name the fee collector or the paymaster that relays gas, and a shield with no exit still emits one — so a withdrawal only means someone left if its destination is a person.',
                     'Jalin cannot conjure other people. What it changes is how many public legs you need: three transactions at three separate moments is three chances to be the only one there, and a plan is one.',
                   ]}
@@ -1546,7 +1548,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
             ) : (
               <p className="max-w-[60ch] rounded border border-thread bg-raised px-3 py-2 text-xs leading-relaxed text-muted">
                 {result.plan
-                  ? 'Connect a wallet and the exact calls appear here, recipient included. Your address is one of them, and there is no honest stand-in for it — a made-up one would show you a transaction you are not going to send. Running any of the numbered transactions below connects the wallet.'
+                  ? 'Connect a wallet and the exact calls appear here, recipient included. Your address is one of them, and a made-up stand-in would show you a transaction you are not going to send.'
                   : 'Fix the plan first — the calls are derived from it.'}
               </p>
             )
@@ -1574,8 +1576,8 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
             </button>
             {params?.paused && (
               <p className="mt-2 rounded border border-warn/40 bg-warn/10 px-3 py-2 text-xs leading-relaxed text-warn">
-                Governance has the router paused, so every plan reverts. Nothing here can override
-                it — that is the point of it. See{' '}
+                Governance has the router paused, so every plan reverts. Nothing here can
+                override it. See{' '}
                 <a className="underline underline-offset-2" href="/governance">
                   governance
                 </a>
@@ -1584,17 +1586,16 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
             )}
             {deniedTargets.length > 0 && (
               <p className="mt-2 rounded border border-warn/40 bg-warn/10 px-3 py-2 text-xs leading-relaxed text-warn break-all">
-                Governance has denied {deniedTargets.join(', ')}. The router refuses a denied
-                target, so this plan would revert. The deny list is a circuit breaker, not an
-                allow list — everything not on it stays callable.
+                Governance has denied {deniedTargets.join(', ')}, so this plan would revert.
+                The deny list is a circuit breaker, not an allow list.
               </p>
             )}
             <p className="mt-2 max-w-[60ch] text-xs text-muted">
               {draftIncomplete
-                ? 'One of the steps has no target yet. A step needs the contract it calls, and there is no honest default for which contract that is. To send something that already works, use the numbered runs below.'
+                ? 'One of the steps has no target yet — a step needs the contract it calls. To send something that already works, use the numbered runs below.'
                 : ROUTER_ADDRESS
                 ? 'Needs a wallet that implements wallet_strk20InvokeTransaction. Proving takes around 30 seconds.'
-                : 'The router is not deployed yet, so there is nothing to sign — but this still connects your wallet and tells you whether it implements the STRK20 methods.'}
+                : 'The router is not deployed yet, so there is nothing to sign — this still connects your wallet and reports whether it implements the STRK20 methods.'}
             </p>
             {feedback(null, 'the plan above')}
           </div>
@@ -1604,31 +1605,32 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
       <section id="mainnet-run" className="mt-10 scroll-mt-6 rounded border border-thread bg-raised p-5">
         <h2 className="font-mono text-sm">The mainnet run</h2>
         <p className="mt-1 max-w-[62ch] text-xs text-muted">
-          Three transactions on Starknet mainnet, each an invoke through a contract of ours.
-          Small and deliberately dull: the point is to prove the mechanism with real value, not
-          to take a market position. Run them in order - the first one shields the note the
-          other two spend.
+          Three transactions on mainnet, each an invoke through a contract of ours. Run them in
+          order — the shield funds the note the runs spend.
         </p>
 
-        <p className="mt-3 max-w-[62ch] border-t border-thread pt-3 text-xs leading-relaxed text-muted">
-          <span className="font-mono">0.</span> First time on this account? The pool needs your
-          public viewing key before anything can be sent to you privately, and that is not a step
-          any dapp can do for you — there is no register method in the Wallet API. Shield any
-          amount once from inside your wallet and it publishes the key in that same transaction.
-          Verified on mainnet in{' '}
-          <a
-            className="text-gold underline underline-offset-2"
-            href="https://voyager.online/tx/0x04816dbb3ec04d21cc5da879358e485afdbfe52a3d8f6b8bf4a678003b6e0278"
-            target="_blank"
-            rel="noreferrer"
-          >
-            0x04816dbb…0278
-          </a>
-          , where one Ready shield emitted <span className="font-mono">ViewingKeySet</span>,{' '}
-          <span className="font-mono">Deposit</span> and{' '}
-          <span className="font-mono">EncNoteCreated</span> together. Skipping it gives you{' '}
-          <span className="font-mono">NOT_REGISTERED</span>.
-        </p>
+        {/*
+          Only for an account that has not joined the pool. Once the wallet says
+          it has, this paragraph is a step already taken, and leaving it on the
+          page made the reader parse a prerequisite that no longer applied.
+        */}
+        {!caps?.registered && (
+          <p className="mt-3 max-w-[62ch] border-t border-thread pt-3 text-xs leading-relaxed text-muted">
+            <span className="font-mono">0.</span> First time on this account? Shield any amount
+            from inside your wallet — that one transaction publishes your viewing key and
+            registers you. No dapp can do it for you; the Wallet API has no register method, and
+            skipping it gives <span className="font-mono">NOT_REGISTERED</span>. Verified in{' '}
+            <a
+              className="text-gold underline underline-offset-2"
+              href="https://voyager.online/tx/0x04816dbb3ec04d21cc5da879358e485afdbfe52a3d8f6b8bf4a678003b6e0278"
+              target="_blank"
+              rel="noreferrer"
+            >
+              0x04816dbb…0278
+            </a>
+            .
+          </p>
+        )}
 
         {feedback(-2, 'this page')}
 
@@ -1657,9 +1659,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
             </div>
             <p className="mt-1 max-w-[60ch] text-xs leading-relaxed text-muted">
               Read from the wallet with <span className="font-mono">wallet_strk20Balances</span>.
-              The viewing key that decrypts these never left it; this page only sees the
-              totals, and only because you connected. Each run below is checked against the
-              STRK line, plus the pool&apos;s fee, before its button is offered.
+              The viewing key that decrypts them never left it; this page sees only the totals.
             </p>
             {balances.length === 0 ? (
               <p className="mt-2 font-mono text-xs text-muted">no shielded tokens yet</p>
@@ -1680,12 +1680,9 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
           <div className="mt-3 border-t border-thread pt-3" data-testid="shadow">
             <span className="font-mono text-sm">Shadow account</span>
             <p className="mt-1 max-w-[60ch] text-xs leading-relaxed text-muted">
-              A real Starknet account the wallet derives for this dapp from your private
-              state, with no public link to your main wallet. Unlike the router it can hold
-              a position between transactions — a lending deposit, a vault subscription —
-              which is the one shape the router cannot serve. The Wallet API route exists
-              since starknet.js 10.6.0; whether this wallet implements it is asked, not
-              assumed.
+              An account the wallet derives for this dapp, with no public link to your main
+              wallet. It can hold a position between transactions — a lending deposit, a vault
+              subscription — which the router cannot.
             </p>
             {caps.shadow ? (
               <p className="mt-2 break-all font-mono text-xs text-gold">
@@ -1693,18 +1690,15 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
                   ? `dapp ${SHADOW_DAPP} · partial commitment ${shadow}`
                   : `dapp ${SHADOW_DAPP} · asking the wallet for the commitment…`}
                 <span className="mt-1 block font-sans text-muted">
-                  Computed inside the wallet from your identity key and this dapp&apos;s name;
-                  nothing was sent to compute it. Shared by every shadow account you derive
-                  here, and it reveals no individual nonce.
+                  Computed inside the wallet from your identity key and this dapp&apos;s name.
+                  Nothing was sent, and it reveals no individual account.
                 </span>
               </p>
             ) : (
               <p className="mt-2 break-all font-mono text-xs leading-relaxed text-warn">
                 {connected} does not answer{' '}
                 <span className="font-mono">wallet_strk20ShadowAccountCommitment</span> yet.
-                {caps.shadowRefusal ? ` It said: ${caps.shadowRefusal}` : ''} The SDK route
-                exists for anyone holding a viewing key; from a wallet, this waits on the
-                wallet.
+                {caps.shadowRefusal ? ` It said: ${caps.shadowRefusal}` : ''}
               </p>
             )}
           </div>
@@ -1730,8 +1724,8 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
           <p className="mt-1 max-w-[60ch] text-xs leading-relaxed text-muted">{shield.note}</p>
           {poolFee && (
             <p className="mt-1 max-w-[60ch] font-mono text-xs leading-relaxed text-gold">
-              the pool charges {Number(poolFee) / 1e18} STRK per private operation, read from its
-              own get_fee_amount · four operations here — this shield and the three runs — so{' '}
+              {Number(poolFee) / 1e18} STRK per private operation, read from get_fee_amount ·{' '}
+              {RUNS.length + 1} operations here, so{' '}
               {Number(poolFee * BigInt(RUNS.length + 1)) / 1e18} STRK of the amount above is fee
               and {Number(shield.amount - poolFee * BigInt(RUNS.length + 1)) / 1e18} is what the
               runs spend
@@ -1806,9 +1800,8 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
                     No proposal is taking votes. Make one on the{' '}
                     <a className="underline underline-offset-2" href="/governance">
                       governance page
-                    </a>{' '}
-                    — it needs no STRK20 support and no proving service — then come back within the
-                    hour.
+                    </a>
+                    , then come back within the hour.
                   </p>
                 ))}
               {run.title.includes('Endur') && quote && (
@@ -1840,15 +1833,12 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
           <p className="mt-3 break-all rounded border border-warn/40 bg-warn/10 p-3 font-mono text-xs text-warn">
             Ballot secret, save it: {ballotSecret}
             <span className="mt-1 block font-sans">
-              This is the only thing that redeems the stake once voting closes. It exists
-              nowhere else — not on chain, not on a server. Lose it and the stake stays in the
-              governor for good.
+              The only thing that redeems the stake once voting closes. It exists nowhere else —
+              not on chain, not on a server. Lose it and the stake stays in the governor for good.
             </span>
             <span className="mt-2 block font-sans">
-              It is a bearer instrument. Redeeming publishes it, because an invoke action&apos;s
-              calldata is public, so whoever sees the pending transaction first can spend it
-              instead — the same window a swap has against a sandwich. It is worth exactly this
-              stake, and worth nothing once spent. Do not paste it anywhere.
+              It is a bearer instrument: redeeming publishes it in calldata, so whoever sees the
+              pending transaction first can spend it instead. Do not paste it anywhere.
             </span>
           </p>
         )}
@@ -1912,7 +1902,23 @@ function TokenSelect({ value, onChange }: { value: string; onChange: (v: string)
   )
 }
 
-function Group({ title, colour, items }: { title: string; colour: string; items: string[] }) {
+/**
+ * `more` is the reasoning behind the group, not an extra fact: the reader who
+ * wants to know why a cell is the unit, or why withdrawals are not counted,
+ * opens it. Leaving it inline made the panel a wall nobody finished reading,
+ * and the numbers above it are the part that has to land first.
+ */
+function Group({
+  title,
+  colour,
+  items,
+  more,
+}: {
+  title: string
+  colour: string
+  items: string[]
+  more?: string[]
+}) {
   return (
     <div>
       <h3 className={`font-mono text-xs uppercase tracking-wide ${colour}`}>{title}</h3>
@@ -1923,6 +1929,18 @@ function Group({ title, colour, items }: { title: string; colour: string; items:
           </li>
         ))}
       </ul>
+      {more && (
+        <details className="mt-1.5">
+          <summary className="cursor-pointer font-mono text-xs text-muted">why</summary>
+          <ul className="mt-1.5 space-y-1.5">
+            {more.map((item, i) => (
+              <li key={i} className="text-xs leading-relaxed break-words text-muted">
+                {item}
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
     </div>
   )
 }
