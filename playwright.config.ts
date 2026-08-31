@@ -67,7 +67,11 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
   projects: [
-    { name: 'desktop', use: { ...devices['Desktop Chrome'] } },
+    {
+      name: 'desktop',
+      use: { ...devices['Desktop Chrome'] },
+      testIgnore: [/ready\.spec\.ts/],
+    },
 
     /**
      * Three engines, not one. Chromium alone cannot see a Gecko or WebKit
@@ -80,13 +84,21 @@ export default defineConfig({
     {
       name: 'firefox',
       use: { ...devices['Desktop Firefox'] },
-      testIgnore: [/api\.spec\.ts/, /params\.spec\.ts/],
+      testIgnore: [/api\.spec\.ts/, /params\.spec\.ts/, /ready\.spec\.ts/],
     },
     {
       name: 'webkit',
       use: { ...devices['Desktop Safari'] },
-      testIgnore: [/api\.spec\.ts/, /params\.spec\.ts/],
+      testIgnore: [/api\.spec\.ts/, /params\.spec\.ts/, /ready\.spec\.ts/],
     },
+
+    /**
+     * The real Ready extension, in its own headed Chromium. Only Chromium can
+     * load an extension at all, and the spec builds its own context, so this
+     * project exists to keep the file out of the other three rather than to
+     * configure a browser for it. Skips itself where Ready is not installed.
+     */
+    { name: 'ready', testMatch: /ready\.spec\.ts/ },
 
     { name: 'mobile', use: { ...devices['Pixel 7'] }, testMatch: /responsive\.spec\.ts/ },
 
