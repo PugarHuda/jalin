@@ -412,6 +412,15 @@ the alternative route — a wallet implementing the STRK20 methods — answers "
 implemented" when the composer asks it, which the composer shows verbatim instead
 of a constant.
 
+**This is a limit accepted, not a wall.** The prover binary is not in the public
+monorepo, but nothing stops a team from operating a proving service of its own,
+and at least one in this sprint did. The effort here went into self-hosting the
+two components that are published — the discovery service, where a viewing key
+would otherwise be handed to somebody else, and the screening interceptor — and
+into proving the router against a mainnet fork. Standing up a prover as well was
+a cost we did not pay, and the transaction count is what that decision looks like
+from outside.
+
 So the steps that cannot be proven on mainnet today are exercised against a
 mainnet fork instead, with real contracts at their real addresses: the AVNU
 multi-route swap and the Endur stake run as one plan there. What could be settled
