@@ -158,6 +158,7 @@ function Trend({
       </svg>
 
       <figcaption className="mt-2 max-w-[62ch] font-mono text-xs text-muted">
+        effective anonymity set, floor 1.00 ·{' '}
         <span className="text-warn">solid</span> the typical deposit ·{' '}
         <span className="text-hidden">dashed</span> the best one · each point is a six-hour window
       </figcaption>
@@ -368,6 +369,22 @@ function Qualifying() {
           check them against the sprint&apos;s own rules
         </Link>
         .
+        {manifest.demo_video && (
+          <>
+            {' '}
+            Or watch one being built:{' '}
+            <a
+              className="text-cloth underline underline-offset-2 hover:text-gold"
+              href={manifest.demo_video}
+              target="_blank"
+              rel="noreferrer"
+            >
+              the demo, 2:49
+            </a>
+            {' '}— linked rather than embedded, because a 20 MB autoplay is not what a first
+            viewport is for.
+          </>
+        )}
       </p>
     </section>
   )
@@ -452,6 +469,12 @@ export default async function Landing() {
           <div className="sm:hidden">
             <Weave labelSize={24} />
           </div>
+          <p className="mt-3 max-w-[62ch] font-mono text-xs text-muted">
+            A <span className="text-cloth">note</span> is what the pool gives back: an encrypted
+            record of a balance, readable only by the viewing key that owns it. Steps enter as
+            ordinary calls and their outputs land as notes, so the plan is public and the position
+            is not.
+          </p>
         </div>
       </section>
 
@@ -519,6 +542,28 @@ export default async function Landing() {
               </li>
             ))}
           </ul>
+          {/*
+            The evidence this audience asks for was reachable only through a
+            single word reading "source". Naming the files and the counts costs
+            two lines and answers the question the reader was about to open a
+            terminal for.
+          */}
+          <p className="mt-6 max-w-[62ch] border-t border-thread pt-4 font-mono text-xs text-muted">
+            129 SDK tests, 348 Playwright tests across four projects, and 44 Cairo tests, four of
+            which fork mainnet and run the router against Endur&apos;s vault and AVNU&apos;s
+            exchange. The reasoning behind these six rules is in{' '}
+            <a
+              className="text-cloth underline underline-offset-2 hover:text-gold"
+              href={`${REPO}/blob/main/docs/threat-model.md`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              docs/threat-model.md
+            </a>
+            . None of it has been audited, and that word belongs here rather than only in the
+            footer: these six rules are the whole of the safety argument, and nobody outside this
+            project has checked them.
+          </p>
         </div>
       </section>
 
@@ -627,7 +672,17 @@ export default async function Landing() {
                 What it changes is how many transactions you need: three public legs at three
                 separate moments is three chances to be the only one there, and a plan is one.
                 The composer tells you the size of the cell you are about to land in, before you
-                sign.
+                sign. Every finding on this page, with the query that produced it, is written up
+                in{' '}
+                <a
+                  className="text-cloth underline underline-offset-2 hover:text-gold"
+                  href={`${REPO}/blob/main/docs/what-mainnet-says.md`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  docs/what-mainnet-says.md
+                </a>
+                .
               </p>
 
               <div className="hidden sm:block">
@@ -642,9 +697,10 @@ export default async function Landing() {
           <div className="border-t border-thread py-4 font-mono text-xs text-muted">
             Governance owns every router parameter and is an anonymizer helper itself: ballots
             arrive through privacy_invoke, so the weight of a vote is public and the voter is not.
-            {chain.reachable
-              ? ' Every figure above is a contract call or an event read made when this page was served, not a number typed into it.'
-              : ''}
+            {chain.reachable &&
+              (chain.blockHeight === null
+                ? ' Every figure above is a contract call or an event read, not a number typed into it.'
+                : ` Every figure above is a contract call or an event read at block ${chain.blockHeight.toLocaleString()}, not a number typed into it. This page re-reads them at most once a minute, so that height is what you are looking at.`)}
           </div>
         </div>
       </section>

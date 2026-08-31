@@ -94,7 +94,7 @@ authority for refinement, not a commitment the user has pinned.
   `node scripts/verify-transactions.mjs`.
 - Mainnet findings with the queries that produced them in
   `docs/what-mainnet-says.md`; threat model in `docs/threat-model.md`.
-- 129 SDK tests, 347 Playwright tests across four projects, 44 Cairo tests of
+- 129 SDK tests, 348 Playwright tests across four projects, 44 Cairo tests of
   which four fork mainnet and run the router against Endur's vault and AVNU's
   exchange. Count them before quoting them; this line has been stale twice.
 - A demo video exists and ships from the app: `app/public/jalin-demo.mp4`,

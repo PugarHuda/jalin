@@ -38,14 +38,27 @@ export interface ChainState {
   largestEffectiveSet: number | null
   /** Median effective set per six-hour slot, oldest first. */
   periods: { fromBlock: number; medianEffectiveSet: number; bestEffectiveSet: number }[]
+  /**
+   * The head these reads were made against.
+   *
+   * Without it the page said the figures were read "when this page was served",
+   * which is true of the render and reads as "now" to somebody who does not know
+   * the route revalidates every sixty seconds. A block number is checkable, and
+   * a reader who wants to can go and read the same call at the same height.
+   */
+  blockHeight: number | null
   reachable: boolean
 }
 
 export async function readChainState(): Promise<ChainState> {
-  const [plans, proposals, crowd] = await Promise.all([
+  const [plans, proposals, crowd, head] = await Promise.all([
     read(ROUTER_ADDRESS, 'plans_executed'),
     read(GOVERNOR_ADDRESS, 'proposal_count'),
     readCrowd(),
+    rpc.blockNumber(60).catch((error: unknown) => {
+      unstable_rethrow(error)
+      return null
+    }),
   ])
   return {
     plansExecuted: plans?.[0] ? Number(BigInt(plans[0])) : null,
@@ -56,6 +69,7 @@ export async function readChainState(): Promise<ChainState> {
     aloneShare: crowd?.cells.aloneShare ?? null,
     largestEffectiveSet: crowd?.cells.largestEffectiveSet ?? null,
     periods: crowd?.periods ?? [],
+    blockHeight: head,
     reachable: plans !== null || proposals !== null,
   }
 }
