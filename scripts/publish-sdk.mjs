@@ -70,7 +70,12 @@ console.log(`\nstaged ${stage}\n${exported.length} exports resolve from the buil
 run('npm', process.argv.includes('--publish') ? ['publish'] : ['pack', '--dry-run'], stage)
 
 if (!process.argv.includes('--publish')) {
-  console.log('\nDry run. To publish: npm login, then node scripts/publish-sdk.mjs --publish')
-  console.log('A scoped name needs the scope to exist: npmjs.com/org/create, free for public packages.')
+  console.log('\nDry run. To publish, authenticate first.')
+  // `npm login` needs a real terminal: it prints a URL and then waits on a
+  // Username prompt, so under a non-interactive shell it reads EOF and exits 1.
+  console.log('`npm login` needs a real terminal. A granular access token does not:')
+  console.log('  npm config set //registry.npmjs.org/:_authToken=<token>')
+  console.log('  node scripts/publish-sdk.mjs --publish')
+  console.log('A scoped name also needs its scope: npmjs.com/org/create, free when public.')
 }
 rmSync(stage, { recursive: true, force: true })
