@@ -9,6 +9,20 @@ plan: swap, lend, stake, bridge, or anything else reachable by a Starknet contra
 call — executed inside one `privacy_invoke`, with the resulting value credited
 straight back into shielded notes.
 
+## Where to look first
+
+| | |
+|---|---|
+| **[The deck](https://jalin-five.vercel.app/slides)** | Nine panels: the constraint, the mechanism, what it reaches, what it does not do |
+| **[The composer](https://jalin-five.vercel.app/compose)** | Build a plan, see what it reveals, sign it with Ready |
+| **[The demo](https://jalin-five.vercel.app/jalin-demo.mp4)** | 2:49, recorded against production |
+| **[Verify](https://jalin-five.vercel.app/verify)** | The sprint's own rule applied to any repository's `strk20.json`, including this one |
+| **[`strk20.json`](./strk20.json)** | Three mainnet transactions, two declared contracts |
+| **[`jalin-sdk`](https://www.npmjs.com/package/jalin-sdk)** | The plan encoder, published |
+
+Every figure on every page is a live contract call. Nothing on this site is typed
+in, and `/verify` will tell you so about this repository as readily as any other.
+
 ---
 
 ## The problem
@@ -283,9 +297,9 @@ else's problem.
 |---|---|
 | `contracts/` | Cairo: the router, the governor, the private ballot |
 | `sdk/` | TypeScript: plan encoding, recipes, sub-account portfolio — packaged as [`jalin-sdk`](./sdk/README.md) |
-| `app/` | The demo anyone can open |
+| `app/` | The demo anyone can open, the composer, `/verify`, `/governance` and `/slides` |
 | `prover/` | Self-hosted discovery and screening services |
-| `docs/` | [Threat model](./docs/threat-model.md), [deploying](./docs/deploying.md), [cross-chain](./docs/cross-chain.md) |
+| `docs/` | [Threat model](./docs/threat-model.md), [what mainnet says](./docs/what-mainnet-says.md), [QA](./docs/qa.md), [deploying](./docs/deploying.md), [cross-chain](./docs/cross-chain.md) |
 
 There is no `bridge/`. Cross-chain is not a feature of the router, it is a plan —
 which is the whole argument, and it is made in [docs/cross-chain.md](./docs/cross-chain.md).

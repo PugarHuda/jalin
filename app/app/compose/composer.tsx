@@ -82,7 +82,7 @@ ${ROUTER_ADDRESS}`,
   },
   {
     name: 'Two deposits, one invoke',
-    blurb: 'Two calls into a live protocol inside the single invoke the pool allows. This is the case nothing else can do.',
+    blurb: 'Two calls into a live protocol inside the single invoke the pool allows. One call to a caller-chosen contract is not rare; the second one in the same invoke is what needs a plan.',
     draft: {
       inputToken: STRK,
       inputAmount: '0.4',
@@ -235,7 +235,7 @@ function shieldAmount(poolFee: bigint): bigint {
 const RUNS: MainnetRun[] = [
   {
     title: 'Two steps, one invoke',
-    note: 'Two external calls inside the single invoke the pool allows — the composition nothing else can do. The calls move nothing and the whole balance is credited back, so it costs only fees.',
+    note: 'Two external calls inside the single invoke the pool allows — the composition a fixed-parameter helper cannot express, whatever it points at. The calls move nothing and the whole balance is credited back, so it costs only fees.',
     amount: ONE / 2n,
     plan: proofOfMechanism(2),
   },
@@ -1584,6 +1584,22 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
         <p className="mt-1 max-w-[62ch] text-xs text-muted">
           Three transactions on mainnet, each an invoke through a contract of ours. Run them in
           order — the shield funds the note the runs spend.
+        </p>
+        {/*
+          The composite plan is the one this whole project argues for, and it is
+          the one claim with no mainnet hash behind it - it exists as a mainnet
+          fork test and as a preset, not as a transaction. It cannot be a
+          numbered run because a swap route is a quote at a block, so it has to
+          be fetched rather than written down. Pointing at it costs a sentence.
+        */}
+        <p className="mt-2 max-w-[62ch] text-xs leading-relaxed text-muted">
+          <span className="text-cloth">The fourth one is not numbered.</span> Two venues in one
+          invoke — a live AVNU route beside an Endur stake — is the plan the argument rests on,
+          and a swap route is a quote at a block rather than something this page can write down
+          ahead of time. Press{' '}
+          <span className="text-cloth">Swap half on AVNU, stake half on Endur</span> at the top,
+          then <span className="text-cloth">Sign and submit</span>. It costs the same pool fee as
+          a numbered run.
         </p>
 
         {/*

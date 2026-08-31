@@ -48,7 +48,15 @@ export default defineConfig({
    * fewer workers is the honest fix; the retry in the composer is the other
    * half.
    */
-  workers: process.env.CI ? 3 : 4,
+  /**
+   * Three everywhere now. The local four held until /slides took the suite to
+   * 353, and then the same shape came back on this machine: a different
+   * /governance test failing on Firefox in each of three consecutive full runs,
+   * every one of them passing alone. That is the saturation this comment
+   * already describes, arriving at a lower worker count because the suite got
+   * bigger - so the number moves rather than the diagnosis.
+   */
+  workers: 3,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [['github'], ['list']] : [['list']],
