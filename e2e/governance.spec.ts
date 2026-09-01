@@ -109,10 +109,19 @@ test.describe('governance', () => {
 test('offers no execute button for a proposal that cannot execute', async ({ page }) => {
   await page.goto('/governance')
 
-  // Proposal 1 was rejected — nobody voted — so there is nothing to execute and
-  // no button should be offered for it.
-  await expect(page.getByText(/rejected · nobody voted/)).toBeVisible()
-  await expect(page.getByRole('button', { name: /^Execute #/ })).toHaveCount(0)
+  /**
+   * A rejected proposal has nothing to execute, so its own card offers no
+   * button.
+   *
+   * Scoped to the card rather than the page, and this used to be neither: it
+   * asserted one `rejected · nobody voted` on the whole document and zero
+   * Execute buttons anywhere. Both broke the day a second proposal was made
+   * - two matches is a strict-mode violation, and a *different* proposal
+   * becoming executable would have failed this for a reason it is not about.
+   */
+  const rejected = page.locator('li', { hasText: /rejected · nobody voted/ }).first()
+  await expect(rejected).toBeVisible()
+  await expect(rejected.getByRole('button', { name: /^Execute #/ })).toHaveCount(0)
 })
 
 test.describe('stuck balances', () => {

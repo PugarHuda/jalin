@@ -62,10 +62,23 @@ test.describe('/api/hub', () => {
     expect(hub.projects).toBeGreaterThan(100)
     expect(hub.requirements.mainnet).toBe(true)
 
-    // The number the panel will read, against the number this repository's
-    // own checker produces from the same manifest.
+    /**
+     * The number the panel will read, against the number this repository's own
+     * checker produces from the same manifest.
+     *
+     * Equality was the wrong relation, and this asserted it until a fourth hash
+     * was pushed: the hub re-reads a repository on its own schedule, so for an
+     * hour it counted three while the manifest listed four, and this went red
+     * for the manifest being ahead of it.
+     *
+     * What genuinely cannot happen is the hub counting a transaction this
+     * repository does not list. That would mean the two verifiers disagree
+     * about the rules rather than about the time, and it is the disagreement a
+     * panel would meet first.
+     */
     const ours = await json<{ counted: number }>(await request.get('/api/manifest?owner=PugarHuda&repo=jalin'))
-    expect(hub.verifiedTransactions).toBe(ours.counted)
+    expect(hub.verifiedTransactions).toBeGreaterThan(0)
+    expect(hub.verifiedTransactions).toBeLessThanOrEqual(ours.counted)
   })
 
   test('says so for a repository the hub has never heard of', async ({ request }) => {
