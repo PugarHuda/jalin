@@ -115,7 +115,10 @@ const shots = {
     await field.pressSequentially('PugarHuda/jalin', { delay: 45 })
     await wait(500)
     await page.getByRole('button', { name: 'Read it' }).click()
-    const answer = page.getByText(/counted|of 3/i).first()
+    // `of 3` was in here, and it stopped matching the day a fourth
+    // transaction landed - the shot timed out and the scene recorded a static
+    // page. The verdict's shape is stable; its numbers are not.
+    const answer = page.getByText(/\d+ of \d+ listed transactions would count/i).first()
     await answer.waitFor({ timeout: 40_000 })
     await answer.evaluate((el) => el.scrollIntoView({ behavior: 'smooth', block: 'center' }))
     await wait(4000)
