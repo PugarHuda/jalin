@@ -1516,7 +1516,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
             <button
               onClick={() => pickWallet(-1)}
               disabled={busy || !ROUTER_ADDRESS || !poolFee || publicShort !== null}
-              className="shrink-0 rounded border border-strand px-3 py-1 text-xs hover:border-gold disabled:opacity-40"
+              className="shrink-0 rounded border border-strand px-3 py-2.5 text-xs hover:border-gold disabled:opacity-40"
             >
               {!poolFee
                 ? paramsFailed
@@ -1564,12 +1564,17 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
                 <span className="font-mono text-sm">
                   {i + 1}. {run.title}
                 </span>
-                <span className="flex shrink-0 gap-2">
+                {/*
+                  One of these is free and the other spends the pool fee, and they
+                  were eight pixels apart at 26px tall. The gap is the guard here:
+                  a mis-tap is not a bad experience, it is six STRK.
+                */}
+                <span className="flex shrink-0 gap-4">
                   <button
                     onClick={() => pickWallet(i, 'simulate')}
                     disabled={busy || !ROUTER_ADDRESS || (run.ballot && !params?.openProposal)}
                     title="Assembled by the wallet, not proved, not sent, not charged."
-                    className="rounded border border-strand px-3 py-1 text-xs hover:border-gold disabled:opacity-40"
+                    className="rounded border border-strand px-3 py-2.5 text-xs hover:border-gold disabled:opacity-40"
                   >
                     dry run
                   </button>
@@ -1585,7 +1590,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
                       (run.ballot && !params?.openProposal) ||
                       shortfall(run) !== null
                     }
-                    className="rounded border border-strand px-3 py-1 text-xs hover:border-gold disabled:opacity-40"
+                    className="rounded border border-strand px-3 py-2.5 text-xs hover:border-gold disabled:opacity-40"
                   >
                     {hashes[i]
                       ? 'run again'
@@ -1944,7 +1949,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
                 deniedTargets.length > 0 ||
                 draftShort !== null
               }
-              className="rounded-sm px-4 py-2 text-sm font-medium transition-colors enabled:bg-gold enabled:text-ground enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:border disabled:border-strand disabled:text-muted"
+              className="rounded-sm px-4 py-2.5 text-sm font-medium transition-colors enabled:bg-gold enabled:text-ground enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:border disabled:border-strand disabled:text-muted"
             >
               {!ROUTER_ADDRESS
                 ? 'Check wallet support'
@@ -1964,7 +1969,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
                 deniedTargets.length > 0
               }
               title="The wallet assembles the transaction and reports what it would refuse, without proving, sending or charging anything."
-              className="ml-2 rounded-sm border border-strand px-4 py-2 text-sm hover:border-gold disabled:cursor-not-allowed disabled:opacity-40"
+              className="ml-4 rounded-sm border border-strand px-4 py-2.5 text-sm hover:border-gold disabled:cursor-not-allowed disabled:opacity-40"
             >
               Dry run
             </button>
