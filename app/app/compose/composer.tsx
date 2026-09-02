@@ -396,6 +396,8 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
   const [paramsFailed, setParamsFailed] = useState(false)
   const [verdicts, setVerdicts] = useState<Record<string, string>>({})
   const [quote, setQuote] = useState<{ shares: bigint } | null>(null)
+  /** Public STRK, read from the token rather than the wallet. Null until asked. */
+  const [publicStrk, setPublicStrk] = useState<bigint | null>(null)
   const [crowd, setCrowd] = useState<{
     depositors: number
     windowBlocks: number
@@ -691,6 +693,24 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
    * wallet makes - amount plus the pool's fee against the shielded STRK - so
    * the sentence here is the one the wallet would otherwise say after the proof.
    */
+  /**
+   * Whether the shield asks for more public STRK than this account holds.
+   *
+   * Every run was gated on the shielded balance and the shield was gated on
+   * nothing, so the page offered "shield 12.1 STRK" to an account holding 4.3
+   * and the first thing that knew better was the wallet, after the click, with
+   * "Transaction failed". A page that names a shortfall before a run can name
+   * one before a shield.
+   *
+   * Null while the balance is unknown: not offering the button because a read
+   * has not answered yet would be worse than the bug.
+   */
+  const publicShort: string | null = (() => {
+    if (publicStrk === null || !poolFee || shield.amount === 0n) return null
+    if (publicStrk >= shield.amount) return null
+    return `This shield moves ${formatUnits(shield.amount, 18)} STRK out of your public balance, and this account holds ${formatUnits(publicStrk, 18)}. Short by ${formatUnits(shield.amount - publicStrk, 18)}. You do not need to shield to run a plan you can already afford - the balance above is what a plan spends.`
+  })()
+
   function shortfall(run: MainnetRun): string | null {
     if (!caps?.registered || !poolFee) return null
     const strk = TOKENS[0]!.address
@@ -935,6 +955,26 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
         : null,
     )
   }
+
+  /**
+   * The account's public STRK, from the token contract.
+   *
+   * Re-read on every landed transaction as well as on connection, because a
+   * shield is the one action here that spends the public balance and the
+   * button offering it is sized from this number.
+   */
+  useEffect(() => {
+    if (!account) return
+    const stop = new AbortController()
+
+    readJson<{ balance?: string }>(`/api/balance?address=${account}`, stop.signal)
+      .then((body) => {
+        if (body?.balance) setPublicStrk(BigInt(body.balance))
+      })
+      .catch(ignoreAbort)
+
+    return () => stop.abort()
+  }, [account, hashes, shieldHash])
 
   async function refreshBalances(w: Strk20Wallet) {
     try {
@@ -1443,7 +1483,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
             <span className="font-mono text-sm text-muted">{shield.title}</span>
             <button
               onClick={() => pickWallet(-1)}
-              disabled={!ROUTER_ADDRESS || !poolFee}
+              disabled={!ROUTER_ADDRESS || !poolFee || publicShort !== null}
               className="shrink-0 rounded border border-strand px-3 py-1 text-xs hover:border-gold disabled:opacity-40"
             >
               {!poolFee
@@ -1456,6 +1496,11 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
             </button>
           </div>
           <p className="mt-1 max-w-[60ch] text-xs leading-relaxed text-muted">{shield.note}</p>
+          {publicShort && (
+            <p className="mt-1 max-w-[62ch] font-mono text-xs leading-relaxed text-warn">
+              {publicShort}
+            </p>
+          )}
           {poolFee && (
             <p className="mt-1 max-w-[60ch] font-mono text-xs leading-relaxed text-gold">
               the pool charges {Number(poolFee) / 1e18} STRK for every private operation, read
