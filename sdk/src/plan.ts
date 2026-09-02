@@ -128,20 +128,24 @@ export function validatePlan(plan: Plan, limits: PlanLimits = DEFAULT_LIMITS): v
   }
 
   for (const [i, step] of plan.steps.entries()) {
-    checkFelt(step.target, `step ${i} target`)
-    checkFelt(step.selector, `step ${i} selector`)
-    step.calldata.forEach((felt, j) => checkFelt(felt, `step ${i} calldata[${j}]`))
+    // One-based, because every surface that shows a step calls the first one
+    // "Step 1". This counted from zero, so typing garbage into Step 3 was
+    // reported as "step 2 target is not a felt" - an error pointing at a
+    // different field, on a form where two steps look identical.
+    checkFelt(step.target, `step ${i + 1} target`)
+    checkFelt(step.selector, `step ${i + 1} selector`)
+    step.calldata.forEach((felt, j) => checkFelt(felt, `step ${i + 1} calldata[${j}]`))
     step.approvals.forEach((approval, j) => {
-      checkFelt(approval.token, `step ${i} approval[${j}] token`)
+      checkFelt(approval.token, `step ${i + 1} approval[${j}] token`)
     })
 
     if (step.calldata.length > limits.maxCalldata) {
       throw new Error(
-        `step ${i} has ${step.calldata.length} felts of calldata, the router allows ${limits.maxCalldata}`,
+        `step ${i + 1} has ${step.calldata.length} felts of calldata, the router allows ${limits.maxCalldata}`,
       )
     }
     for (const approval of step.approvals) {
-      if (approval.amount < 0n) throw new Error(`step ${i} approves a negative amount`)
+      if (approval.amount < 0n) throw new Error(`step ${i + 1} approves a negative amount`)
     }
   }
 

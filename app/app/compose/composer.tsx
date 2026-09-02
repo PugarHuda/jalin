@@ -385,6 +385,17 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
   const [status, setStatus] = useState<string | null>(null)
   const [wallets, setWallets] = useState<StarknetWindowObject[]>([])
   const [pendingRun, setPendingRun] = useState<number | null>(null)
+  /**
+   * A wallet exchange is in flight.
+   *
+   * `pendingRun` is not this: it records which site asked, so the answer
+   * renders under the right button, and it is never cleared. Nothing gated on
+   * it, so every button stayed live through the thirty seconds of proving -
+   * and a stray click called setStatus(null), erased the proving line, and
+   * took with it the only place a landed hash appears before the receipt.
+   * docs/qa.md case 5 asked the reader to supply that guard by hand.
+   */
+  const [busy, setBusy] = useState(false)
   const [hashes, setHashes] = useState<(string | null)[]>([null, null, null])
   const [ballotSecret, setBallotSecret] = useState<string | null>(null)
   const [lastPayload, setLastPayload] = useState<string | null>(null)
@@ -711,14 +722,31 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
     return `This shield moves ${formatUnits(shield.amount, 18)} STRK out of your public balance, and this account holds ${formatUnits(publicStrk, 18)}. Short by ${formatUnits(shield.amount - publicStrk, 18)}. You do not need to shield to run a plan you can already afford - the balance above is what a plan spends.`
   })()
 
-  function shortfall(run: MainnetRun): string | null {
+  /**
+   * What a spend costs and whether this account can cover it.
+   *
+   * It took a `MainnetRun`, so only the ballot could ask - and the ballot is the
+   * one action here that is not the main path. Sign and submit spends the same
+   * balance against the same flat fee and had no guard at all, which is the
+   * asymmetry qa.md case 4 rules against in the abstract and this file allowed
+   * in practice.
+   */
+  function shortOf(amount: bigint): string | null {
     if (!caps?.registered || !poolFee) return null
     const strk = TOKENS[0]!.address
     const held = balances.find((b) => tokenOf(b.token)?.address === strk)
     const have = held ? BigInt(held.balance) : 0n
-    const need = run.amount + poolFee
+    const need = amount + poolFee
     if (have >= need) return null
-    return `Needs ${formatUnits(need, 18)} STRK in the pool - ${formatUnits(run.amount, 18)} to spend and ${formatUnits(poolFee, 18)} of pool fee - and this account holds ${formatUnits(have, 18)}. Short by ${formatUnits(need - have, 18)}; shield that much more first.`
+    return `Needs ${formatUnits(need, 18)} STRK in the pool - ${formatUnits(amount, 18)} to spend and ${formatUnits(poolFee, 18)} of pool fee - and this account holds ${formatUnits(have, 18)}. Short by ${formatUnits(need - have, 18)}; shield that much more first.`
+  }
+
+  /** What the plan in the editor withdraws, which is what it spends. */
+  const draftInput = toBaseUnits(draft.inputAmount, decimalsOf(draft.inputToken))
+  const draftShort = result.plan ? shortOf(draftInput) : null
+
+  function shortfall(run: MainnetRun): string | null {
+    return shortOf(run.amount)
   }
 
   /**
@@ -1162,6 +1190,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
     if (how !== 'connect' && !run && !result.plan) return
     setWallets([])
     setStatus('Connecting…')
+    setBusy(true)
     try {
       // The connected pair, or a fresh connection. Address and wallet travel
       // together here because React state set a line ago is not readable yet.
@@ -1248,6 +1277,8 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
         return
       }
       setStatus(message)
+    } finally {
+      setBusy(false)
     }
   }
 
@@ -1295,14 +1326,15 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
             key={preset.name}
             onClick={() => setDraft(preset.draft)}
             title={preset.blurb}
-            className="rounded border border-strand bg-raised px-3 py-1.5 text-sm hover:border-gold"
+            disabled={busy}
+            className="rounded border border-strand bg-raised px-3 py-1.5 text-sm hover:border-gold disabled:opacity-40"
           >
             {preset.name}
           </button>
         ))}
         <button
           onClick={loadSplit}
-          disabled={splitting}
+          disabled={busy || splitting}
           title="Half the input swapped to USDC through AVNU's aggregator, half staked on Endur, both credited to notes - two venues in the single invoke the pool allows. The swap route and its floor come from AVNU at the moment you click."
           className="rounded border border-strand bg-raised px-3 py-1.5 text-sm hover:border-gold disabled:opacity-40"
         >
@@ -1340,7 +1372,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
         <h2 className="font-mono text-sm">This account, in the pool</h2>
         <p className="mt-1 max-w-[62ch] text-xs text-muted">
           What you hold inside the pool, and the two things that cannot be built in the editor
-          above: moving public STRK in, and voting.
+          below: moving public STRK in, and voting.
         </p>
 
         {/*
@@ -1483,7 +1515,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
             <span className="font-mono text-sm text-muted">{shield.title}</span>
             <button
               onClick={() => pickWallet(-1)}
-              disabled={!ROUTER_ADDRESS || !poolFee || publicShort !== null}
+              disabled={busy || !ROUTER_ADDRESS || !poolFee || publicShort !== null}
               className="shrink-0 rounded border border-strand px-3 py-1 text-xs hover:border-gold disabled:opacity-40"
             >
               {!poolFee
@@ -1535,7 +1567,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
                 <span className="flex shrink-0 gap-2">
                   <button
                     onClick={() => pickWallet(i, 'simulate')}
-                    disabled={!ROUTER_ADDRESS || (run.ballot && !params?.openProposal)}
+                    disabled={busy || !ROUTER_ADDRESS || (run.ballot && !params?.openProposal)}
                     title="Assembled by the wallet, not proved, not sent, not charged."
                     className="rounded border border-strand px-3 py-1 text-xs hover:border-gold disabled:opacity-40"
                   >
@@ -1548,13 +1580,23 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
                     // anyway would be charging somebody to find that out. A short
                     // balance is the same shape of mistake, and the same button.
                     disabled={
+                      busy ||
                       !ROUTER_ADDRESS ||
                       (run.ballot && !params?.openProposal) ||
                       shortfall(run) !== null
                     }
                     className="rounded border border-strand px-3 py-1 text-xs hover:border-gold disabled:opacity-40"
                   >
-                    {hashes[i] ? 'run again' : `run · ${Number(run.amount) / 1e18} STRK`}
+                    {hashes[i]
+                      ? 'run again'
+                      : poolFee
+                        ? // The stake plus the pool's flat charge. This said the stake
+                          // alone - 0.1 where the transaction costs 6.1 - and the
+                          // shortfall line that knew better only renders when you
+                          // cannot afford it, so the number was wrong for everyone who
+                          // could.
+                          `run · ${formatUnits(run.amount + poolFee, 18)} STRK`
+                        : `run · ${formatUnits(run.amount, 18)} STRK + fee`}
                   </button>
                 </span>
               </div>
@@ -1681,7 +1723,16 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
           </Panel>
 
           {draft.steps.map((step, i) => (
-            <Panel key={i} title={`Step ${i + 1}`} note="Any contract, any selector, any calldata.">
+            <Panel
+              key={i}
+              title={`Step ${i + 1}`}
+              note="Any contract, any selector, any calldata."
+              onRemove={
+                draft.steps.length > 1
+                  ? () => patch({ steps: draft.steps.filter((_, j) => j !== i) })
+                  : undefined
+              }
+            >
               <div className="grid gap-2">
                 <Field label="target">
                   <input
@@ -1773,13 +1824,22 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
                 <span className="min-w-0 self-center break-all font-mono text-xs text-muted">
                   {openNote(i)}
                 </span>
+                <button
+                  onClick={() => patch({ outputs: draft.outputs.filter((_, j) => j !== i) })}
+                  aria-label={`Remove output ${i + 1}`}
+                  className="ml-auto shrink-0 rounded px-2 py-2 font-mono text-xs text-muted hover:text-warn"
+                >
+                  remove
+                </button>
               </div>
             ))}
             <button
               onClick={() =>
                 patch({ outputs: [...draft.outputs, { token: ETH, minAmount: '0' }] })
               }
-              className="mt-1 text-xs text-gold"
+              // A 16px-tall target, measured, beside a "+ step" that is 32. Padded to
+              // match it: the two do the same job and one of them was reachable.
+              className="-mx-2 mt-1 rounded px-2 py-2 text-xs text-gold hover:underline"
             >
               + output
             </button>
@@ -1877,16 +1937,31 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
             <button
               onClick={() => pickWallet(null)}
               disabled={
-                !result.plan || draftIncomplete || params?.paused || deniedTargets.length > 0
+                busy ||
+                !result.plan ||
+                draftIncomplete ||
+                params?.paused ||
+                deniedTargets.length > 0 ||
+                draftShort !== null
               }
               className="rounded-sm px-4 py-2 text-sm font-medium transition-colors enabled:bg-gold enabled:text-ground enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:border disabled:border-strand disabled:text-muted"
             >
-              {ROUTER_ADDRESS ? 'Sign and submit' : 'Check wallet support'}
+              {!ROUTER_ADDRESS
+                ? 'Check wallet support'
+                : poolFee && result.plan
+                  ? // The only number on a button that spends money, and it was
+                    // not here at all: the input plus the pool's flat charge.
+                    `Sign and submit · ${formatUnits(draftInput + poolFee, 18)} STRK`
+                  : 'Sign and submit'}
             </button>
             <button
               onClick={() => pickWallet(null, 'simulate')}
               disabled={
-                !result.plan || draftIncomplete || params?.paused || deniedTargets.length > 0
+                busy ||
+                !result.plan ||
+                draftIncomplete ||
+                params?.paused ||
+                deniedTargets.length > 0
               }
               title="The wallet assembles the transaction and reports what it would refuse, without proving, sending or charging anything."
               className="ml-2 rounded-sm border border-strand px-4 py-2 text-sm hover:border-gold disabled:cursor-not-allowed disabled:opacity-40"
@@ -1929,9 +2004,14 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
                   floor {(Number((quote.shares * 96n) / 100n) / 1e18).toFixed(6)}
                 </p>
               )}
+            {draftShort && (
+              <p className="mt-2 max-w-[62ch] font-mono text-xs leading-relaxed text-warn">
+                {draftShort}
+              </p>
+            )}
             <p className="mt-2 max-w-[60ch] text-xs text-muted">
               {draftIncomplete
-                ? 'One of the steps has no target yet — a step needs the contract it calls. To send something that already works, use the numbered runs below.'
+                ? 'One of the steps has no target yet — a step needs the contract it calls. Give it one, or remove the empty step.'
                 : ROUTER_ADDRESS
                 ? 'Needs a wallet that implements wallet_strk20InvokeTransaction. Proving takes around 30 seconds.'
                 : 'The router is not deployed yet, so there is nothing to sign — this still connects your wallet and reports whether it implements the STRK20 methods.'}
@@ -1955,10 +2035,13 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
 function Panel({
   title,
   note,
+  onRemove,
   children,
 }: {
   title: string
   note?: string
+  /** Offered only where removing is possible; a plan needs at least one step. */
+  onRemove?: () => void
   children: ReactNode
 }) {
   // A rule above, not a box around. The editor's inputs are bordered blocks
@@ -1966,7 +2049,18 @@ function Panel({
   // craft floor calls always wrong - the panel was the outer one.
   return (
     <div className="border-t border-thread pt-4">
-      <h2 className="font-mono text-sm">{title}</h2>
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 className="font-mono text-sm">{title}</h2>
+        {onRemove && (
+          <button
+            onClick={onRemove}
+            aria-label={`Remove ${title}`}
+            className="-mr-2 shrink-0 rounded px-2 py-1 font-mono text-xs text-muted hover:text-warn"
+          >
+            remove
+          </button>
+        )}
+      </div>
       {note && <p className="mb-3 mt-1 max-w-[60ch] text-xs text-muted">{note}</p>}
       {children}
     </div>

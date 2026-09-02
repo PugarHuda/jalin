@@ -143,9 +143,16 @@ test.describe('composer', () => {
     const runs = await page.getByRole('button', { name: /^run · / }).allInnerTexts()
     const spent = runs.reduce((total, text) => total + Number(text.match(/([\d.]+) STRK/)![1]), 0)
 
-    // One operation for the shield itself, one for each run it has to fund.
-    const fees = (Number(fee) / 1e18) * (runs.length + 1)
-    expect(shielded).toBeCloseTo(fees + spent, 6)
+    /**
+     * The run buttons now state what they cost rather than what they move -
+     * `run · 6.1 STRK`, not `run · 0.1` for a transaction that charges 6.1 -
+     * so their labels already carry a pool fee each. Summing them and adding
+     * a fee per run, which this did, counts every fee twice.
+     *
+     * What the shield has to cover is one fee for itself plus each run's
+     * stated total.
+     */
+    expect(shielded).toBeCloseTo(Number(fee) / 1e18 + spent, 6)
     expect(shielded).toBeGreaterThan(spent)
   })
 

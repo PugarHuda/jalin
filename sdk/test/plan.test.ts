@@ -133,7 +133,7 @@ test('a target that is not a felt is refused before it can be signed', () => {
     steps: [{ target: 'not-an-address', selector: '0x1', approvals: [], calldata: [] }],
     outputs: [],
   }
-  assert.throws(() => validatePlan(plan), /step 0 target is not a felt/)
+  assert.throws(() => validatePlan(plan), /step 1 target is not a felt/)
 })
 
 test('placeholders are not felts yet and are left alone', () => {
@@ -160,7 +160,7 @@ test('the field that is wrong is the field that is named', () => {
     ],
     outputs: [],
   }
-  assert.throws(() => validatePlan(plan), /step 0 approval\[0\] token/)
+  assert.throws(() => validatePlan(plan), /step 1 approval\[0\] token/)
 })
 
 test('encodePlan checks against the limits it is given, not a constant', () => {
