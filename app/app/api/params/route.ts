@@ -1,6 +1,6 @@
 import { RpcError, rpc, secondsPerBlock } from '@/lib/rpc'
 import { cached } from '@/lib/cache'
-import { GOVERNOR_ADDRESS, POOL_ADDRESS } from '@/lib/config'
+import { GOVERNOR_ADDRESS, POOL_ADDRESS, SHADOW_ANONYMIZER } from '@/lib/config'
 
 /**
  * What the router is running on right now.
@@ -91,6 +91,37 @@ export async function GET(request: Request) {
       break
     }
 
+    /**
+     * What the shadow-account anonymizer says about itself.
+     *
+     * The address is the one constant this app does not read from the chain,
+     * so the page does not take it on trust either: it asks the contract which
+     * pool it is bound to and shows the answer beside our own pool address. A
+     * mismatch, or a contract that is not there, is reported rather than
+     * hidden - which is the only reason a hardcoded address is allowed here.
+     */
+    const shadow = await (async () => {
+      try {
+        const [pool] = await rpc.call(SHADOW_ANONYMIZER, 'get_privacy_contract', [], revalidate)
+        const [accountClass] = await rpc.call(
+          SHADOW_ANONYMIZER,
+          'get_shadow_account_class_hash',
+          [],
+          revalidate,
+        )
+        return {
+          address: SHADOW_ANONYMIZER,
+          pool: pool ?? null,
+          boundToOurPool: !!pool && BigInt(pool) === BigInt(POOL_ADDRESS),
+          accountClass: accountClass ?? null,
+        }
+      } catch {
+        // Not reachable is an answer. The page says the route could not be
+        // checked, which is different from saying it does not exist.
+        return null
+      }
+    })()
+
     return cached({
       paused: BigInt(raw[0] ?? '0x0') !== 0n,
       openProposal,
@@ -103,6 +134,7 @@ export async function GET(request: Request) {
       poolFee: rawPoolFee ? BigInt(rawPoolFee[0] ?? '0x0').toString() : null,
       secondsPerBlock: blockTime,
       denied,
+      shadow,
     }, revalidate)
   } catch (error) {
     if (error instanceof RpcError && error.kind === 'unconfigured') {

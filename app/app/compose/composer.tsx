@@ -299,6 +299,16 @@ interface LiveParams {
   denied: Record<string, boolean>
   /** The newest proposal still taking votes, or null when none is. */
   openProposal: { id: number; endBlock: number; blocksLeft: number } | null
+  /**
+   * What the deployed shadow-account anonymizer says about itself, or null
+   * when it could not be reached - which is different from not existing.
+   */
+  shadow: {
+    address: string
+    pool: string | null
+    boundToOurPool: boolean
+    accountClass: string | null
+  } | null
 }
 
 function buildPlan(draft: Draft): Plan {
@@ -1394,6 +1404,35 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
                 {connected} does not answer{' '}
                 <span className="font-mono">wallet_strk20ShadowAccountCommitment</span> yet.
                 {caps.shadowRefusal ? ` It said: ${caps.shadowRefusal}` : ''}
+              </p>
+            )}
+
+            {/*
+              The wallet cannot do it yet; the chain can. This panel used to end
+              at the refusal, which read as though the route did not exist - and
+              it does, deployed, bound to the same pool the router runs against.
+              The binding is asked of the contract rather than asserted, so a
+              mismatch would show here instead of being hidden by a constant.
+            */}
+            {params?.shadow && (
+              <p className="mt-2 max-w-[62ch] font-mono text-xs leading-relaxed text-muted">
+                The route exists on chain regardless. The shadow-account anonymizer at{' '}
+                <a
+                  className="text-cloth underline underline-offset-2 hover:text-gold"
+                  href={`https://voyager.online/contract/${params.shadow.address}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {label(params.shadow.address)}
+                </a>{' '}
+                answers <span className="font-mono">get_privacy_contract()</span> with{' '}
+                {params.shadow.pool ? label(params.shadow.pool) : '—'}, which is{' '}
+                {params.shadow.boundToOurPool ? (
+                  <span className="text-hidden">this pool</span>
+                ) : (
+                  <span className="text-warn">not this pool</span>
+                )}
+                . The SDK reaches it with a viewing key; a wallet needs the method above.
               </p>
             )}
           </div>

@@ -26,6 +26,20 @@ export const ROUTER_ADDRESS = process.env.NEXT_PUBLIC_ROUTER_ADDRESS ?? ''
 
 export const GOVERNOR_ADDRESS = process.env.NEXT_PUBLIC_GOVERNOR_ADDRESS ?? ''
 
+/**
+ * The deployed shadow-account anonymizer, not ours.
+ *
+ * A hardcoded address in a project that renders nothing it did not read, so it
+ * earns the exception by being checkable: `get_privacy_contract()` on it returns
+ * POOL_ADDRESS above, and the composer makes that call rather than asserting it.
+ * If the two ever stop matching, the page says so instead of showing this.
+ *
+ * Documented in starknet.js under "Address of a shadow account", and in none of
+ * the places this project looked first - see docs/strk20-endpoints.md.
+ */
+export const SHADOW_ANONYMIZER =
+  '0x04f33230dc57855c6e7eabe66dfa0fde82c5458fd0e54827cdb7cb4c474888a7'
+
 export interface KnownToken {
   symbol: string
   address: string

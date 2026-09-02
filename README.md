@@ -19,6 +19,7 @@ straight back into shielded notes.
 | **[Verify](https://jalin-five.vercel.app/verify)** | The sprint's own rule applied to any repository's `strk20.json`, including this one |
 | **[`strk20.json`](./strk20.json)** | Three mainnet transactions, two declared contracts |
 | **[`jalin-sdk`](https://www.npmjs.com/package/jalin-sdk)** | The plan encoder, published |
+| **[The three mainnet endpoints](./docs/strk20-endpoints.md)** | Prover, note discovery and the shadow-account anonymizer — each verified, each reported missing somewhere |
 
 Every figure on every page is a live contract call. Nothing on this site is typed
 in, and `/verify` will tell you so about this repository as readily as any other.
@@ -300,7 +301,7 @@ else's problem.
 | `sdk/` | TypeScript: plan encoding, recipes, sub-account portfolio — packaged as [`jalin-sdk`](./sdk/README.md) |
 | `app/` | The demo anyone can open, the composer, `/verify`, `/governance` and `/slides` |
 | `prover/` | Self-hosted discovery and screening services |
-| `docs/` | [Threat model](./docs/threat-model.md), [what mainnet says](./docs/what-mainnet-says.md), [QA](./docs/qa.md), [deploying](./docs/deploying.md), [cross-chain](./docs/cross-chain.md) |
+| `docs/` | [Threat model](./docs/threat-model.md), [what mainnet says](./docs/what-mainnet-says.md), [the three mainnet endpoints](./docs/strk20-endpoints.md), [QA](./docs/qa.md), [deploying](./docs/deploying.md), [cross-chain](./docs/cross-chain.md) |
 
 There is no `bridge/`. Cross-chain is not a feature of the router, it is a plan —
 which is the whole argument, and it is made in [docs/cross-chain.md](./docs/cross-chain.md).
