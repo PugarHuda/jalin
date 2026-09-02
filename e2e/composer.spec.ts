@@ -333,7 +333,10 @@ test.describe('the ballot run', () => {
     // A proposal takes votes for about an hour. Offering the button outside
     // that window charges somebody to discover a revert after proving.
     const params = await json<ParamsResponse>(await page.request.get('/api/params'))
-    const ballot = page.getByRole('button', { name: /^run · 0\.1 STRK/ })
+    // Matched on shape, not on the number. This pinned `0.1` - the stake -
+    // and the button now states what the transaction costs, stake plus the
+    // pool's flat fee, which is the whole point of that change.
+    const ballot = page.getByRole('button', { name: /^run · [\d.]+ STRK/ })
 
     if (params.openProposal === null) {
       await expect(ballot).toBeDisabled()
