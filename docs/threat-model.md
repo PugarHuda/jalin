@@ -280,10 +280,16 @@ corrected governor means a new router too, and the two addresses in
 `strk20.json` are the ones the four qualifying mainnet transactions ran through.
 Redeploying means new addresses in `strk20.json`, and the four qualifying
 transactions ran through the old ones — so the fix and the evidence cannot both
-be listed without listing four contracts. That is a decision with a deadline
-attached, and it is recorded here rather than taken quietly: as of 4 September
-`0x05bd98…6984` is still the contract with the hole in it, and the corrected
-class is source and tests rather than an address.
+be listed without listing four contracts, which is what
+[deploying.md](./deploying.md) now spells out.
+
+It was decided to deploy, and then it was not affordable: the deployer holds
+2.178 STRK against a bound near 66. So as of 4 September `0x05bd98…6984` is still
+the contract with the hole in it, the corrected class is source and tests rather
+than an address, and the reason is money rather than doubt. That is a worse
+sentence than "we deployed the fix" and a better one than the sentence this
+document carried for four days, which blamed a toolchain that turned out to run
+fine.
 
 Until it is deployed, the honest statement is the one above: the deployed
 governance path can be captured for one pool fee and about seventy minutes, the

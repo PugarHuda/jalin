@@ -126,6 +126,39 @@ Then record both addresses:
   and the disclosure all come from the plan alone — but the submit button stays
   disabled.
 
+## Redeploying, once something is already listed
+
+A second deployment is not the first one again. The router takes its governor in
+the constructor and has no setter, so a corrected governor means a new router
+too — two new addresses — and the transactions already in `strk20.json` ran
+through the old pair.
+
+The rule the sprint applies, and that `sdk/src/receipt.ts` implements, is that a
+listed transaction must have run through **one of** the project's contracts. So
+the answer is not to swap the addresses, it is to list both generations:
+
+```json
+"contracts": [
+  "0x008498…3a7e",   // router, first deployment — carries T1..T3
+  "0x05bd98…6984",   // governor, first deployment — carries T4
+  "0x…",             // router, corrected
+  "0x…"              // governor, corrected
+]
+```
+
+`parseManifest` accepts up to 16, so four is not near any limit. Swapping instead
+of appending takes four qualifying transactions down to zero, and it does it
+silently — the manifest still parses, the hashes still exist, and every one of
+them fails the fourth condition.
+
+Then, and only then, move `NEXT_PUBLIC_ROUTER_ADDRESS` and
+`NEXT_PUBLIC_GOVERNOR_ADDRESS`. Be aware of what that costs on the site:
+`/governance` reads proposals from whichever governor it is pointed at, and a
+fresh governor has none, so the landing page's governance count goes to zero
+until somebody proposes. Proposing is an ordinary public transaction — no STRK20
+support, no proving service — so the cheapest way to restore that evidence is to
+make one immediately after the deploy.
+
 ## Cost
 
 Two declares and two deploys. A declare pays for the whole Sierra class, so it is
@@ -149,6 +182,11 @@ That number is the *bound*, not the bill. The account has to hold it at submissi
 or validation rejects the transaction before anything runs; what actually gets
 charged is lower. Budget **80 STRK** for the whole deployment and you will not
 think about it again.
+
+As of 4 September the deployer `0x012947…73ca` holds **2.178 STRK**, which is why
+the corrected governor is source and tests rather than an address. The blocker is
+funding, not the toolchain and not the code: 47 Cairo tests pass in the pinned
+container on this machine.
 
 Getting this wrong is cheap but slow: validation fails, nothing is spent, and you
 find out after the toolchain has compiled. The error names both numbers:
