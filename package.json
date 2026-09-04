@@ -14,6 +14,7 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "check:links": "node scripts/check-links.mjs",
+    "check:counts": "node scripts/check-counts.mjs",
     "lint": "eslint sdk e2e scripts playwright.config.ts && npm run lint --workspace app",
     "typecheck": "tsc --noEmit -p tsconfig.json && npm run typecheck --workspace jalin-sdk && npm run typecheck --workspace app",
     "check:dead": "knip",

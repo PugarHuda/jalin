@@ -29,6 +29,12 @@ jobs:
       # an explanation that does not exist; two were live before this ran.
       - run: npm run check:links
 
+      # Every test count the prose quotes, against the suites that produce them.
+      # Four stale test counts and one stale transaction count went out before
+      # this existed, the last of them claiming every listed mainnet transaction
+      # ran through the router when one had gone through the governor.
+      - run: npm run check:counts
+
       # The SDK ships TypeScript source, so nothing compiles it before it is
       # published. tsc is the only thing that reads the files nobody imports.
       - run: npm run typecheck
