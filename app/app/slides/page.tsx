@@ -1,6 +1,13 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { GOVERNOR_ADDRESS, POOL_ADDRESS, REPO, ROUTER_ADDRESS, label } from '@/lib/config'
+import {
+  GOVERNOR_ADDRESS,
+  INVARIANTS,
+  POOL_ADDRESS,
+  REPO,
+  ROUTER_ADDRESS,
+  label,
+} from '@/lib/config'
 import { manifest } from '@/lib/manifest'
 import { readChainState } from '@/lib/chain'
 import { SiteNav } from '../wordmark'
@@ -95,7 +102,7 @@ export default async function Slides() {
           <Fact value={String(txs.length)} of="qualifying mainnet transactions" />
           <Fact value="2" of="Cairo contracts, declared and live" />
           <Fact value="6" of="invariants enforced on chain" />
-          <Fact value="543" of="tests across Cairo, SDK and browser" />
+          <Fact value="546" of="tests across Cairo, SDK and browser" />
         </div>
       </Slide>
 
@@ -116,11 +123,11 @@ export default async function Slides() {
       <Slide n="03" title="A plan, not a parameter list">
         <pre className="overflow-x-auto rounded-sm border border-thread bg-raised p-4 font-mono text-xs leading-relaxed">
           {`fn privacy_invoke(
-    ref self: TContractState,
+    ref self: ContractState,
     pool_address: ContractAddress,
     steps: Array<Step>,
-    outputs: Array<OpenNoteDeposit>,
-)
+    outputs: Array<Output>,
+) -> Span<OpenNoteDeposit>
 
 struct Step {
     target: ContractAddress,   // any contract
@@ -166,14 +173,7 @@ struct Step {
           it. Six invariants carry the rest, each with a test:
         </p>
         <ul className="max-w-[62ch] space-y-1.5 font-mono text-xs">
-          {[
-            ['The pool is the only caller', 'anyone calling the router directly'],
-            ['No step may target the pool', 'reentrancy into the pool'],
-            ['Every approval is reset after its step', 'a stale allowance draining the router'],
-            ['Zero residual: touched tokens end at zero', 'sweeping another plan’s leftovers'],
-            ['Each output claims its floor', 'slippage and hostile routes'],
-            ['Steps and calldata are bounded', 'griefing the proof budget'],
-          ].map(([rule, closes]) => (
+          {INVARIANTS.map(([rule, closes]) => (
             <li key={rule} className="border-t border-thread pt-1.5">
               <span className="text-cloth">{rule}</span>
               <span className="block text-muted">closes: {closes}</span>
@@ -242,16 +242,19 @@ struct Step {
       <Slide n="08" title="What it does not do">
         <ul className="max-w-[62ch] space-y-2">
           <li className="border-t border-thread pt-2">
-            <span className="text-cloth">Unaudited.</span> Six invariants and 44 Cairo tests are
+            <span className="text-cloth">Unaudited.</span> Six invariants and 47 Cairo tests are
             the whole of the safety argument, and nobody outside this project has checked them.
           </li>
           <li className="border-t border-thread pt-2">
-            <span className="text-cloth">The governor counts ballot weight it never measures.</span>{' '}
-            The router reads <span className="font-mono">balance_of</span> and trusts nothing;
-            the governor takes the weight off calldata. Same repository, same week, and the
-            discipline is only in one of them. No ballot has ever been cast and the escrow is
-            empty, so nothing is at risk today — but it is a defect, it is written up in the
-            threat model, and the fix is not deployed.
+            <span className="text-cloth">
+              The deployed governor counts ballot weight it never measures.
+            </span>{' '}
+            The router reads <span className="font-mono">balance_of</span> and trusts nothing; the
+            governor took the weight off calldata. Nothing can be stolen — the escrow is empty —
+            but an unbacked vote still carries, so one pool fee and about seventy minutes buys a
+            capped 10% fee on every later plan. The fix is written and tested in this repository;
+            it is not deployed, because new contracts mean new addresses and the four qualifying
+            transactions ran through the old ones. Both halves are in the threat model.
           </li>
           <li className="border-t border-thread pt-2">
             <span className="text-cloth">It does not beat a venue&apos;s own anonymizer at that
@@ -297,6 +300,25 @@ struct Step {
           <li className="border-t border-thread pt-2">
             <a
               className="text-cloth underline underline-offset-2 hover:text-gold"
+              href={`${REPO}/blob/main/docs/strk20-endpoints.md`}
+            >
+              docs/strk20-endpoints.md
+            </a>{' '}
+            — the prover, note discovery and the shadow-account anonymizer, each with the
+            command that answers
+          </li>
+          <li className="border-t border-thread pt-2">
+            <Link
+              className="text-cloth underline underline-offset-2 hover:text-gold"
+              href="/governance"
+            >
+              /governance
+            </Link>{' '}
+            — every router parameter, read from the governor rather than described
+          </li>
+          <li className="border-t border-thread pt-2">
+            <a
+              className="text-cloth underline underline-offset-2 hover:text-gold"
               href="https://www.npmjs.com/package/jalin-sdk"
             >
               jalin-sdk
@@ -309,7 +331,7 @@ struct Step {
                 className="text-cloth underline underline-offset-2 hover:text-gold"
                 href={manifest.demo_video}
               >
-                the demo, 2:49
+                the demo, 2:48
               </a>{' '}
               — a plan built and signed on mainnet
             </li>

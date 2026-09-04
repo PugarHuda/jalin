@@ -124,6 +124,8 @@ pub mod gov_errors {
     pub const UNKNOWN_KIND: felt252 = 'GOV_UNKNOWN_KIND';
     pub const ZERO_COMMITMENT: felt252 = 'GOV_ZERO_COMMITMENT';
     pub const ZERO_WEIGHT: felt252 = 'GOV_ZERO_WEIGHT';
+    /// A ballot claiming weight the contract does not actually hold in escrow.
+    pub const WEIGHT_NOT_ESCROWED: felt252 = 'GOV_WEIGHT_NOT_ESCROWED';
     pub const BAD_SUPPORT: felt252 = 'GOV_BAD_SUPPORT';
     pub const NO_PROPOSAL: felt252 = 'GOV_NO_PROPOSAL';
     pub const VOTING_CLOSED: felt252 = 'GOV_VOTING_CLOSED';

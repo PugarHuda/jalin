@@ -66,4 +66,9 @@ pub trait IJalinGovernance<TState> {
     fn get_ballot(self: @TState, commitment: felt252) -> Ballot;
     fn ballot_commitment(self: @TState, secret: felt252) -> felt252;
     fn proposal_count(self: @TState) -> u64;
+
+    /// Stake escrowed by ballots cast and not yet redeemed. Readable so the
+    /// backing behind a tally can be checked against the contract's own token
+    /// balance from outside.
+    fn outstanding(self: @TState) -> u128;
 }

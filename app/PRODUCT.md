@@ -94,17 +94,21 @@ authority for refinement, not a commitment the user has pinned.
 
 ## Evidence on Hand
 
-- Three qualifying mainnet transactions in `strk20.json`, verifiable with
-  `node scripts/verify-transactions.mjs`.
+- Four qualifying mainnet transactions in `strk20.json`, verifiable with
+  `node scripts/verify-transactions.mjs`. Three run through the router; the
+  fourth is a private ballot through the governor. Do not write "three": the
+  count lived as three in nine places for days after the fourth landed.
 - Mainnet findings with the queries that produced them in
   `docs/what-mainnet-says.md`; threat model in `docs/threat-model.md`.
 - 129 SDK tests; 370 Playwright tests across six projects (desktop 136, firefox
-  105, webkit 105, mobile 11, mobile-safari 11, ready 2) on three engines; 44
+  105, webkit 105, mobile 11, mobile-safari 11, ready 2) on three engines; 47
   Cairo tests of which four fork mainnet and run the router against Endur's
   vault and AVNU's exchange. Count them before quoting them; this line has been
   stale four times, and once it was stale on the landing page itself.
 - A demo video exists and ships from the app: `app/public/jalin-demo.mp4`,
-  20.8 MB, 1920x1080, and `strk20.json` names it at `/jalin-demo.mp4`. This line
+  20,141,430 bytes (20.1 MB, 19.2 MiB), 1920x1080, 2:48 by `ffprobe`. It said
+  20.8 MB and 2:49 until 4 September, both invented rather than read.
+  `strk20.json` names it at `/jalin-demo.mp4`. This line
   said it did not exist, which was true when it was written and had stopped being
   true; a design agent reading it would have deleted a link that works. Its
   duration and thumbnail are still not to be invented - read them off the file.

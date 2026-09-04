@@ -42,3 +42,9 @@ scripts/demo-video/audio/
 scripts/demo-video/build/
 scripts/demo-video/clips/
 scripts/demo-video/jalin-demo.mp4
+
+# Design-critique snapshots. Working notes from a review tool: a scored,
+# undated prosecution of a page, written before the fixes it asked for landed
+# and carrying no record that they did. `config.json` and `design.json` stay
+# tracked, because those are the system, not a moment's opinion of it.
+.impeccable/critique/

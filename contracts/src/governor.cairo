@@ -14,7 +14,9 @@ pub mod JalinGovernor {
         Map, StorageMapReadAccess, StorageMapWriteAccess, StoragePointerReadAccess,
         StoragePointerWriteAccess,
     };
-    use starknet::{ContractAddress, get_block_number, get_caller_address};
+    use starknet::{
+        ContractAddress, get_block_number, get_caller_address, get_contract_address,
+    };
     use crate::interfaces::{
         IErc20Dispatcher, IErc20DispatcherTrait, IJalinGovernance, IJalinGovernor,
     };
@@ -40,6 +42,10 @@ pub mod JalinGovernor {
         proposal_count: u64,
         proposals: Map<u64, Proposal>,
         ballots: Map<felt252, Ballot>,
+        /// Stake escrowed by ballots that have been cast and not yet redeemed.
+        /// Every tallied vote is backed by tokens this contract really holds; see
+        /// `cast`.
+        outstanding: u128,
     }
 
     #[event]
@@ -222,6 +228,10 @@ pub mod JalinGovernor {
         fn proposal_count(self: @ContractState) -> u64 {
             self.proposal_count.read()
         }
+
+        fn outstanding(self: @ContractState) -> u128 {
+            self.outstanding.read()
+        }
     }
 
     #[generate_trait]
@@ -243,6 +253,21 @@ pub mod JalinGovernor {
 
             let existing = self.ballots.read(commitment);
             assert(existing.proposal_id.is_zero(), errors::COMMITMENT_USED);
+
+            // The weight has to be here. `amount` arrives on the pool's calldata,
+            // and taking it on trust was this contract's one real defect: a ballot
+            // could tally weight it never staked and then redeem it against other
+            // voters' escrow. The pool's withdraw leg runs before the invoke, so
+            // this ballot's own stake is already in the balance below;
+            // `outstanding` is what earlier ballots hold and have not redeemed.
+            // The router has always read `balance_of` rather than trusting a
+            // caller's figure, and now both contracts do.
+            let held = IErc20Dispatcher { contract_address: self.ballot_token.read() }
+                .balance_of(get_contract_address());
+            let outstanding = self.outstanding.read();
+            let escrowed: u256 = outstanding.into() + amount.into();
+            assert(held >= escrowed, errors::WEIGHT_NOT_ESCROWED);
+            self.outstanding.write(outstanding + amount);
 
             let updated = if support == 1 {
                 Proposal { yes: proposal.yes + amount, ..proposal }
@@ -273,6 +298,8 @@ pub mod JalinGovernor {
             assert(get_block_number() > proposal.end_block, errors::VOTING_OPEN);
 
             self.ballots.write(commitment, Ballot { claimed: true, ..ballot });
+            // Leaves escrow, so it stops backing any future ballot's weight.
+            self.outstanding.write(self.outstanding.read() - ballot.amount);
 
             let token = self.ballot_token.read();
             IErc20Dispatcher { contract_address: token }

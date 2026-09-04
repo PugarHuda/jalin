@@ -46,6 +46,22 @@ Set as `INDEXER_URL`. Without it the SDK cannot resolve which notes an account
 owns, and the shadow-account flow fails at `discoverChannels` with a `TypeError`
 rather than a message that names the missing service.
 
+It answers `/health`, and the answer is worth more than a ping — it reports how
+far behind the chain the indexer is, which is the number that decides whether a
+note you just created is discoverable yet:
+
+```sh
+curl https://discovery-service.alpha-mainnet.sw-dev.io/health
+```
+
+```json
+{"status":"OK","chain_head":{"block_number":14331721,...},"lag_secs":6}
+```
+
+The root path is a 404, which is what this document reported as the whole answer
+until 4 September — a 404 on `/` was read as "no health endpoint" rather than as
+"not that path".
+
 **It receives the viewing key in cleartext.** The operator of that service can
 read the shielded balances of any account pointed at it. That is a real trade
 for a headless integration, it is not stated where the endpoint is, and it is

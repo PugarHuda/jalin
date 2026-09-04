@@ -5,9 +5,14 @@
 *jalin* (Indonesian) — to weave separate strands into one.
 
 Jalin lets a single private transaction carry an arbitrary multi-step, multi-token
-plan: swap, lend, stake, bridge, or anything else reachable by a Starknet contract
-call — executed inside one `privacy_invoke`, with the resulting value credited
-straight back into shielded notes.
+plan — anything reachable by a Starknet contract call — executed inside one
+`privacy_invoke`, with the resulting value credited straight back into shielded
+notes.
+
+Swapping and staking are demonstrated on mainnet, through AVNU and Endur.
+Lending and bridging are the same object in the router's eyes and neither has
+been run, on mainnet or on a fork; where this README argues them, it is arguing
+a shape rather than reporting a result.
 
 ## Where to look first
 
@@ -15,9 +20,9 @@ straight back into shielded notes.
 |---|---|
 | **[The deck](https://jalin-five.vercel.app/slides)** | Nine panels: the constraint, the mechanism, what it reaches, what it does not do |
 | **[The composer](https://jalin-five.vercel.app/compose)** | Build a plan, see what it reveals, sign it with Ready |
-| **[The demo](https://jalin-five.vercel.app/jalin-demo.mp4)** | 2:49, recorded against production |
+| **[The demo](https://jalin-five.vercel.app/jalin-demo.mp4)** | 2:48, recorded against production |
 | **[Verify](https://jalin-five.vercel.app/verify)** | The sprint's own rule applied to any repository's `strk20.json`, including this one |
-| **[`strk20.json`](./strk20.json)** | Three mainnet transactions, two declared contracts |
+| **[`strk20.json`](./strk20.json)** | Four mainnet transactions, two declared contracts |
 | **[`jalin-sdk`](https://www.npmjs.com/package/jalin-sdk)** | The plan encoder, published |
 | **[The three mainnet endpoints](./docs/strk20-endpoints.md)** | Prover, note discovery and the shadow-account anonymizer — each verified, each reported missing somewhere |
 
@@ -186,6 +191,12 @@ stable label per strategy, rolling unlinkable positions back into one balance
 sheet, and saying out loud when a portfolio has no internal anonymity left.
 `sdk/src/shadow.ts` builds the Wallet API action for it.
 
+Both ship in the published `jalin-sdk` and have tests. Neither is wired into
+anything in `app/`: no page imports them, and no mainnet transaction has
+exercised the portfolio layer. It is SDK surface for a wallet that implements
+shadow accounts, and calling it a feature of the demo would be a claim this
+repository cannot support.
+
 An earlier version of this section said the Wallet API exposed no sub-account
 method. It does now: starknet.js 10.6.0 (29 July 2026) added the handling, and
 `@starknet-io/types-js` 0.10.4 carries `shadow_account_invoke` — calls made from
@@ -258,7 +269,7 @@ two minutes forty-nine, captioned, and named in `strk20.json`.
 
 It is not a screen recording of a rehearsal. Playwright drives the deployed app
 through the same selectors the end-to-end suite uses, so the transaction it
-checks on screen is one of the three mainnet hashes listed above and the verdict
+checks on screen is one of the four mainnet hashes listed above and the verdict
 beside it is computed from the chain while the recording runs. The narration is
 synthesised, the captions come from the speech engine's own sentence timings,
 and the whole thing rebuilds from this repository:
@@ -283,9 +294,9 @@ missing:
 |---|---|
 | Shielded notes | Every plan output is credited straight back into one, above a floor the caller sets |
 | `privacy_invoke` | The router *is* a helper the pool calls; the plan executes inside that single invoke |
-| Anonymizer contract | `contracts/` — the router, a governor and a private ballot, in Cairo. The router is exercised by every listed transaction; the ballot path is deployed but has never been cast, and its weight accounting has a disclosed defect ([threat model](./docs/threat-model.md)) |
+| Anonymizer contract | `contracts/` — the router, a governor and a private ballot, in Cairo. The router carries three of the four listed transactions and the governor the fourth; the deployed governor's weight accounting has a disclosed defect, corrected in source and not redeployed ([threat model](./docs/threat-model.md)) |
 | Privacy SDK | Built from source into `vendor/` by [`scripts/build-privacy-sdk.sh`](./scripts/build-privacy-sdk.sh) and used by [`scripts/mainnet.mjs`](./scripts/mainnet.mjs) |
-| Proving and discovery | Self-hosted: the official discovery service and proof interceptor run from [`prover/`](./prover/) |
+| Proving and discovery | Discovery and the proof interceptor are self-hosted from [`prover/`](./prover/). The prover is **not**: its image is published but exits 132 without AVX-512 here, so proving runs against the hosted mainnet service |
 | Shadow accounts | Asked of the wallet at runtime and shown verbatim, including the refusal. The SDK route is open now that a hosted mainnet prover is known |
 | Private transfers | Not the product. Jalin routes value through venues; a note-to-note transfer is what the pool already does without a helper |
 
@@ -381,15 +392,17 @@ sh contracts/test.sh          # snforge in a pinned container
 because pinning the toolchain is worth more than saving a container. The scarb
 cache lives in a named volume, so only the first run pays for the plugin build.
 
-44 tests, two of them fuzzed at 256 runs each, covering every line of every
+47 tests, two of them fuzzed at 256 runs each, covering every line of every
 contract — `sh contracts/coverage.sh && node scripts/coverage-gate.mjs` fails if
 any line of `src/` never runs. Line coverage is a floor, not a proof: it says
-every line ran, not that it ran under the conditions that would break it. Four of them fork Starknet mainnet at a
-pinned block and run a plan through Endur's deployed xSTRK vault - and one through AVNU's exchange into Ekubo's STRK/USDC pool - funded by the
-STRK20 pool's own STRK — which is where the STRK comes from in a real
-transaction. A mock ERC-4626 returns what the mock was told to return; those
-three prove the router works against a contract nobody here wrote. They need
-network, and use a public node that takes no key.
+every line ran, not that it ran under the conditions that would break it.
+
+Four of them fork Starknet mainnet at a pinned block and run a plan through
+Endur's deployed xSTRK vault — one of the four through AVNU's exchange into
+Ekubo's STRK/USDC pool — funded by the STRK20 pool's own STRK, which is where
+the STRK comes from in a real transaction. A mock ERC-4626 returns what the mock
+was told to return; those four prove the router works against a contract nobody
+here wrote. They need network, and use a public node that takes no key.
 
 TypeScript:
 
@@ -407,17 +420,20 @@ share, that the crowd count is bounded by the deposit count, that a real mainnet
 transaction which touched the pool without going through our router does not
 qualify. A test that asserts a fixture only proves the fixture loaded.
 
-## Three mainnet transactions, and what each route costs
+## Four mainnet transactions, and what each route costs
 
-The sprint asks for three and this project lists three. All three are plan
-executions: each one carries a `PlanExecuted` event emitted by the router at
-`0x008498d79…`, not merely a transaction that brushed the pool.
+The sprint asks for three and this project lists four. Three are plan
+executions, each carrying a `PlanExecuted` event emitted by the router at
+`0x008498d79…` rather than merely brushing the pool. The fourth is a private
+ballot, which reaches the governor at `0x05bd985e…` through the same
+`privacy_invoke` primitive — a different contract of ours, and the one path that
+is governance rather than routing.
 
 There are two ways to reach `privacy_invoke`, and they fail differently.
 
 **Through a wallet.** `wallet_strk20InvokeTransaction` has the wallet build and
 prove the transaction itself, which takes about thirty seconds. This works, and
-it is how all three of these landed — from the composer, in a browser, against
+it is how all four of these landed — from the composer, in a browser, against
 Ready. Anyone with a wallet implementing the STRK20 methods and a shielded
 balance can run a plan today.
 
@@ -475,7 +491,7 @@ The escape is a portable rebuild from
 with `TARGET_CPU=""`, which is a nightly-Rust build of the sequencer workspace
 and not a ten-minute job.
 
-So the count here is three rather than thirty because that cost was not paid. A
+So the count here is four rather than thirty because that cost was not paid. A
 decision, and now a documented one — with the part that is genuinely blocked
 named separately below.
 

@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { GOVERNOR_ADDRESS, REPO, ROUTER_ADDRESS } from '@/lib/config'
+import { GOVERNOR_ADDRESS, INVARIANTS, REPO, ROUTER_ADDRESS } from '@/lib/config'
 import { manifest } from '@/lib/manifest'
 import { readChainState } from '@/lib/chain'
 import { SiteNav } from './wordmark'
@@ -286,15 +286,6 @@ function Weave({ labelSize = 12 }: { labelSize?: number } = {}) {
   )
 }
 
-const INVARIANTS = [
-  ['The pool is the only caller', 'Anyone calling the router directly'],
-  ['No step may target the pool or the router', 'Reentrancy into the sandwich'],
-  ['Every approval is reset after its step', 'A stale allowance draining the next user'],
-  ['Zero residue: touched tokens end at zero', "Sweeping another user's leftovers"],
-  ['Each output clears its floor', 'Slippage and hostile routes'],
-  ['Steps and calldata are bounded', 'Griefing the proof budget'],
-]
-
 function Address({ label, value }: { label: string; value: string }) {
   if (!value) return null
   return (
@@ -316,7 +307,7 @@ function Address({ label, value }: { label: string; value: string }) {
 }
 
 /**
- * The three hashes the sprint is actually scored against.
+ * The hashes the sprint is actually scored against.
  *
  * They lived in `strk20.json` and on `/verify`, which meant the page making the
  * case for them never showed one, and the closest thing to proof on this page
@@ -379,7 +370,7 @@ function Qualifying() {
               target="_blank"
               rel="noreferrer"
             >
-              the demo, 2:49
+              the demo, 2:48
             </a>
             {' '}— linked rather than embedded, because a 20 MB autoplay is not what a first
             viewport is for.
@@ -549,7 +540,7 @@ export default async function Landing() {
             terminal for.
           */}
           <p className="mt-6 max-w-[62ch] border-t border-thread pt-4 font-mono text-xs text-muted">
-            129 SDK tests, 370 Playwright tests across six projects on three engines, and 44 Cairo
+            129 SDK tests, 370 Playwright tests across six projects on three engines, and 47 Cairo
             tests, four of
             which fork mainnet and run the router against Endur&apos;s vault and AVNU&apos;s
             exchange. The reasoning behind these six rules is in{' '}

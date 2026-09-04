@@ -14,6 +14,26 @@ export const REPO = 'https://github.com/PugarHuda/jalin'
  */
 export const KINDS = ['pause', 'limits', 'fee', 'deny', 'label'] as const
 
+/**
+ * The six invariants, worded once.
+ *
+ * The landing page and the deck each carried their own copy, and they drifted:
+ * the deck's I2 read "no step may target the pool" where the contract checks the
+ * pool *and* the router, which told a reader the router permits a step aimed at
+ * itself. Wording that describes a contract is not decoration, so it lives in one
+ * place and both pages read it. Each entry pairs the rule with the attack it
+ * closes; the order is I1..I6, matching docs/threat-model.md and the asserts in
+ * contracts/src/router.cairo.
+ */
+export const INVARIANTS: readonly (readonly [string, string])[] = [
+  ['The pool is the only caller', 'Anyone calling the router directly'],
+  ['No step may target the pool or the router', 'Reentrancy into the sandwich'],
+  ['Every approval is reset after its step', 'A stale allowance draining the next user'],
+  ['Zero residue: touched tokens end at zero', "Sweeping another user's leftovers"],
+  ['Each output clears its floor', 'Slippage and hostile routes'],
+  ['Steps and calldata are bounded', 'Griefing the proof budget'],
+] as const
+
 /** The STRK20 pool on Starknet mainnet. */
 export const POOL_ADDRESS =
   '0x040337b1af3c663e86e333bab5a4b28da8d4652a15a69beee2b677776ffe812a'

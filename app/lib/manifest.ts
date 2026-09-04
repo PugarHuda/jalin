@@ -3,7 +3,7 @@ import source from '../../strk20.json'
 /**
  * The submission's own `strk20.json`, imported rather than read.
  *
- * The three qualifying hashes were only ever in that file and on `/verify`, so
+ * The qualifying hashes were only ever in that file and on `/verify`, so
  * the page making the case for them never showed one. Copying them into a
  * constant here would fix the display and introduce the drift the manifest
  * exists to prevent: the file is what the panel reads, so the file is what the

@@ -58,8 +58,8 @@ FEE_RECIPIENT=             # where a governed fee would go; the deployer is fine
 
 MAX_STEPS=8
 MAX_CALLDATA=64
-VOTING_BLOCKS=2000         # ~8 hours at mainnet block times
-TIMELOCK_BLOCKS=500        # ~2 hours
+VOTING_BLOCKS=2000         # ~57 min at the measured 1.70s block time
+TIMELOCK_BLOCKS=500        # ~14 min, so ~71 min from proposal to execution
 QUORUM=1000000000000000000 # 1 STRK
 ```
 
@@ -164,7 +164,7 @@ The trailing number is your balance in FRI. Divide by 1e18 for STRK.
 Both contracts build in a pinned container, so the class hashes are reproducible:
 
 ```bash
-sh contracts/test.sh                                   # 24 tests
+sh contracts/test.sh                                   # 47 tests
 scarb build --manifest-path contracts/Scarb.toml       # or natively
 ```
 

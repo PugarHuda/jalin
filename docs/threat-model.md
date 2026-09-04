@@ -208,30 +208,87 @@ or a deny-list entry, bounded by the timelock and by `fee_bps` being capped at
 pointed at a different governor after deployment.
 
 The deployed governor does not enforce that intent, and this document said it did
-until 31 August. `cast` (`contracts/src/governor.cairo:229`) takes `amount: u128`
-straight off the `privacy_invoke` calldata and credits it to the tally; the string
-`balance_of` does not appear in `governor.cairo` at all. The router, in the same
-repository and the same week, does the opposite — `router.cairo:145` reads
+until 31 August. In the class behind `0x05bd98…6984`, `cast` takes `amount: u128`
+straight off the `privacy_invoke` calldata and credits it to the tally, and
+`balance_of` does not appear in that contract anywhere. The router, in the same
+repository and the same week, does the opposite — it reads
 `erc20.balance_of(self)` and never trusts a caller-supplied figure. So the
-discipline this project argues for is applied in one contract and missing from
+discipline this project argues for was applied in one contract and missing from
 the other.
+
+(The source in this repository no longer reads that way — see the fix below. The
+paragraph describes what is deployed, which is the thing anyone can call.)
 
 The consequence is worse than a miscount. `redeem` approves the pool for
 `ballot.amount` and returns an `OpenNoteDeposit` of that amount, so a ballot cast
 with weight that was never escrowed can be redeemed against whatever the governor
 does hold — which is other voters' stake.
 
-Why nothing is at risk today: the governor has emitted no `BallotCast` event in
-its history and holds no ballot token, so there is no tally to capture and
-nothing to take. The defect is real, reachable in principle, and currently
-unexploitable for profit because the escrow is empty.
+**Stake theft is empty. Capture of the live router is not.** This document said
+until 4 September that "nothing is at risk today" because the escrow holds no
+ballot token. That covers only half of it. There is nothing to *steal*, true —
+but weight that costs nothing to claim is also weight that costs nothing to win
+a vote with, and the vote governs a router that is deployed and in use.
 
-The fix is the shape Aperture's anonymizer already uses: keep an `outstanding`
-total, assert `balance_of(self) >= outstanding + amount` on cast, and decrement
-it on redeem. It is not in this repository, because the Cairo toolchain could not
-be run on the machine this was found on and shipping an unverified change to a
-contract that holds funds is worse than shipping a disclosed one. Treat the
-governance path as unaudited and unfunded rather than as protected.
+Reading it end to end: `propose` is permissionless; `cast` credits an unbacked
+`amount`; `execute` (`governor.cairo:203`) gates only on `yes > no` and
+`yes >= quorum`, and the quorum this was deployed with is 1 STRK. So the price of
+every router parameter is one pool fee — 6 STRK, to route one ballot through
+`privacy_invoke` — plus the wait. That buys `fee_bps` up to 10% with the
+recipient of the attacker's choosing, skimmed by `router.cairo:146` from every
+output of every later plan; or `pause`; or a deny-list entry; or bounds tight
+enough to refuse real plans.
+
+Three things bound it, and they are the reason this is serious rather than fatal:
+`fee_bps` is capped at 1000 in the contract and that cap is not governable; the
+fee is taken *before* I5 checks the floor, so a hostile fee cannot push a user
+below the `min_amount` they signed — the plan reverts instead; and the window is
+public the whole time, on `/governance`.
+
+That window is shorter than this repository claimed. `VOTING_BLOCKS=2000` and
+`TIMELOCK_BLOCKS=500` were annotated "~8 hours" and "~2 hours" in
+`docs/deploying.md`, which assumed a block time this project had already
+measured and disproved. At the measured 1.70 s those are about 57 minutes and
+about 14 minutes: **roughly 71 minutes from a stranger's proposal to a 10% fee on
+every future plan**, not ten hours.
+
+**The fix, and what is actually running.** The fix is the shape Aperture's
+anonymizer already uses, and it is now in this repository: `cast` keeps an
+`outstanding` total, asserts `balance_of(self) >= outstanding + amount` before it
+tallies anything, and `redeem` decrements it
+(`contracts/src/governor.cairo`). Three tests hold it — a ballot whose stake
+never arrived, a second ballot reaching for the first one's escrow, and the
+escrow rising and falling across a full cast-and-redeem cycle. The suite is 47
+tests and green.
+
+What the fix does *not* claim: a stranger who transfers ballot tokens straight to
+the governor raises the balance, and a ballot can then be cast against that
+donation. The invariant it enforces is "every tallied vote is backed by tokens
+this contract holds", not "backed by tokens the voter supplied" — and since the
+donation is escrowed like any other stake and leaves with whoever redeems that
+ballot, buying weight this way costs its face value. That is a purchase, not a
+theft, and it is the same shape as the donation problem `sweep` exists for.
+
+This document said until 4 September that the fix was absent because the Cairo
+toolchain could not be run here. That had stopped being true: the toolchain is a
+pinned container, `sh contracts/test.sh` builds and runs it, and the sentence
+was an excuse a stale note kept alive.
+
+**The deployed governor still has the defect.** The router takes its governor in
+the constructor and there is no setter (`contracts/src/router.cairo:56`), so a
+corrected governor means a new router too, and the two addresses in
+`strk20.json` are the ones the four qualifying mainnet transactions ran through.
+Redeploying means new addresses in `strk20.json`, and the four qualifying
+transactions ran through the old ones — so the fix and the evidence cannot both
+be listed without listing four contracts. That is a decision with a deadline
+attached, and it is recorded here rather than taken quietly: as of 4 September
+`0x05bd98…6984` is still the contract with the hole in it, and the corrected
+class is source and tests rather than an address.
+
+Until it is deployed, the honest statement is the one above: the deployed
+governance path can be captured for one pool fee and about seventy minutes, the
+damage is bounded by the 10% cap and by I5's floor, and nobody has done it. Treat
+it as unaudited and capturable rather than as protected.
 
 ## What the app reaches out to, and what the edge is allowed to keep
 

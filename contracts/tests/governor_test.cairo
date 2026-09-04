@@ -43,20 +43,25 @@ fn setup() -> (ContractAddress, ContractAddress) {
     calldata.append(QUORUM.into());
     let (governor, _) = class.deploy(@calldata).unwrap();
 
-    // The stake a ballot escrows has to actually be here for redemption.
-    IMockErc20Dispatcher { contract_address: ballot_token }.mint(governor, WEIGHT.into());
-
+    // Deliberately unfunded. The stake arrives per ballot, the way it does on
+    // chain, so the governor's balance tracks exactly what has been escrowed and
+    // a ballot claiming more than that has nothing to hide behind.
     start_cheat_block_number_global(START_BLOCK);
     (governor, ballot_token)
 }
 
+/// A ballot as the pool delivers one: the withdraw leg lands the stake, then the
+/// invoke carries the weight. Minting first is not test convenience, it is the
+/// half of the sandwich that makes the weight real.
 fn cast(
     governor: ContractAddress,
+    ballot_token: ContractAddress,
     proposal_id: u64,
     support: u8,
     commitment: felt252,
     amount: u128,
 ) {
+    IMockErc20Dispatcher { contract_address: ballot_token }.mint(governor, amount.into());
     start_cheat_caller_address(governor, pool());
     IJalinGovernanceDispatcher { contract_address: governor }
         .privacy_invoke(pool(), ops::CAST, proposal_id, support, commitment, 0, amount, 0);
@@ -70,12 +75,12 @@ fn propose_fee_change(governor: ContractAddress, fee_bps: felt252) -> u64 {
 
 #[test]
 fn a_ballot_records_weight_without_naming_a_voter() {
-    let (governor, _) = setup();
+    let (governor, ballot_token) = setup();
     let proposal_id = propose_fee_change(governor, 50);
     let dispatcher = IJalinGovernanceDispatcher { contract_address: governor };
     let commitment = dispatcher.ballot_commitment('secret');
 
-    cast(governor, proposal_id, 1, commitment, WEIGHT);
+    cast(governor, ballot_token, proposal_id, 1, commitment, WEIGHT);
 
     let proposal = dispatcher.get_proposal(proposal_id);
     assert(proposal.yes == WEIGHT, 'weight counted');
@@ -105,13 +110,13 @@ fn a_ballot_may_only_arrive_through_the_pool() {
 #[test]
 #[should_panic(expected: 'GOV_COMMITMENT_USED')]
 fn the_same_commitment_cannot_vote_twice() {
-    let (governor, _) = setup();
+    let (governor, ballot_token) = setup();
     let proposal_id = propose_fee_change(governor, 50);
     let commitment = IJalinGovernanceDispatcher { contract_address: governor }
         .ballot_commitment('secret');
 
-    cast(governor, proposal_id, 1, commitment, WEIGHT);
-    cast(governor, proposal_id, 1, commitment, WEIGHT);
+    cast(governor, ballot_token, proposal_id, 1, commitment, WEIGHT);
+    cast(governor, ballot_token, proposal_id, 1, commitment, WEIGHT);
 }
 
 #[test]
@@ -119,11 +124,11 @@ fn the_same_commitment_cannot_vote_twice() {
 fn stake_stays_locked_while_the_vote_is_open() {
     // This is the whole reason one set of funds cannot vote twice: it is not
     // available to be routed into a second ballot until the vote has closed.
-    let (governor, _) = setup();
+    let (governor, ballot_token) = setup();
     let proposal_id = propose_fee_change(governor, 50);
     let commitment = IJalinGovernanceDispatcher { contract_address: governor }
         .ballot_commitment('secret');
-    cast(governor, proposal_id, 1, commitment, WEIGHT);
+    cast(governor, ballot_token, proposal_id, 1, commitment, WEIGHT);
 
     start_cheat_caller_address(governor, pool());
     IJalinGovernanceDispatcher { contract_address: governor }
@@ -136,7 +141,7 @@ fn stake_comes_back_as_a_note_once_the_vote_closes() {
     let proposal_id = propose_fee_change(governor, 50);
     let dispatcher = IJalinGovernanceDispatcher { contract_address: governor };
     let commitment = dispatcher.ballot_commitment('secret');
-    cast(governor, proposal_id, 1, commitment, WEIGHT);
+    cast(governor, ballot_token, proposal_id, 1, commitment, WEIGHT);
 
     start_cheat_block_number_global(START_BLOCK + VOTING_BLOCKS + 1);
     start_cheat_caller_address(governor, pool());
@@ -157,11 +162,11 @@ fn stake_comes_back_as_a_note_once_the_vote_closes() {
 #[test]
 #[should_panic(expected: 'GOV_TIMELOCKED')]
 fn a_carried_proposal_still_waits_out_the_timelock() {
-    let (governor, _) = setup();
+    let (governor, ballot_token) = setup();
     let proposal_id = propose_fee_change(governor, 50);
     let commitment = IJalinGovernanceDispatcher { contract_address: governor }
         .ballot_commitment('secret');
-    cast(governor, proposal_id, 1, commitment, WEIGHT);
+    cast(governor, ballot_token, proposal_id, 1, commitment, WEIGHT);
 
     // Voting is over, the timelock is not.
     start_cheat_block_number_global(START_BLOCK + VOTING_BLOCKS + 1);
@@ -171,11 +176,11 @@ fn a_carried_proposal_still_waits_out_the_timelock() {
 #[test]
 #[should_panic(expected: 'GOV_NO_QUORUM')]
 fn a_thin_vote_does_not_carry() {
-    let (governor, _) = setup();
+    let (governor, ballot_token) = setup();
     let proposal_id = propose_fee_change(governor, 50);
     let commitment = IJalinGovernanceDispatcher { contract_address: governor }
         .ballot_commitment('secret');
-    cast(governor, proposal_id, 1, commitment, QUORUM - 1);
+    cast(governor, ballot_token, proposal_id, 1, commitment, QUORUM - 1);
 
     start_cheat_block_number_global(START_BLOCK + VOTING_BLOCKS + TIMELOCK_BLOCKS + 1);
     IJalinGovernanceDispatcher { contract_address: governor }.execute(proposal_id);
@@ -183,11 +188,11 @@ fn a_thin_vote_does_not_carry() {
 
 #[test]
 fn a_carried_proposal_moves_the_parameter_the_router_reads() {
-    let (governor, _) = setup();
+    let (governor, ballot_token) = setup();
     let proposal_id = propose_fee_change(governor, 50);
     let commitment = IJalinGovernanceDispatcher { contract_address: governor }
         .ballot_commitment('secret');
-    cast(governor, proposal_id, 1, commitment, WEIGHT);
+    cast(governor, ballot_token, proposal_id, 1, commitment, WEIGHT);
 
     start_cheat_block_number_global(START_BLOCK + VOTING_BLOCKS + TIMELOCK_BLOCKS + 1);
     IJalinGovernanceDispatcher { contract_address: governor }.execute(proposal_id);
@@ -202,11 +207,11 @@ fn a_carried_proposal_moves_the_parameter_the_router_reads() {
 fn the_fee_cap_holds_even_against_a_carried_vote() {
     // A vote can move the fee. It cannot move it past the ceiling written into
     // the contract, which is the one thing governance capture cannot reach.
-    let (governor, _) = setup();
+    let (governor, ballot_token) = setup();
     let proposal_id = propose_fee_change(governor, 1001);
     let commitment = IJalinGovernanceDispatcher { contract_address: governor }
         .ballot_commitment('secret');
-    cast(governor, proposal_id, 1, commitment, WEIGHT);
+    cast(governor, ballot_token, proposal_id, 1, commitment, WEIGHT);
 
     start_cheat_block_number_global(START_BLOCK + VOTING_BLOCKS + TIMELOCK_BLOCKS + 1);
     IJalinGovernanceDispatcher { contract_address: governor }.execute(proposal_id);
@@ -215,34 +220,36 @@ fn the_fee_cap_holds_even_against_a_carried_vote() {
 /// Carries a proposal: one yes ballot at full weight, then past the timelock,
 /// then executed. Every kind below reaches `apply` this way, which is the only
 /// way router parameters can move at all.
-fn carry(governor: ContractAddress, proposal_id: u64, secret: felt252) {
+fn carry(
+    governor: ContractAddress, ballot_token: ContractAddress, proposal_id: u64, secret: felt252,
+) {
     let dispatcher = IJalinGovernanceDispatcher { contract_address: governor };
-    cast(governor, proposal_id, 1, dispatcher.ballot_commitment(secret), WEIGHT);
+    cast(governor, ballot_token, proposal_id, 1, dispatcher.ballot_commitment(secret), WEIGHT);
     start_cheat_block_number_global(START_BLOCK + VOTING_BLOCKS + TIMELOCK_BLOCKS + 1);
     dispatcher.execute(proposal_id);
 }
 
 #[test]
 fn a_carried_vote_can_pause_the_router() {
-    let (governor, _) = setup();
+    let (governor, ballot_token) = setup();
     let params = IJalinGovernorDispatcher { contract_address: governor };
     assert(!params.params().paused, 'starts running');
 
     let proposal_id = IJalinGovernanceDispatcher { contract_address: governor }
         .propose(kinds::PAUSE, treasury(), 1, 0);
-    carry(governor, proposal_id, 'pause');
+    carry(governor, ballot_token, proposal_id, 'pause');
 
     assert(params.params().paused, 'the circuit is open');
 }
 
 #[test]
 fn a_carried_vote_can_move_the_limits() {
-    let (governor, _) = setup();
+    let (governor, ballot_token) = setup();
     let params = IJalinGovernorDispatcher { contract_address: governor };
 
     let proposal_id = IJalinGovernanceDispatcher { contract_address: governor }
         .propose(kinds::LIMITS, treasury(), 3, 16);
-    carry(governor, proposal_id, 'limits');
+    carry(governor, ballot_token, proposal_id, 'limits');
 
     let after = params.params();
     assert(after.max_steps == 3, 'steps tightened');
@@ -254,26 +261,26 @@ fn a_carried_vote_can_move_the_limits() {
 #[test]
 #[should_panic(expected: 'GOV_ZERO_LIMIT')]
 fn a_limit_of_zero_would_brick_the_router_and_is_refused() {
-    let (governor, _) = setup();
+    let (governor, ballot_token) = setup();
     let proposal_id = IJalinGovernanceDispatcher { contract_address: governor }
         .propose(kinds::LIMITS, treasury(), 0, 16);
-    carry(governor, proposal_id, 'zero');
+    carry(governor, ballot_token, proposal_id, 'zero');
 }
 
 #[test]
 fn a_carried_vote_can_deny_one_target_and_lift_it_again() {
-    let (governor, _) = setup();
+    let (governor, ballot_token) = setup();
     let params = IJalinGovernorDispatcher { contract_address: governor };
     let bad = contract_address_const::<'BAD'>();
     let governance = IJalinGovernanceDispatcher { contract_address: governor };
 
     assert(!params.is_denied(bad), 'nothing denied by default');
-    carry(governor, governance.propose(kinds::DENY, bad, 1, 0), 'deny');
+    carry(governor, ballot_token, governance.propose(kinds::DENY, bad, 1, 0), 'deny');
     assert(params.is_denied(bad), 'target denied');
 
     // A deny list that cannot be undone is a whitelist with extra steps.
     let lift = governance.propose(kinds::DENY, bad, 0, 0);
-    cast(governor, lift, 1, governance.ballot_commitment('lift'), WEIGHT);
+    cast(governor, ballot_token, lift, 1, governance.ballot_commitment('lift'), WEIGHT);
     start_cheat_block_number_global(START_BLOCK + 2 * (VOTING_BLOCKS + TIMELOCK_BLOCKS) + 2);
     governance.execute(lift);
     assert(!params.is_denied(bad), 'target allowed again');
@@ -281,12 +288,12 @@ fn a_carried_vote_can_deny_one_target_and_lift_it_again() {
 
 #[test]
 fn a_carried_vote_can_label_a_target() {
-    let (governor, _) = setup();
+    let (governor, ballot_token) = setup();
     let target = contract_address_const::<'ENDUR'>();
 
     let proposal_id = IJalinGovernanceDispatcher { contract_address: governor }
         .propose(kinds::LABEL, target, 'endur xSTRK', 0);
-    carry(governor, proposal_id, 'label');
+    carry(governor, ballot_token, proposal_id, 'label');
 
     // A label is the honest alternative to a whitelist: it says what a contract
     // is without deciding for you whether you may call it.
@@ -298,11 +305,11 @@ fn a_carried_vote_can_label_a_target() {
 
 #[test]
 fn votes_against_are_counted_and_can_sink_a_proposal() {
-    let (governor, _) = setup();
+    let (governor, ballot_token) = setup();
     let governance = IJalinGovernanceDispatcher { contract_address: governor };
     let proposal_id = propose_fee_change(governor, 50);
 
-    cast(governor, proposal_id, 0, governance.ballot_commitment('against'), WEIGHT);
+    cast(governor, ballot_token, proposal_id, 0, governance.ballot_commitment('against'), WEIGHT);
 
     let proposal = governance.get_proposal(proposal_id);
     assert(proposal.no == WEIGHT, 'weight counted against');
@@ -312,11 +319,11 @@ fn votes_against_are_counted_and_can_sink_a_proposal() {
 #[test]
 #[should_panic(expected: 'GOV_REJECTED')]
 fn a_proposal_the_vote_rejected_cannot_be_executed() {
-    let (governor, _) = setup();
+    let (governor, ballot_token) = setup();
     let governance = IJalinGovernanceDispatcher { contract_address: governor };
     let proposal_id = propose_fee_change(governor, 50);
 
-    cast(governor, proposal_id, 0, governance.ballot_commitment('against'), WEIGHT);
+    cast(governor, ballot_token, proposal_id, 0, governance.ballot_commitment('against'), WEIGHT);
     start_cheat_block_number_global(START_BLOCK + VOTING_BLOCKS + TIMELOCK_BLOCKS + 1);
     governance.execute(proposal_id);
 }
@@ -346,4 +353,67 @@ fn proposals_are_numbered_in_the_order_they_arrive() {
     assert(propose_fee_change(governor, 10) == 1, 'first is one');
     assert(propose_fee_change(governor, 20) == 2, 'second is two');
     assert(governance.proposal_count() == 2, 'both counted');
+}
+
+// ---------------------------------------------------------------------------
+// The weight a ballot claims has to be weight this contract is actually holding.
+//
+// `cast` took `amount` off the pool's calldata and credited it to the tally
+// without asking whether the stake had arrived. `redeem` then approved the pool
+// for that same figure, so a ballot could be paid out of other voters' escrow.
+// The router had read `balance_of` since it was written; the governor did not,
+// and these three tests are what closes the gap.
+// ---------------------------------------------------------------------------
+
+#[test]
+#[should_panic(expected: 'GOV_WEIGHT_NOT_ESCROWED')]
+fn a_ballot_cannot_claim_weight_that_never_arrived() {
+    // No mint, so the pool delivered no stake. Under the old contract this vote
+    // counted in full.
+    let (governor, _) = setup();
+    let proposal_id = propose_fee_change(governor, 50);
+    let commitment = IJalinGovernanceDispatcher { contract_address: governor }
+        .ballot_commitment('secret');
+
+    start_cheat_caller_address(governor, pool());
+    IJalinGovernanceDispatcher { contract_address: governor }
+        .privacy_invoke(pool(), ops::CAST, proposal_id, 1, commitment, 0, WEIGHT, 0);
+}
+
+#[test]
+#[should_panic(expected: 'GOV_WEIGHT_NOT_ESCROWED')]
+fn a_second_ballot_cannot_vote_on_the_first_one_s_stake() {
+    // One stake, two ballots. The second one is the theft the threat model
+    // describes: without `outstanding` it tallies full weight and redeems
+    // against an escrow that belongs to the first voter.
+    let (governor, ballot_token) = setup();
+    let proposal_id = propose_fee_change(governor, 50);
+    let governance = IJalinGovernanceDispatcher { contract_address: governor };
+
+    cast(governor, ballot_token, proposal_id, 1, governance.ballot_commitment('first'), WEIGHT);
+
+    start_cheat_caller_address(governor, pool());
+    governance
+        .privacy_invoke(
+            pool(), ops::CAST, proposal_id, 1, governance.ballot_commitment('second'), 0, WEIGHT, 0,
+        );
+}
+
+#[test]
+fn escrow_rises_with_a_ballot_and_falls_when_it_is_redeemed() {
+    let (governor, ballot_token) = setup();
+    let proposal_id = propose_fee_change(governor, 50);
+    let governance = IJalinGovernanceDispatcher { contract_address: governor };
+    assert(governance.outstanding() == 0, 'nothing escrowed yet');
+
+    cast(governor, ballot_token, proposal_id, 1, governance.ballot_commitment('secret'), WEIGHT);
+    assert(governance.outstanding() == WEIGHT, 'the stake is held');
+
+    start_cheat_block_number_global(START_BLOCK + VOTING_BLOCKS + 1);
+    start_cheat_caller_address(governor, pool());
+    governance.privacy_invoke(pool(), ops::REDEEM, 0, 0, 0, 'secret', 0, 'NOTE');
+    stop_cheat_caller_address(governor);
+
+    // Back to zero, so the balance behind it stops backing any later ballot.
+    assert(governance.outstanding() == 0, 'escrow released');
 }

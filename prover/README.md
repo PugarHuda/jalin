@@ -52,11 +52,21 @@ though it were one thing.
 |---|---|---|
 | **Discovery service** | yes | `ghcr.io/starkware-libs/starknet-privacy/discovery-service` |
 | **Proof interceptor** (screening sidecar) | yes | `ghcr.io/starkware-libs/starknet-privacy/proof-interceptor` |
-| **Transaction prover** | not published | point `PROVING_SERVICE_URL` at a prover you operate, or the hosted one |
+| **Transaction prover** | published, but needs AVX-512 | `ghcr.io/starkware-libs/starknet-privacy/transaction-prover:PRIVACY-0.14.3-RC.2` |
 
-The prover binary itself is not in the public monorepo, so this compose file does
-not pretend to stand one up. What it does stand up is the part that carries the
-privacy weight, and the part that carries the compliance weight.
+This table said the prover image was "not published" until 4 September, and that
+was wrong: the image is anonymously pullable, it is just not in the repository
+everyone searched. We pulled it and ran it — it exits 132, an illegal
+instruction, on a CPU without AVX-512, which is the real blocker and a different
+one. The escape is a portable rebuild from
+`crates/starknet_transaction_prover/Dockerfile` in `starkware-libs/sequencer`
+with `TARGET_CPU=""`, which is a nightly-Rust build of the sequencer workspace.
+See the main README for the measurements behind both claims.
+
+So this compose file does not stand a prover up — not because the image is
+missing, but because the hardware here cannot run it. What it does stand up is
+the part that carries the privacy weight, and the part that carries the
+compliance weight.
 
 ## Why the discovery service is the one worth running yourself
 

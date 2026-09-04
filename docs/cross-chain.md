@@ -42,6 +42,14 @@ const plan = oneWay(
 )
 ```
 
+**This has never been run.** No bridge leg has executed on mainnet, and none is
+in the forking tests — those cover Endur's vault and AVNU's exchange, which are
+the two integrations this project can show rather than argue. Everything below is
+the shape a bridge step would take, and the reason to believe it is that a bridge
+call is not a special case in the router: it is `callStep`, the same object the
+AVNU swap already is on mainnet. That is an argument from the type system, not a
+result, and it is listed here as one.
+
 The router has no bridge-specific code, and neither does the SDK. There is no
 `bridgeStep`, on purpose: a recipe that encodes a guessed argument order reads as
 supported and fails after a proof has been paid for. `callStep` takes the shape
