@@ -56,7 +56,16 @@ export default defineConfig({
    * already describes, arriving at a lower worker count because the suite got
    * bigger - so the number moves rather than the diagnosis.
    */
-  workers: 3,
+  /**
+   * Two on CI, because `ubuntu-latest` is a two-core runner. Three workers plus
+   * one `next start` on two vCPUs is oversubscribed before a single browser
+   * starts, and it failed the way this comment keeps describing: a /governance
+   * test dying on `page.goto` at the full sixty seconds, twice, while passing
+   * alone locally in 15 seconds. The diagnosis has never changed - the machine
+   * saturates and the page is blamed - so the number tracks the cores rather
+   * than staying a constant that happens to fit one laptop.
+   */
+  workers: process.env.CI ? 2 : 3,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [['github'], ['list']] : [['list']],
