@@ -98,11 +98,11 @@ authority for refinement, not a commitment the user has pinned.
   `node scripts/verify-transactions.mjs`.
 - Mainnet findings with the queries that produced them in
   `docs/what-mainnet-says.md`; threat model in `docs/threat-model.md`.
-- 129 SDK tests; 348 Playwright tests across six projects (desktop 130, firefox
-  99, webkit 99, mobile 9, mobile-safari 9, ready 2) on three engines; 44 Cairo
-  tests of which four fork mainnet and run the router against Endur's vault and
-  AVNU's exchange. Count them before quoting them; this line has been stale
-  three times, and once it was stale on the landing page itself.
+- 129 SDK tests; 370 Playwright tests across six projects (desktop 136, firefox
+  105, webkit 105, mobile 11, mobile-safari 11, ready 2) on three engines; 44
+  Cairo tests of which four fork mainnet and run the router against Endur's
+  vault and AVNU's exchange. Count them before quoting them; this line has been
+  stale four times, and once it was stale on the landing page itself.
 - A demo video exists and ships from the app: `app/public/jalin-demo.mp4`,
   20.8 MB, 1920x1080, and `strk20.json` names it at `/jalin-demo.mp4`. This line
   said it did not exist, which was true when it was written and had stopped being

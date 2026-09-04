@@ -95,7 +95,7 @@ export default async function Slides() {
           <Fact value={String(txs.length)} of="qualifying mainnet transactions" />
           <Fact value="2" of="Cairo contracts, declared and live" />
           <Fact value="6" of="invariants enforced on chain" />
-          <Fact value="521" of="tests across Cairo, SDK and browser" />
+          <Fact value="543" of="tests across Cairo, SDK and browser" />
         </div>
       </Slide>
 

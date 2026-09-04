@@ -13,7 +13,7 @@ Run all of it with three commands:
 
 ```sh
 npm test          # 129 SDK tests
-npm run test:e2e  # 348 browser tests, six projects, three engines
+npm run test:e2e  # 370 browser tests, six projects, three engines
 sh contracts/test.sh   # 44 Cairo tests, four of which fork mainnet
 ```
 
@@ -21,7 +21,7 @@ sh contracts/test.sh   # 44 Cairo tests, four of which fork mainnet
 |---|---|
 | Cairo, 44 | Each of the six invariants rejects the plan it exists to reject. Four fork mainnet and run the router against Endur's real vault and AVNU's real exchange, so the integration is tested against the deployed contracts rather than a mock. |
 | SDK, 129 | Plan encoding round-trips, calldata bounds hold, and the receipt reader applies the sprint's four-part rule the same way `/verify` does. |
-| Browser, 348 | Every page renders without a console error, passes axe at WCAG 2.1 AA, keeps a visible focus ring under real Tab presses, never scrolls sideways at 390px, and computes every colour pair on the page against the WCAG formula from the tokens on the live document. |
+| Browser, 370 | Every page renders without a console error, passes axe at WCAG 2.1 AA, keeps a visible focus ring under real Tab presses, never scrolls sideways at 390px, and computes every colour pair on the page against the WCAG formula from the tokens on the live document. |
 
 Two properties of that suite are worth knowing before you trust it:
 

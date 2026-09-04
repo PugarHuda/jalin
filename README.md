@@ -398,7 +398,7 @@ npm test                      # 129 SDK tests, no build step
 npm run typecheck             # tsc over the whole SDK, imported or not
 npm run lint                  # eslint over the app
 npm run check:links           # every path this repository names
-npm run test:e2e              # 348 Playwright tests, six projects, three engines
+npm run test:e2e              # 370 Playwright tests, six projects, three engines
 ```
 
 The browser suite has no fixtures in it. It reads the live chain, so it asserts
