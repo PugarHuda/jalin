@@ -23,7 +23,13 @@ import { poseidonHashMany } from '@scure/starknet'
 import { loadEnv, required } from './lib/env.mjs'
 import { randomBytes } from 'node:crypto'
 import { createPrivateTransfers } from '../vendor/starknet-privacy/sdk/dist/index.js'
-import { PlanBuilder, toInvokeCall } from '../sdk/src/index.ts'
+import {
+  BALLOT_TAG,
+  PlanBuilder,
+  ballotStage,
+  decodeBallot,
+  toInvokeCall,
+} from '../sdk/src/index.ts'
 
 loadEnv(import.meta.url)
 
@@ -254,7 +260,7 @@ async function ballot(proposalId = '1') {
     BigInt('0x' + Buffer.from(randomBytes(31)).toString('hex')) % 2n ** 250n,
   )
   const commitment = hash.computePoseidonHashOnElements([
-    shortString.encodeShortString('JALIN_BALLOT:V1'),
+    shortString.encodeShortString(BALLOT_TAG),
     secret,
   ])
 
@@ -278,9 +284,81 @@ async function ballot(proposalId = '1') {
   return submit(callAndProof, 'ballot')
 }
 
+/**
+ * The other half of a ballot: taking the stake back.
+ *
+ * `redeem` has been in the governor, with tests, since the ballot shipped, and
+ * until now no code anywhere could call it - not this script, not the app, not
+ * the SDK. A stake that can be taken and not returned is not an escrow, it is a
+ * donation, and the composer was telling voters otherwise.
+ *
+ * REDEEM returns one `OpenNoteDeposit`, so unlike CAST this declares an open
+ * note for the governor to credit. The secret travels in the calldata because
+ * the contract has to hash it - which is why it stops being a secret the moment
+ * this lands, and why the transaction should come from an account the caster is
+ * content to be linked to.
+ */
+async function redeem(secret) {
+  requireProver('redeem')
+  const governor = env('GOVERNOR_ADDRESS')
+  if (!secret || !/^0x[0-9a-fA-F]{1,64}$/.test(secret)) {
+    throw new Error('usage: node scripts/mainnet.mjs redeem <0x-secret> [--execute]')
+  }
+
+  const commitment = hash.computePoseidonHashOnElements([
+    shortString.encodeShortString(BALLOT_TAG),
+    secret,
+  ])
+
+  // Read before writing. The governor refuses a ballot that does not exist, one
+  // already claimed, and one whose vote is still open - all after proving, all
+  // for the price of the gas. Asking first costs one `starknet_call`.
+  const raw = await provider.callContract({
+    contractAddress: governor,
+    entrypoint: 'get_ballot',
+    calldata: [commitment],
+  })
+  const ballot = decodeBallot(raw)
+  if (ballot.proposalId === 0n) throw new Error(`no ballot for commitment ${commitment}`)
+  if (ballot.claimed) throw new Error('this ballot has already been redeemed')
+
+  const proposal = await provider.callContract({
+    contractAddress: governor,
+    entrypoint: 'get_proposal',
+    calldata: [ballot.proposalId],
+  })
+  const endBlock = Number(BigInt(proposal[4]))
+  const head = await provider.getBlockNumber()
+  const stage = ballotStage(ballot, { endBlock }, head)
+  if (stage.name === 'voting') {
+    throw new Error(
+      `voting closes at block ${endBlock} and the head is ${head}; ` +
+        `${stage.blocksLeft} blocks to go, and redeeming before then reverts with GOV_VOTING_OPEN`,
+    )
+  }
+
+  console.log(`proposal   ${ballot.proposalId}`)
+  console.log(`stake      ${Number(ballot.amount) / 1e18} STRK`)
+  console.log(`commitment ${commitment}`)
+
+  const { callAndProof } = await transfers
+    .build({ autoSetup: true })
+    .surplusTo(account.address)
+    .with(STRK, (t) => t.transfer({ recipient: account.address, amount: 'OPEN' }))
+    .invoke(({ openNotes, poolAddress }) => ({
+      contractAddress: governor,
+      // privacy_invoke(pool_address, operation, proposal_id, support,
+      //                commitment, secret, amount, note_id)
+      calldata: [poolAddress, 1n, 0n, 0n, 0n, secret, 0n, BigInt(openNotes[0].noteId)],
+    }))
+    .execute({ provingBlockId: await provingBlockId() })
+
+  return submit(callAndProof, 'redeem')
+}
+
 // ---------------------------------------------------------------------------
 
-const phases = { register, shield, transfer, plan, shadow, ballot }
+const phases = { register, shield, transfer, plan, shadow, ballot, redeem }
 if (!phases[phase]) {
   console.error(`usage: node scripts/mainnet.mjs <${Object.keys(phases).join('|')}> [--execute]`)
   process.exit(1)

@@ -407,12 +407,12 @@ here wrote. They need network, and use a public node that takes no key.
 TypeScript:
 
 ```bash
-npm test                      # 129 SDK tests, no build step
+npm test                      # 141 SDK tests, no build step
 npm run typecheck             # tsc over the whole SDK, imported or not
 npm run lint                  # eslint over the app
 npm run check:links           # every path this repository names
 npm run check:counts          # every test count the prose quotes
-npm run test:e2e              # 370 Playwright tests, six projects, three engines
+npm run test:e2e              # 385 Playwright tests, six projects, three engines
 ```
 
 The browser suite has no fixtures in it. It reads the live chain, so it asserts
@@ -429,6 +429,17 @@ executions, each carrying a `PlanExecuted` event emitted by the router at
 ballot, which reaches the governor at `0x05bd985e…` through the same
 `privacy_invoke` primitive — a different contract of ours, and the one path that
 is governance rather than routing.
+
+A ballot stakes STRK and hands the voter a secret, and for most of this
+project's life that secret bought nothing: `redeem` existed in Cairo, passed its
+tests, and was reachable from no code at all — not the app, not the SDK, not
+`scripts/mainnet.mjs`. Every stake cast was escrowed with no way out while the
+composer said otherwise. It is reachable now from all three: the panel at
+[`/governance#redeem`](https://jalin-five.vercel.app/governance#redeem), the
+`castBallotActions` / `redeemBallotActions` pair in the SDK, and
+`node scripts/mainnet.mjs redeem <secret>`. The panel hashes the secret in the
+browser and looks up the hash, because a route that took the secret would put a
+bearer instrument through a URL, a log and a CDN in one request.
 
 There are two ways to reach `privacy_invoke`, and they fail differently.
 

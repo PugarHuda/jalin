@@ -146,3 +146,81 @@ test.describe('stuck balances', () => {
     await expect(page.locator('main')).toContainText(/never profitable|not profitable/i)
   })
 })
+
+/**
+ * The ballot redemption panel.
+ *
+ * The composer has minted ballot secrets since the day it shipped and told
+ * voters the stake comes back with them. Nothing could spend one: `redeem` was
+ * Cairo with no caller. These tests hold the two properties that make the panel
+ * worth trusting - it asks the chain rather than assuming, and the secret does
+ * not leave the browser until it is spent on chain.
+ */
+test.describe('redeeming a ballot stake', () => {
+  /** A felt under the field prime that nobody has ever staked against. */
+  const UNUSED_SECRET = '0x03' + 'a'.repeat(61) + '9'
+
+  test('a secret nobody staked against is answered from the governor', async ({ page }) => {
+    await page.goto('/governance', { waitUntil: 'domcontentloaded' })
+    await settled(page)
+
+    await page.getByLabel('Ballot secret').fill(UNUSED_SECRET)
+    await page.getByRole('button', { name: 'Look it up' }).click()
+
+    await expect(page.getByTestId('ballot-stage')).toContainText('No ballot')
+    // Nothing to redeem, so nothing is offered. A disabled button that reverts
+    // on click is the thing this replaces.
+    await expect(page.getByRole('button', { name: /^Redeem / })).toHaveCount(0)
+  })
+
+  test('the secret never reaches the network, only its hash does', async ({ page }) => {
+    const secretsSeen: string[] = []
+    page.on('request', (request) => {
+      const url = request.url()
+      const body = request.postData() ?? ''
+      if (url.includes(UNUSED_SECRET.slice(2)) || body.includes(UNUSED_SECRET.slice(2))) {
+        secretsSeen.push(url)
+      }
+    })
+
+    await page.goto('/governance', { waitUntil: 'domcontentloaded' })
+    await settled(page)
+    await page.getByLabel('Ballot secret').fill(UNUSED_SECRET)
+    await page.getByRole('button', { name: 'Look it up' }).click()
+    await expect(page.getByTestId('ballot-stage')).toBeVisible()
+
+    expect(secretsSeen, 'the secret is a bearer instrument and left this machine').toEqual([])
+  })
+
+  test('a lookup that is not a felt is refused before any request is made', async ({ page }) => {
+    await page.goto('/governance', { waitUntil: 'domcontentloaded' })
+    await settled(page)
+
+    let asked = 0
+    page.on('request', (request) => {
+      if (request.url().includes('/api/ballot')) asked += 1
+    })
+
+    await page.getByLabel('Ballot secret').fill('not-a-felt')
+    await page.getByRole('button', { name: 'Look it up' }).click()
+
+    // Scoped to the panel: Next's own route announcer is also role="alert".
+    await expect(page.locator('#redeem').getByRole('alert')).toContainText('felt')
+    expect(asked).toBe(0)
+  })
+
+  test('says what the governor can and cannot report about its own escrow', async ({ page }) => {
+    await page.goto('/governance', { waitUntil: 'domcontentloaded' })
+    await settled(page)
+
+    await page.getByLabel('Ballot secret').fill(UNUSED_SECRET)
+    await page.getByRole('button', { name: 'Look it up' }).click()
+    await expect(page.getByTestId('ballot-stage')).toBeVisible()
+
+    // The deployed governor predates `outstanding()`. Either the page prints
+    // what is owed, or it says why it cannot - never a zero standing in for an
+    // unanswerable question.
+    await expect(page.locator('#redeem')).toContainText(/held/)
+    await expect(page.locator('#redeem')).toContainText(/owed|unreadable/)
+  })
+})

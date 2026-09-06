@@ -81,8 +81,16 @@ export const DEFAULT_LIMITS: PlanLimits = { maxSteps: 8, maxCalldata: 64 }
 /** Placeholders the wallet resolves at submit time; everything else is a felt. */
 const PLACEHOLDER = /^\$\{(?:openNoteIds\[[0-9]+\]|poolAddress)\}$/
 
-/** The Starknet field prime. A felt is a residue mod this, so 2^251+17*2^192+1. */
-const FIELD_PRIME = 2n ** 251n + 17n * 2n ** 192n + 1n
+/**
+ * The Starknet field prime. A felt is a residue mod this, so 2^251+17*2^192+1.
+ *
+ * Exported because a plan is not the only place a felt has to be one: an API
+ * route taking a commitment is a trust boundary too, and a felt over the prime
+ * reaches the node as a well-formed request the node then refuses with
+ * `Invalid params`, which the route can only report as a bad gateway. One
+ * definition, checked wherever a felt arrives from outside.
+ */
+export const FIELD_PRIME = 2n ** 251n + 17n * 2n ** 192n + 1n
 
 /**
  * Every value in a plan is eventually a felt on the wire.

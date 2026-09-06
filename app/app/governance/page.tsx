@@ -2,6 +2,7 @@ import { readGovernance, type Proposal, type Stage } from '@/lib/governance'
 import { GOVERNOR_ADDRESS, REPO, ROUTER_ADDRESS, TOKENS, label } from '@/lib/config'
 import { Execute } from './execute'
 import { Propose } from './propose'
+import { Redeem } from './redeem'
 import { Sweep } from './sweep'
 import { SiteNav } from '../wordmark'
 
@@ -231,6 +232,8 @@ export default async function Governance() {
             </p>
             <Propose governor={GOVERNOR_ADDRESS} router={ROUTER_ADDRESS} />
           </section>
+
+          <Redeem />
         </>
       )}
     </main>

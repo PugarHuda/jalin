@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
 import {
   json,
+  type BallotResponse,
   type CrowdResponse,
   type ErrorResponse,
   type ProspectResponse,
@@ -304,5 +305,52 @@ test.describe('the states every page needs', () => {
     // No proposal has ever been executed and nothing is stuck; both say so in
     // words instead of rendering an empty list.
     await expect(page.getByText('Nothing stuck.')).toBeVisible()
+  })
+})
+
+
+/**
+ * The escrow behind a ballot, which nothing could read until there was a route.
+ *
+ * A commitment is a Poseidon hash and the space is the field, so a felt nobody
+ * has staked against is the overwhelmingly likely case for any value picked
+ * here — which is exactly the case a redeemer needs answered honestly rather
+ * than as an error.
+ */
+test.describe('/api/ballot', () => {
+  /**
+   * A well-formed commitment nothing was ever staked against. Deliberately
+   * under the field prime: 64 hex digits is a shape, not a felt.
+   */
+  const ABSENT = '0x02' + '7'.repeat(61) + '1'
+
+  test('a commitment nobody staked against is answered, not refused', async ({ request }) => {
+    const body = await json<BallotResponse>(await request.get(`/api/ballot?commitment=${ABSENT}`))
+
+    expect(body.stage.name).toBe('unknown')
+    expect(body.ballot).toEqual({ proposalId: '0', amount: '0', claimed: false })
+    expect(body.proposal).toBeNull()
+  })
+
+  test('the escrow behind every unclaimed ballot is read from the governor', async ({
+    request,
+  }) => {
+    const body = await json<BallotResponse>(await request.get(`/api/ballot?commitment=${ABSENT}`))
+
+    // `balanceOf(governor)` is a live read and always answers. `outstanding()`
+    // is null against the governor deployed today, which predates that view -
+    // and null is the point: reporting zero would read as "nothing is owed"
+    // when what happened is that nobody can ask.
+    expect(BigInt(body.escrow.held)).toBeGreaterThanOrEqual(0n)
+    expect(body.escrow.outstanding === null || BigInt(body.escrow.outstanding) >= 0n).toBe(true)
+    expect(body.head).toBeGreaterThan(13_000_000)
+  })
+
+  test('a secret is not a commitment, and neither is anything else', async ({ request }) => {
+    // The last one is the trap: right length, right alphabet, over the prime.
+    for (const bad of ['', 'nonsense', '0x', '0x' + 'f'.repeat(65), '0x' + 'f'.repeat(64)]) {
+      const response = await request.get(`/api/ballot?commitment=${bad}`)
+      expect(response.status(), bad).toBe(400)
+    }
   })
 })

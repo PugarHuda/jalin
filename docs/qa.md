@@ -12,16 +12,16 @@ nobody assumes CI covered a path it structurally cannot reach.
 Run all of it with three commands:
 
 ```sh
-npm test          # 129 SDK tests
-npm run test:e2e  # 370 browser tests, six projects, three engines
+npm test          # 141 SDK tests
+npm run test:e2e  # 385 browser tests, six projects, three engines
 sh contracts/test.sh   # 47 Cairo tests, four of which fork mainnet
 ```
 
 | Suite | What it establishes |
 |---|---|
 | Cairo, 47 | Each of the six invariants rejects the plan it exists to reject. Four fork mainnet and run the router against Endur's real vault and AVNU's real exchange, so the integration is tested against the deployed contracts rather than a mock. |
-| SDK, 129 | Plan encoding round-trips, calldata bounds hold, and the receipt reader applies the sprint's four-part rule the same way `/verify` does. |
-| Browser, 370 | Every page renders without a console error, passes axe at WCAG 2.1 AA, keeps a visible focus ring under real Tab presses, never scrolls sideways at 390px, and computes every colour pair on the page against the WCAG formula from the tokens on the live document. |
+| SDK, 141 | Plan encoding round-trips, calldata bounds hold, and the receipt reader applies the sprint's four-part rule the same way `/verify` does. |
+| Browser, 385 | Every page renders without a console error, passes axe at WCAG 2.1 AA, keeps a visible focus ring under real Tab presses, never scrolls sideways at 390px, and computes every colour pair on the page against the WCAG formula from the tokens on the live document. |
 
 Two properties of that suite are worth knowing before you trust it:
 

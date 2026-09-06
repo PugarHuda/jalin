@@ -100,7 +100,7 @@ authority for refinement, not a commitment the user has pinned.
   count lived as three in nine places for days after the fourth landed.
 - Mainnet findings with the queries that produced them in
   `docs/what-mainnet-says.md`; threat model in `docs/threat-model.md`.
-- 129 SDK tests; 370 Playwright tests across six projects (desktop 136, firefox
+- 141 SDK tests; 385 Playwright tests across six projects (desktop 136, firefox
   105, webkit 105, mobile 11, mobile-safari 11, ready 2) on three engines; 47
   Cairo tests of which four fork mainnet and run the router against Endur's
   vault and AVNU's exchange. Count them before quoting them; this line has been

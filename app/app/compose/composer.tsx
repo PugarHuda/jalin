@@ -4,13 +4,14 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { StarknetWindowObject } from 'get-starknet-core'
 import { hash, shortString } from 'starknet'
 import {
+  BALLOT_TAG,
+  castBallotActions,
   depositStep,
   describeDisclosure,
   encodeDraft,
   encodePlan,
   openNote,
   previewCalldata,
-  feltsToStrings,
   toFelt,
   toWalletActions,
   u256,
@@ -140,7 +141,6 @@ ${ROUTER_ADDRESS}`,
 // ---------------------------------------------------------------------------
 
 const ONE = 10n ** 18n
-const BALLOT_TAG = 'JALIN_BALLOT:V1'
 
 /**
  * Endur liquid staking as a plan.
@@ -1106,31 +1106,18 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
         secret,
       ])
       setBallotSecret(secret)
-      return [
-        {
-          type: 'withdraw',
-          token: toFelt(strk),
-          amount: toFelt(run.amount),
-          recipient: toFelt(GOVERNOR_ADDRESS),
-        },
-        {
-          type: 'invoke',
-          contract: toFelt(GOVERNOR_ADDRESS),
-          // privacy_invoke(pool_address, operation, proposal_id, support,
-          //                commitment, secret, amount, note_id)
-          // operation 0 is CAST, which returns an empty span - so no open note.
-          calldata: feltsToStrings([
-            '${poolAddress}',
-            0n,
-            proposalId,
-            1n,
-            commitment,
-            0n,
-            run.amount,
-            0n,
-          ]),
-        },
-      ]
+
+      // Encoded by the SDK, which encodes the redeem half too. The eight-felt
+      // argument list was written out here and again in scripts/mainnet.mjs,
+      // with the operation switch as a comment beside each - and the operation
+      // that gives the stake back was written in neither.
+      return castBallotActions({
+        governor: GOVERNOR_ADDRESS,
+        proposalId,
+        amount: run.amount,
+        commitment,
+        ballotToken: strk,
+      })
     }
 
     const plan =
@@ -1657,6 +1644,14 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
             <span className="mt-2 block font-sans">
               It is a bearer instrument: redeeming publishes it in calldata, so whoever sees the
               pending transaction first can spend it instead. Do not paste it anywhere.
+            </span>
+            <span className="mt-2 block font-sans">
+              Spend it at{' '}
+              <a className="underline underline-offset-2" href="/governance#redeem">
+                governance
+              </a>{' '}
+              once voting closes. That page hashes the secret in your browser and asks the
+              governor about the hash, so looking it up does not publish it.
             </span>
           </p>
         )}

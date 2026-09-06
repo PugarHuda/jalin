@@ -1,5 +1,5 @@
 import { expect, type APIResponse } from '@playwright/test'
-import type { CellSummary, Crowd, Prospect, Verdict } from 'jalin-sdk'
+import type { BallotStage, CellSummary, Crowd, Prospect, Verdict } from 'jalin-sdk'
 
 /**
  * What each route promises, declared once.
@@ -52,6 +52,16 @@ export interface ParamsResponse {
   /** Seconds per block over the last 20,000, or null when unread. */
   secondsPerBlock: number | null
   denied: Record<string, boolean>
+}
+
+/** What `/api/ballot` answers for a commitment. */
+export interface BallotResponse {
+  commitment: string
+  stage: BallotStage
+  ballot: { proposalId: string; amount: string; claimed: boolean }
+  proposal: { id: string; endBlock: number; eta: number; executed: boolean } | null
+  head: number
+  escrow: { outstanding: string | null; held: string; token: string }
 }
 
 /** Every route uses the same shape when it refuses. */
