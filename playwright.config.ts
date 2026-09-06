@@ -71,7 +71,23 @@ export default defineConfig({
    * saturates and the page is blamed - so the number tracks the cores rather
    * than staying a constant that happens to fit one laptop.
    */
-  workers: process.env.CI ? 2 : 3,
+  /**
+   * One on CI. The number has moved four times and the diagnosis never did, so
+   * this is the version that stops moving.
+   *
+   * Raising the ceiling is what settled it: at a two minute timeout the same
+   * Firefox test failed at 2.0 minutes, having failed at 1.0 with a one minute
+   * one, and passed in under two seconds on the retry. A page that is merely
+   * slow finishes when you wait longer. This one does not, because the wait is
+   * not the page - it is two browsers and a `next start` competing for the two
+   * cores `ubuntu-latest` has, and a third of the render never gets scheduled.
+   *
+   * Everything cheaper was tried first and kept: the event walks have budgets,
+   * the independent reads overlap, a stalled chunk retries, every page is warm
+   * before the suite starts. Those made the render honest. This makes the
+   * machine able to run it. The suite takes longer and stops lying.
+   */
+  workers: process.env.CI ? 1 : 3,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [['github'], ['list']] : [['list']],
@@ -82,21 +98,7 @@ export default defineConfig({
    * assertion. A timeout that fires on machine pressure teaches you to rerun
    * rather than to read.
    */
-  /**
-   * Two minutes on CI, because sixty seconds there is a queue, not a page.
-   *
-   * The failures never varied: `page.goto` at exactly 1.0 minute on Firefox,
-   * the same test passing in 1.5 seconds on the retry a moment later, on a
-   * different page each run. Everything that could be read as a slow render has
-   * been fixed at the source - the event walks have budgets, the independent
-   * reads overlap, the pages are warmed before the suite starts - and the
-   * failures survived all of it, which is what a machine running out of cores
-   * looks like rather than an application running out of road. `ubuntu-latest`
-   * has two of them, and Firefox and WebKit share them with a `next start`.
-   *
-   * A healthy run pays nothing for this: a timeout is a ceiling, not a wait.
-   */
-  timeout: process.env.CI ? 120_000 : 60_000,
+  timeout: 60_000,
   expect: { timeout: 15_000 },
   use: {
     baseURL,
