@@ -44,7 +44,7 @@ function blend(over: Rgb, under: Rgb, alpha: number): Rgb {
 }
 
 test('every colour pair on the page meets WCAG AA', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/', { waitUntil: 'domcontentloaded' })
 
   // Read the tokens off the live document, so this measures the palette that
   // shipped rather than a copy of it that can drift.
@@ -105,7 +105,7 @@ test('every colour pair on the page meets WCAG AA', async ({ page }) => {
  */
 for (const path of ['/', '/compose', '/verify', '/governance']) {
   test(`${path} draws every control's edge visibly`, async ({ page }) => {
-    await page.goto(path)
+    await page.goto(path, { waitUntil: 'domcontentloaded' })
     await settled(page)
 
     const borders = await page.evaluate(() =>

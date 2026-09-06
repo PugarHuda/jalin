@@ -31,7 +31,7 @@ test.describe('/api/params', () => {
     page,
   }) => {
     const params = await json<ParamsResponse>(await page.request.get('/api/params'))
-    await page.goto('/governance')
+    await page.goto('/governance', { waitUntil: 'domcontentloaded' })
 
     // Compared as rendered text, not as HTML: React puts comment nodes between
     // an interpolated number and the word after it, so the markup says
@@ -57,7 +57,7 @@ test.describe('/api/params', () => {
 
 test.describe('the pages that only appear when something is wrong', () => {
   test('a 404 names the four real pages', async ({ page }) => {
-    const response = await page.goto('/no-such-thing')
+    const response = await page.goto('/no-such-thing', { waitUntil: 'domcontentloaded' })
     expect(response?.status()).toBe(404)
 
     await expect(page.getByRole('link', { name: '/compose' })).toBeVisible()

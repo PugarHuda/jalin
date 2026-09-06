@@ -4,7 +4,7 @@ import { isCancelledSameOrigin, settled } from './settled'
 
 test.describe('landing', () => {
   test('states the thesis and names the pool it plugs into', async ({ page }) => {
-    await page.goto('/')
+    await page.goto('/', { waitUntil: 'domcontentloaded' })
 
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
     await expect(page.locator('body')).toContainText('invoke')
@@ -12,7 +12,7 @@ test.describe('landing', () => {
   })
 
   test('shows chain state read at request time, not a hardcoded number', async ({ page }) => {
-    await page.goto('/')
+    await page.goto('/', { waitUntil: 'domcontentloaded' })
 
     // Whatever the page prints for the crowd has to agree with the route that
     // reads it. If someone replaces the reading with a nice-looking constant,
@@ -22,7 +22,7 @@ test.describe('landing', () => {
   })
 
   test('does not claim a bigger crowd than the pool has', async ({ page }) => {
-    await page.goto('/')
+    await page.goto('/', { waitUntil: 'domcontentloaded' })
 
     const crowd = await json<CrowdResponse>(await page.request.get('/api/crowd'))
     // The honest number has to be on the page next to the flattering one.
@@ -33,7 +33,7 @@ test.describe('landing', () => {
   })
 
   test('carries chain state rather than an empty shell', async ({ page }) => {
-    await page.goto('/')
+    await page.goto('/', { waitUntil: 'domcontentloaded' })
 
     // The whole block is conditional on the chain being reachable, so its
     // absence is how a page that failed to read looks - and it looks fine.
@@ -42,7 +42,7 @@ test.describe('landing', () => {
   })
 
   test('leads to the composer', async ({ page }) => {
-    await page.goto('/')
+    await page.goto('/', { waitUntil: 'domcontentloaded' })
     await page.getByRole('link', { name: /compose|open|try|composer/i }).first().click()
     await expect(page).toHaveURL(/\/compose/)
     await expect(page.getByRole('heading', { name: 'Composer' })).toBeVisible()
@@ -56,13 +56,13 @@ test.describe('landing', () => {
     })
     page.on('pageerror', (error) => errors.push(String(error)))
 
-    await page.goto('/')
+    await page.goto('/', { waitUntil: 'domcontentloaded' })
     await settled(page)
     expect(errors).toEqual([])
   })
 
   test('an unknown path is a 404, not a crash', async ({ page }) => {
-    const response = await page.goto('/does-not-exist')
+    const response = await page.goto('/does-not-exist', { waitUntil: 'domcontentloaded' })
     expect(response?.status()).toBe(404)
   })
 })
@@ -70,7 +70,7 @@ test.describe('landing', () => {
 test('navigation between pages does not reload the document', async ({ page }) => {
   // Every internal link is a client navigation. An <a> here would work and would
   // also throw away the React tree and re-download the page on each hop.
-  await page.goto('/')
+  await page.goto('/', { waitUntil: 'domcontentloaded' })
   await page.evaluate(() => {
     ;(window as unknown as { __kept: boolean }).__kept = true
   })
@@ -87,7 +87,7 @@ test('navigation between pages does not reload the document', async ({ page }) =
 })
 
 test('the trend plots time, not sample order', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/', { waitUntil: 'domcontentloaded' })
   await settled(page)
 
   // Windows with no deposits are absent from the series. Spacing points evenly

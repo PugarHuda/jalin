@@ -5,7 +5,7 @@ const ENDUR = '0x28d709c875c0ceac3dce7065bec5328186dc89fe254527084d1689910954b0a
 
 test.describe('a plan as a link', () => {
   test('a shared link reopens the plan it encoded', async ({ page, context }) => {
-    await page.goto('/compose')
+    await page.goto('/compose', { waitUntil: 'domcontentloaded' })
     await settled(page)
 
     // Change the plan away from the default, so the link is carrying something
@@ -25,7 +25,7 @@ test.describe('a plan as a link', () => {
 
     // Open it as a stranger would: a fresh page, nothing but the URL.
     const fresh = await context.newPage()
-    await fresh.goto(link)
+    await fresh.goto(link, { waitUntil: 'domcontentloaded' })
     await settled(fresh)
 
     await expect(fresh.getByLabel('Input amount')).toHaveValue('0.0777')
@@ -34,7 +34,7 @@ test.describe('a plan as a link', () => {
   })
 
   test('says whether the clipboard actually took it', async ({ page }) => {
-    await page.goto('/compose')
+    await page.goto('/compose', { waitUntil: 'domcontentloaded' })
     await settled(page)
     await page.getByRole('button', { name: 'copy as a link' }).click()
 
@@ -47,7 +47,7 @@ test.describe('a plan as a link', () => {
   test('a damaged link opens the composer rather than an error', async ({ page }) => {
     // Chat clients truncate. A person who loses the last characters should get
     // a working composer, not a stack trace.
-    await page.goto('/compose?plan=this-is-not-a-plan')
+    await page.goto('/compose?plan=this-is-not-a-plan', { waitUntil: 'domcontentloaded' })
     await settled(page)
 
     await expect(page.getByRole('heading', { name: 'Composer' })).toBeVisible()
@@ -55,19 +55,19 @@ test.describe('a plan as a link', () => {
   })
 
   test('an empty plan parameter is ignored', async ({ page }) => {
-    await page.goto('/compose?plan=')
+    await page.goto('/compose?plan=', { waitUntil: 'domcontentloaded' })
     await settled(page)
     await expect(page.getByLabel('Input amount')).toHaveValue('0.25')
   })
 
   test('the link survives a reload, because it is the whole state', async ({ page }) => {
-    await page.goto('/compose')
+    await page.goto('/compose', { waitUntil: 'domcontentloaded' })
     await settled(page)
     await page.getByLabel('Input amount').fill('1.5')
     await page.getByRole('button', { name: 'copy as a link' }).click()
 
     const link = await page.locator('p.select-all').innerText()
-    await page.goto(link)
+    await page.goto(link, { waitUntil: 'domcontentloaded' })
     await settled(page)
     await page.reload()
     await settled(page)

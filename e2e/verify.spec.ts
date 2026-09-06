@@ -7,7 +7,7 @@ const ROUTER = '0x008498d79ca390b34a6416cc45fb375ad9b921eefd8d4531d99a2d775feb3a
 
 test.describe('verify', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/verify')
+    await page.goto('/verify', { waitUntil: 'domcontentloaded' })
     await settled(page)
   })
 
@@ -50,7 +50,7 @@ test.describe('verify', () => {
 })
 
 test('refuses a batch larger than it will read', async ({ page }) => {
-  await page.goto('/verify')
+  await page.goto('/verify', { waitUntil: 'domcontentloaded' })
   await settled(page)
 
   // Each hash is a node call on a shared key. A public text box with no cap on
@@ -65,7 +65,7 @@ test('refuses a batch larger than it will read', async ({ page }) => {
 })
 
 test('a batch at the cap still runs', async ({ page }) => {
-  await page.goto('/verify')
+  await page.goto('/verify', { waitUntil: 'domcontentloaded' })
   await settled(page)
   await page.getByLabel('transaction hashes').fill(Array.from({ length: 20 }, () => POOL_TX).join('\n'))
   await page.getByRole('button', { name: 'Check' }).click()
@@ -75,7 +75,7 @@ test('a batch at the cap still runs', async ({ page }) => {
 
 test.describe('reading a whole submission', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/verify')
+    await page.goto('/verify', { waitUntil: 'domcontentloaded' })
     await settled(page)
   })
 
@@ -157,7 +157,7 @@ test.describe('reading a whole submission', () => {
 })
 
 test('the same hash pasted three times is one transaction, not three', async ({ page }) => {
-  await page.goto('/verify')
+  await page.goto('/verify', { waitUntil: 'domcontentloaded' })
   await settled(page)
 
   // A naive counter says "3 of 3 would count" here, which is exactly the answer

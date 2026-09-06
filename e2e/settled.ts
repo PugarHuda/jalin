@@ -13,6 +13,16 @@ import { expect, type Page } from '@playwright/test'
  * The heading is the honest condition. Every page here renders exactly one h1,
  * and it renders on the server, so its presence means the document is parsed
  * and hydrating rather than that some arbitrary quiet period has elapsed.
+ *
+ * `load` is the same mistake one step down, which is why every `goto` in this
+ * suite now passes `waitUntil: 'domcontentloaded'` and leaves the waiting to
+ * this function. `load` waits for every subresource the document started, so a
+ * single chunk request that never finishes holds the navigation open for as
+ * long as you let it: Firefox hung there at 60 seconds, then at 120 when the
+ * ceiling was raised, then again on a single-worker runner with nothing to
+ * compete with - and passed in 1.7 seconds on the retry every time, while the
+ * tests either side of it in the same file took 600ms. That is not a page being
+ * slow. It is a wait with no relationship to whether the page works.
  */
 export async function settled(page: Page): Promise<void> {
   await page.waitForLoadState('domcontentloaded')

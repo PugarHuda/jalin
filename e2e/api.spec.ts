@@ -237,7 +237,7 @@ test.describe('the page itself', () => {
     expect(image.headers()['content-type']).toContain('image/png')
     expect((await image.body()).length).toBeGreaterThan(5_000)
 
-    await page.goto('/')
+    await page.goto('/', { waitUntil: 'domcontentloaded' })
     const url = await page.locator('meta[property="og:image"]').getAttribute('content')
     // Relative here means every unfurler ignores it and the link arrives blank.
     expect(url).toMatch(/^https?:\/\//)
@@ -300,7 +300,7 @@ test.describe('/api/crowd with an intent', () => {
  */
 test.describe('the states every page needs', () => {
   test('every page has an empty state rather than a blank area', async ({ page }) => {
-    await page.goto('/governance')
+    await page.goto('/governance', { waitUntil: 'domcontentloaded' })
     // No proposal has ever been executed and nothing is stuck; both say so in
     // words instead of rendering an empty list.
     await expect(page.getByText('Nothing stuck.')).toBeVisible()

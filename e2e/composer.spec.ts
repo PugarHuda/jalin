@@ -6,7 +6,7 @@ const ENDUR_VAULT = '0x28d709c875c0ceac3dce7065bec5328186dc89fe254527084d1689910
 
 test.describe('composer', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/compose')
+    await page.goto('/compose', { waitUntil: 'domcontentloaded' })
     await settled(page)
   })
 
@@ -231,7 +231,7 @@ test.describe('without a wallet installed', () => {
     const crashes: string[] = []
     page.on('pageerror', (e) => crashes.push(String(e)))
 
-    await page.goto('/compose')
+    await page.goto('/compose', { waitUntil: 'domcontentloaded' })
     await page.getByRole('button', { name: /^shield · / }).click()
 
     await expect(page.locator('main')).toContainText(/wallet/i, { timeout: 15_000 })
@@ -241,7 +241,7 @@ test.describe('without a wallet installed', () => {
 
 test.describe('what governance owns', () => {
   test('the plan is checked against the bounds the chain reports', async ({ page }) => {
-    await page.goto('/compose')
+    await page.goto('/compose', { waitUntil: 'domcontentloaded' })
     const params = await json<ParamsResponse>(await page.request.get('/api/params'))
 
     // Add steps until one over the live bound, then the composer has to refuse
@@ -255,7 +255,7 @@ test.describe('what governance owns', () => {
   })
 
   test('a denied target would be reported, and none is denied today', async ({ page }) => {
-    await page.goto('/compose')
+    await page.goto('/compose', { waitUntil: 'domcontentloaded' })
     const params = await json<ParamsResponse>(await page.request.get('/api/params'))
     expect(params.paused).toBe(false)
 
@@ -272,7 +272,7 @@ test('typing an address does not fire a request per keystroke', async ({ page })
     if (request.url().includes('/api/params')) calls.push(request.url())
   })
 
-  await page.goto('/compose')
+  await page.goto('/compose', { waitUntil: 'domcontentloaded' })
   await settled(page)
   const before = calls.length
 
@@ -296,7 +296,7 @@ test('typing an address does not fire a request per keystroke', async ({ page })
 
 test.describe('the ballot run', () => {
   test('is refused while no proposal is taking votes', async ({ page }) => {
-    await page.goto('/compose')
+    await page.goto('/compose', { waitUntil: 'domcontentloaded' })
     await settled(page)
 
     // A proposal takes votes for about an hour. Offering the button outside
@@ -320,7 +320,7 @@ test.describe('the ballot run', () => {
   })
 
   test('never names a proposal the chain does not have open', async ({ page }) => {
-    await page.goto('/compose')
+    await page.goto('/compose', { waitUntil: 'domcontentloaded' })
     await settled(page)
 
     const params = await json<ParamsResponse>(await page.request.get('/api/params'))
@@ -339,7 +339,7 @@ test.describe('the wallet flow', () => {
     // The browser in this suite has no extension, which is exactly what a judge
     // opening the link on a fresh profile has. A dead end here is a dead end
     // for them.
-    await page.goto('/compose')
+    await page.goto('/compose', { waitUntil: 'domcontentloaded' })
     await settled(page)
     await page.getByRole('button', { name: /^shield · / }).click()
 
@@ -351,7 +351,7 @@ test.describe('the wallet flow', () => {
   })
 
   test('shows no connection state until there is a connection', async ({ page }) => {
-    await page.goto('/compose')
+    await page.goto('/compose', { waitUntil: 'domcontentloaded' })
     await settled(page)
 
     // Nothing is connected, so nothing claims to be - and there is no

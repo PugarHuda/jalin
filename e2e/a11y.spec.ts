@@ -3,7 +3,7 @@ import { settled } from './settled'
 
 for (const path of ['/', '/compose', '/verify', '/governance', '/slides']) {
   test(`${path} shows where the keyboard is`, async ({ page }) => {
-    await page.goto(path)
+    await page.goto(path, { waitUntil: 'domcontentloaded' })
     await settled(page)
 
     /**
@@ -45,7 +45,7 @@ for (const path of ['/', '/compose', '/verify', '/governance', '/slides']) {
   })
 
   test(`${path} has one h1 and no skipped heading levels`, async ({ page }) => {
-    await page.goto(path)
+    await page.goto(path, { waitUntil: 'domcontentloaded' })
 
     const levels = await page.evaluate(() =>
       [...document.querySelectorAll('h1,h2,h3,h4,h5,h6')].map((h) => Number(h.tagName[1])),
@@ -61,7 +61,7 @@ for (const path of ['/', '/compose', '/verify', '/governance', '/slides']) {
   })
 
   test(`${path} names every control`, async ({ page }) => {
-    await page.goto(path)
+    await page.goto(path, { waitUntil: 'domcontentloaded' })
 
     // Stricter than axe on purpose: axe accepts a placeholder as a name, and a
     // placeholder disappears the moment you type. Everything else here is the
@@ -117,7 +117,7 @@ for (const path of ['/', '/compose', '/verify', '/governance', '/slides']) {
     // the machine rather than about the page.
     test.slow()
 
-    await page.goto(path)
+    await page.goto(path, { waitUntil: 'domcontentloaded' })
     await settled(page)
 
     const { default: AxeBuilder } = await import('@axe-core/playwright')

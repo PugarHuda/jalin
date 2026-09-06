@@ -13,7 +13,7 @@ import { settled } from './settled'
  */
 test.describe('the wallet surface', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/compose')
+    await page.goto('/compose', { waitUntil: 'domcontentloaded' })
     await settled(page)
   })
 
@@ -86,7 +86,7 @@ test.describe('the wallet surface', () => {
       if (attempts <= 2) return route.abort('connectionfailed')
       return route.continue()
     })
-    await page.goto('/compose')
+    await page.goto('/compose', { waitUntil: 'domcontentloaded' })
     await settled(page)
 
     const shield = page.getByRole('button', { name: /^shield · / })
@@ -97,7 +97,7 @@ test.describe('the wallet surface', () => {
     // that it is still reading.
     await page.unroute('**/api/params**')
     await page.route('**/api/params**', (route) => route.abort('connectionfailed'))
-    await page.goto('/compose')
+    await page.goto('/compose', { waitUntil: 'domcontentloaded' })
     await settled(page)
     await expect(page.getByRole('button', { name: /could not be read/ })).toBeVisible({ timeout: 30_000 })
   })

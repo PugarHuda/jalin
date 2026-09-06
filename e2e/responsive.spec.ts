@@ -8,7 +8,7 @@ import { settled } from './settled'
  */
 for (const path of ['/', '/compose', '/verify', '/governance', '/slides']) {
   test(`${path} does not scroll sideways on a phone`, async ({ page }) => {
-    await page.goto(path)
+    await page.goto(path, { waitUntil: 'domcontentloaded' })
     await settled(page)
 
     const width = await page.evaluate(() => ({
@@ -19,7 +19,7 @@ for (const path of ['/', '/compose', '/verify', '/governance', '/slides']) {
   })
 
   test(`${path} keeps every element inside the viewport`, async ({ page }) => {
-    await page.goto(path)
+    await page.goto(path, { waitUntil: 'domcontentloaded' })
     await settled(page)
 
     const strays = await page.evaluate(() => {
@@ -34,7 +34,7 @@ for (const path of ['/', '/compose', '/verify', '/governance', '/slides']) {
 }
 
 test('the composer is usable on a phone', async ({ page }) => {
-  await page.goto('/compose')
+  await page.goto('/compose', { waitUntil: 'domcontentloaded' })
   await page.getByRole('button', { name: 'Stake on Endur' }).click()
 
   await expect(page.getByLabel('Input amount')).toBeVisible()

@@ -5,7 +5,7 @@ const ROUTER = '0x008498d79ca390b34a6416cc45fb375ad9b921eefd8d4531d99a2d775feb3a
 
 test.describe('governance', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/governance')
+    await page.goto('/governance', { waitUntil: 'domcontentloaded' })
     await settled(page)
   })
 
@@ -107,7 +107,7 @@ test.describe('governance', () => {
 })
 
 test('offers no execute button for a proposal that cannot execute', async ({ page }) => {
-  await page.goto('/governance')
+  await page.goto('/governance', { waitUntil: 'domcontentloaded' })
 
   /**
    * A rejected proposal has nothing to execute, so its own card offers no
@@ -126,7 +126,7 @@ test('offers no execute button for a proposal that cannot execute', async ({ pag
 
 test.describe('stuck balances', () => {
   test('reports nothing stuck, and says what it checked', async ({ page }) => {
-    await page.goto('/governance')
+    await page.goto('/governance', { waitUntil: 'domcontentloaded' })
 
     // The router holds nothing today. The claim has to name its own blind spot:
     // a contract cannot enumerate its own balances, so this covers only the
@@ -137,7 +137,7 @@ test.describe('stuck balances', () => {
   })
 
   test('explains why sweeping is safe to leave open to anyone', async ({ page }) => {
-    await page.goto('/governance')
+    await page.goto('/governance', { waitUntil: 'domcontentloaded' })
     await settled(page)
     await expect(page.locator('main')).toContainText(/anyone may call it/i)
     await expect(page.locator('main')).toContainText(/never profitable|not profitable/i)
