@@ -50,6 +50,19 @@ const PAYMASTER = BigInt('0x127021a1b5a52d3174c2ab077c2b043c80369250d29428cee956
 
 const MAX_PAGES = 10
 
+/**
+ * A ceiling on the deposit walk as a whole, the way `readGovernance` has one.
+ *
+ * Ten pages, each capped at 15 seconds by `rpc` and now each allowed one retry,
+ * is a worst case of five minutes for a page render whose test gives up at
+ * sixty seconds - and `page.goto` dying at exactly 1.0 minute on Firefox, then
+ * passing in 1.5 on the retry, has been the most persistent failure in this
+ * suite. The retry above is what makes a stalled chunk survivable; this is what
+ * stops the survival from costing more than the failure did. A walk that runs
+ * out of budget reports a floor, which the page already knows how to say.
+ */
+const DEPOSIT_SCAN_BUDGET_MS = 20_000
+
 
 export interface CrowdReading extends Crowd {
   windowBlocks: number
@@ -108,8 +121,9 @@ export async function readDeposits(revalidate = 300): Promise<DepositReading | n
      * when it runs out of pages.
      */
     let stalled = false
+    const scanUntil = Date.now() + DEPOSIT_SCAN_BUDGET_MS
 
-    while (pages < MAX_PAGES) {
+    while (pages < MAX_PAGES && Date.now() < scanUntil) {
       let page: Awaited<ReturnType<typeof rpc.events>> | null = null
 
       for (const attempt of [0, 1]) {
