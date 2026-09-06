@@ -82,7 +82,21 @@ export default defineConfig({
    * assertion. A timeout that fires on machine pressure teaches you to rerun
    * rather than to read.
    */
-  timeout: 60_000,
+  /**
+   * Two minutes on CI, because sixty seconds there is a queue, not a page.
+   *
+   * The failures never varied: `page.goto` at exactly 1.0 minute on Firefox,
+   * the same test passing in 1.5 seconds on the retry a moment later, on a
+   * different page each run. Everything that could be read as a slow render has
+   * been fixed at the source - the event walks have budgets, the independent
+   * reads overlap, the pages are warmed before the suite starts - and the
+   * failures survived all of it, which is what a machine running out of cores
+   * looks like rather than an application running out of road. `ubuntu-latest`
+   * has two of them, and Firefox and WebKit share them with a `next start`.
+   *
+   * A healthy run pays nothing for this: a timeout is a ceiling, not a wait.
+   */
+  timeout: process.env.CI ? 120_000 : 60_000,
   expect: { timeout: 15_000 },
   use: {
     baseURL,
