@@ -49,6 +49,8 @@ interface ManifestReport {
   counted: number
   listed: number
   duplicates: string[]
+  /** Hashes the node would not answer for. While this has entries, `counted` is a floor. */
+  unread: string[]
   enough: boolean
   hasDemoVideo: boolean
   /** Web URLs only, or empty. Rendered as links; never fetched by the server. */
@@ -251,8 +253,16 @@ export default function Verify() {
           <div className="mt-4 rounded border border-thread bg-raised p-4">
             <p className={`font-mono text-sm ${report.enough ? 'text-hidden' : 'text-warn'}`}>
               {report.counted} of {report.listed} listed transactions would count
-              {!report.enough && ' · the sprint asks for three'}
+              {report.unread.length > 0 && ' so far'}
+              {!report.enough && report.unread.length === 0 && ' · the sprint asks for three'}
             </p>
+            {report.unread.length > 0 && (
+              <p className="mt-1 max-w-[62ch] font-mono text-xs text-warn">
+                {report.unread.length} of them went unread: the node stopped answering, so that
+                count is a floor rather than a verdict. Try again rather than reading this as a
+                shortfall.
+              </p>
+            )}
             <p className="mt-1 font-mono text-xs text-muted">
               {report.contracts.length} contract{report.contracts.length === 1 ? '' : 's'} declared ·
               demo video {report.hasDemoVideo ? 'present' : 'missing'}

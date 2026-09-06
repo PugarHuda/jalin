@@ -64,11 +64,22 @@ export async function GET(request: Request) {
     // when the node will not answer; the page then says blocks and nothing more.
     const blockTime = await secondsPerBlock(head, revalidate).catch(() => null)
 
+    /**
+     * Every asked target at once, and every proposal at once below.
+     *
+     * Both of these were `await` inside a `for`, which makes this route's
+     * latency the sum of up to thirteen round trips - eight deny checks and
+     * five proposals - each allowed fifteen seconds by `rpc`. That is a
+     * worst case over three minutes for a page that has to render inside
+     * sixty seconds, and none of the calls needs an answer from any other.
+     */
+    const answers = await Promise.all(
+      asked.map((target) => rpc.call(GOVERNOR_ADDRESS, 'is_denied', [target], revalidate)),
+    )
     const denied: Record<string, boolean> = {}
-    for (const target of asked) {
-      const answer = await rpc.call(GOVERNOR_ADDRESS, 'is_denied', [target], revalidate)
-      denied[target] = BigInt(answer[0] ?? '0x0') !== 0n
-    }
+    asked.forEach((target, index) => {
+      denied[target] = BigInt(answers[index]?.[0] ?? '0x0') !== 0n
+    })
 
     /**
      * The newest proposal still taking votes, searched newest first.
@@ -78,11 +89,16 @@ export async function GET(request: Request) {
      * proposal for an answer nobody wants.
      */
     const count = Number(BigInt(rawCount[0] ?? '0x0'))
-    let openProposal: { id: number; endBlock: number; blocksLeft: number } | null = null
+    const recent: number[] = []
+    for (let id = count; id > 0 && id > count - 5; id -= 1) recent.push(id)
 
-    for (let id = count; id > 0 && id > count - 5; id -= 1) {
-      const proposal = await rpc.call(GOVERNOR_ADDRESS, 'get_proposal', [BigInt(id)], revalidate)
-      const endBlock = Number(BigInt(proposal[4] ?? '0x0'))
+    const proposals = await Promise.all(
+      recent.map((id) => rpc.call(GOVERNOR_ADDRESS, 'get_proposal', [BigInt(id)], revalidate)),
+    )
+
+    let openProposal: { id: number; endBlock: number; blocksLeft: number } | null = null
+    for (const [index, id] of recent.entries()) {
+      const endBlock = Number(BigInt(proposals[index]?.[4] ?? '0x0'))
 
       // end_block of zero means no such proposal; the contract uses it as the
       // existence check too.

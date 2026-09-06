@@ -131,6 +131,37 @@ test.describe('reading a whole submission', () => {
     await expect(page.locator('main')).toContainText(/demo video (present|missing)/)
   })
 
+  /**
+   * A count made from reads that failed is not a count.
+   *
+   * `checkReceipt(null)` says "no such transaction", and every transport
+   * failure used to be handed to it - so a node that stopped answering turned a
+   * qualifying submission into "would not count" on the one page a team checks
+   * before submitting. The route now reports which hashes it could not read and
+   * the page says the number is a floor.
+   */
+  test('a node that stops answering is not a shortfall', async ({ page }) => {
+    // The manifest itself still loads; the receipts behind it are what fail.
+    await page.route('**/api/manifest**', async (route) => {
+      const response = await route.fetch()
+      const body = await response.json()
+      // Whatever the live answer was, this is the shape the page must handle:
+      // some hashes unread, and a count that is therefore a floor.
+      body.unread = body.results.slice(0, 2).map((r: { hash: string }) => r.hash)
+      body.results = body.results.slice(2)
+      body.counted = body.results.filter((r: { qualifies: boolean }) => r.qualifies).length
+      return route.fulfill({ response, json: body })
+    })
+
+    await page.getByLabel('owner/repo').fill('PugarHuda/jalin')
+    await page.getByRole('button', { name: 'Read it' }).click()
+
+    await expect(page.locator('main')).toContainText(/went unread/, { timeout: 30_000 })
+    await expect(page.locator('main')).toContainText(/floor rather than a verdict/)
+    // And it must not also be telling them they are short.
+    await expect(page.locator('main')).not.toContainText('the sprint asks for three')
+  })
+
   test('says so when the repository has no manifest', async ({ page }) => {
     await page.getByLabel('owner/repo').fill('PugarHuda/jalin@no-such-branch')
     await page.getByRole('button', { name: 'Read it' }).click()

@@ -98,13 +98,29 @@ export async function GET(request: Request) {
 
   // Read once per distinct hash. Sequential, because this reads a shared node
   // and twenty at once is how a public endpoint starts refusing everybody.
+  //
+  // A node that would not answer is not a transaction that is not there.
+  // `checkReceipt(null)` says "no such transaction", and every transport
+  // failure was being fed to it - so a slow node turned a team's qualifying
+  // submission into "not on chain", in the one route whose whole job is telling
+  // them whether they qualify. A transport failure now stops the walk and says
+  // which hashes went unread, rather than issuing verdicts about them.
   const results: (Verdict & { hash: string; summary: string })[] = []
+  const unread: string[] = []
   const asked = new Set<string>()
 
   for (const hash of transactions) {
     const key = BigInt(hash).toString()
     if (asked.has(key)) continue
     asked.add(key)
+
+    if (unread.length > 0) {
+      // The node is not answering. Nineteen more fifteen-second waits will not
+      // change that, and the answer for each would be the same non-answer.
+      unread.push(hash)
+      continue
+    }
+
     let receipt: unknown = null
     try {
       receipt = await rpc.receipt(hash)
@@ -112,7 +128,11 @@ export async function GET(request: Request) {
       if (error instanceof RpcError && error.kind === 'unconfigured') {
         return Response.json({ error: 'no rpc configured' }, { status: 503 })
       }
-      // Not on chain is a verdict, not a failure.
+      if (error instanceof RpcError && error.kind === 'transport') {
+        unread.push(hash)
+        continue
+      }
+      // A node that answered "no such transaction" is a verdict, not a failure.
     }
 
     const verdict = checkReceipt(receipt as never, { pool: POOL_ADDRESS, ours: contracts })
@@ -128,6 +148,12 @@ export async function GET(request: Request) {
     listed: countDistinct(transactions),
     /** Named so a team can see what a naive count would have hidden. */
     duplicates,
+    /**
+     * Hashes the node would not answer for. Not verdicts: `counted` is a floor
+     * while this is non-empty, and the page has to say so rather than reporting
+     * a shortfall it did not measure.
+     */
+    unread,
     /** The sprint asks for three that count. */
     enough: counted >= 3,
     hasDemoVideo: read.manifest.demoVideo.length > 0,

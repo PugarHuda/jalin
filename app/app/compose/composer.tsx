@@ -1141,6 +1141,15 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
     // thirty seconds and is not always; a hash whose verdict stopped being
     // asked for at sixty seconds sat on the page as "submitted" until a reload
     // asked again, and the balance under it stayed stale for as long.
+    // Every failure the poll met used to be swallowed by a bare `catch {}`, and
+    // the two outcomes then looked identical on screen: a transaction still
+    // being mined, and a verdict route that had started answering 502 for the
+    // last two and a half minutes. The hash sat there with no verdict either
+    // way. Failures are counted now, and the last one is named when the poll
+    // gives up.
+    let failures = 0
+    let lastFailure = ''
+
     for (let attempt = 0; attempt < 30; attempt += 1) {
       try {
         const response = await fetch(`/api/tx?hash=${hash}`)
@@ -1154,10 +1163,27 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
             if (w) await refreshBalances(w)
             return
           }
+        } else {
+          failures += 1
+          lastFailure = `HTTP ${response.status}`
         }
-      } catch {}
+      } catch (error) {
+        failures += 1
+        lastFailure = describeError(error)
+      }
       await new Promise((resolve) => setTimeout(resolve, 5000))
     }
+
+    // Two and a half minutes without a verdict. Which of the two it was decides
+    // what the reader should do next, so the difference is on the page rather
+    // than in a console nobody has open.
+    setVerdicts((v) => ({
+      ...v,
+      [hash]:
+        failures > 0
+          ? `No verdict after 2m30s, and ${failures} of the 30 checks did not complete (last: ${lastFailure}). The transaction may well have landed — this page could not ask.`
+          : 'No verdict after 2m30s. The node had no receipt for this hash in that time; it is submitted, not lost.',
+    }))
   }
 
   /**
