@@ -1,0 +1,167 @@
+[
+ {
+  "id": "01-constraint",
+  "settledAt": 8.255,
+  "marks": [
+   {
+    "cue": "one external call",
+    "selector": "h1",
+    "label": "one invoke per transaction",
+    "x": 0.11875,
+    "y": -0.04259259259259259,
+    "w": 0.6,
+    "h": 0.175
+   }
+  ]
+ },
+ {
+  "id": "02-consequence",
+  "settledAt": 7.724,
+  "marks": [
+   {
+    "cue": "payment app",
+    "selector": "h2:has-text('The constraint')",
+    "label": "the constraint everything is shaped by",
+    "x": 0.11875,
+    "y": 0.3334490740740741,
+    "w": 0.365625,
+    "h": 0.044444444444444446
+   }
+  ]
+ },
+ {
+  "id": "03-plan",
+  "settledAt": 7.09,
+  "marks": [
+   {
+    "cue": "bounded list",
+    "selector": "h2:has-text('A plan, not a parameter list')",
+    "label": "a plan, not a parameter list",
+    "x": 0.11875,
+    "y": 0.3334490740740741,
+    "w": 0.7625,
+    "h": 0.044444444444444446
+   }
+  ]
+ },
+ {
+  "id": "04-general",
+  "settledAt": 8.163,
+  "marks": [
+   {
+    "cue": "same object",
+    "selector": "button:has-text('+ step')",
+    "label": "add another, in the same invoke",
+    "x": 0.065625,
+    "y": 0.9956018518518519,
+    "w": 0.049943033854166666,
+    "h": 0.046296296296296294
+   }
+  ]
+ },
+ {
+  "id": "05-safety",
+  "settledAt": 6.559,
+  "marks": [
+   {
+    "cue": "whole balance",
+    "selector": "pre",
+    "label": "the calldata the wallet will sign",
+    "x": 0.509375,
+    "y": 0.3159722222222222,
+    "w": 0.425,
+    "h": 0.3685185185185185
+   }
+  ]
+ },
+ {
+  "id": "06-governor",
+  "settledAt": 7.264,
+  "marks": [
+   {
+    "cue": "config file",
+    "selector": "[data-testid='bond']",
+    "label": "asked of the router, not configured",
+    "x": 0.27679850260416666,
+    "y": 0.65,
+    "w": 0.3153889973958333,
+    "h": 0.05555555555555555
+   }
+  ]
+ },
+ {
+  "id": "07-redeem",
+  "settledAt": 7.449,
+  "marks": [
+   {
+    "cue": "redeem was written",
+    "selector": "[data-testid='ballot-stage']",
+    "label": "read from the governor, by hash",
+    "x": 0.21468912760416667,
+    "y": 0.9662037037037037,
+    "w": 0.39500325520833335,
+    "h": 0.022222222222222223
+   }
+  ]
+ },
+ {
+  "id": "08-mainnet",
+  "settledAt": 5.208,
+  "marks": [
+   {
+    "cue": "four questions",
+    "selector": "text=/would count/",
+    "label": "computed from the receipt, live",
+    "x": 0.215625,
+    "y": 0.4861111111111111,
+    "w": 0.56875,
+    "h": 0.027777777777777776
+   }
+  ]
+ },
+ {
+  "id": "09-hub",
+  "settledAt": 10.606,
+  "marks": [
+   {
+    "cue": "two agree",
+    "selector": "[data-testid='hub-verdict']",
+    "label": "the hub's verdict, beside ours",
+    "x": 0.22864583333333333,
+    "y": 0.3472222222222222,
+    "w": 0.3778076171875,
+    "h": 0.09444444444444444
+   }
+  ]
+ },
+ {
+  "id": "10-services",
+  "settledAt": 4.122,
+  "marks": [
+   {
+    "cue": "all three",
+    "selector": "[data-testid='services']",
+    "label": "read now, not quoted",
+    "x": 0.215625,
+    "y": 0.5768518518518518,
+    "w": 0.4440673828125,
+    "h": 0.2
+   }
+  ]
+ },
+ {
+  "id": "11-close",
+  "settledAt": 5.594,
+  "marks": [
+   {
+    "cue": "verifiable against mainnet",
+    "selector": "h1",
+    "label": "jalin",
+    "x": 0.11875,
+    "y": -0.04259259259259259,
+    "w": 0.6,
+    "h": 0.175
+   }
+  ]
+ }
+]

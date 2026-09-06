@@ -21,6 +21,10 @@ export default defineConfig([
     // compiler.
     'sdk/dist/**',
     'vendor/**',
+    // The Remotion composition for the demo video. Its own project, its own
+    // tsconfig and its own node_modules; this config's type-aware rules cannot
+    // resolve it and fail loudly rather than skipping it.
+    'scripts/demo-video/remotion/**',
     'contracts/target/**',
     'test-results/**',
     'playwright-report/**',

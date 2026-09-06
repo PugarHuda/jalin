@@ -1,0 +1,234 @@
+{
+ "01-constraint": [
+  {
+   "t": 0.05,
+   "d": 5.0020834,
+   "w": "STRK20 reaches the outside world through one primitive."
+  },
+  {
+   "t": 5.0520834,
+   "d": 3.4505209,
+   "w": "Two protocol rules shape everything downstream."
+  },
+  {
+   "t": 8.5026043,
+   "d": 3.4505209,
+   "w": "At most one external call per pool transaction."
+  },
+  {
+   "t": 11.9531252,
+   "d": 4.0755209,
+   "w": "And every token's balance must end at exactly zero."
+  }
+ ],
+ "02-consequence": [
+  {
+   "t": 0.05,
+   "d": 6.8380209,
+   "w": "Together they mean a private action is only as expressive as the single helper contract it calls."
+  },
+  {
+   "t": 6.8880209,
+   "d": 1.3932291,
+   "w": "Want a private swap?"
+  },
+  {
+   "t": 8.2812501,
+   "d": 2.6822917,
+   "w": "Deploy and audit a swap helper."
+  },
+  {
+   "t": 10.9635419,
+   "d": 0.8072916,
+   "w": "Lend?"
+  },
+  {
+   "t": 11.7708335,
+   "d": 1.0026041,
+   "w": "Another one."
+  },
+  {
+   "t": 12.7734377,
+   "d": 1.3151041,
+   "w": "Swap, then lend?"
+  },
+  {
+   "t": 14.0885419,
+   "d": 0.9505208,
+   "w": "A third."
+  },
+  {
+   "t": 15.0390628,
+   "d": 8.763021,
+   "w": "That is why almost everything built on STRK20 today is a payment app: payments are the only thing you can ship without writing Cairo."
+  }
+ ],
+ "03-plan": [
+  {
+   "t": 0.05,
+   "d": 2.8145833,
+   "w": "Jalin is a router, not an application."
+  },
+  {
+   "t": 2.8645833,
+   "d": 2.6432292,
+   "w": "It ships no use case of its own."
+  },
+  {
+   "t": 5.5078126,
+   "d": 10.2994793,
+   "w": "It takes a plan instead of fixed parameters: a bounded list of steps, each naming a target, a selector, calldata, and the approvals it needs."
+  },
+  {
+   "t": 15.807292,
+   "d": 7.6822918,
+   "w": "It runs them in order inside the single privacy invoke and enforces the floor the caller set on each output."
+  }
+ ],
+ "04-general": [
+  {
+   "t": 0.05,
+   "d": 1.590625,
+   "w": "Nothing is whitelisted."
+  },
+  {
+   "t": 1.640625,
+   "d": 5.3385417,
+   "w": "Any Starknet contract is a valid target and the calldata is free form."
+  },
+  {
+   "t": 6.9791668,
+   "d": 6.3020834,
+   "w": "That is what makes a bridge call, a DEX route, and a lending deposit the same object."
+  },
+  {
+   "t": 13.2812502,
+   "d": 0.8984375,
+   "w": "A plan."
+  },
+  {
+   "t": 14.1796878,
+   "d": 4.9739584,
+   "w": "Composition moves inside the single invoke, where the protocol allows it."
+  }
+ ],
+ "05-safety": [
+  {
+   "t": 0.05,
+   "d": 7.541146,
+   "w": "Free calldata sounds unsafe, so safety is carried by invariants in Cairo rather than by a whitelist."
+  },
+  {
+   "t": 7.591146,
+   "d": 5.8984376,
+   "w": "The router holds nothing between transactions, and anything left on it is unreachable."
+  },
+  {
+   "t": 13.4895836,
+   "d": 5.9375001,
+   "w": "That is why each output can be credited its whole balance instead of a measured delta."
+  }
+ ],
+ "06-governor": [
+  {
+   "t": 0.05,
+   "d": 2.1244792,
+   "w": "The router holds no admin key."
+  },
+  {
+   "t": 2.1744792,
+   "d": 9.2057293,
+   "w": "Every parameter it reads belongs to a governor that moves only by a vote, and the page asks the router which governor that is rather than trusting a config file."
+  }
+ ],
+ "07-redeem": [
+  {
+   "t": 0.05,
+   "d": 3.8953125,
+   "w": "A vote stakes value privately and hands the voter a secret."
+  },
+  {
+   "t": 3.9453125,
+   "d": 10.5989585,
+   "w": "Until this week the contract could give that stake back and nothing could ask it to: redeem was written in Cairo, tested in Cairo, and reachable from no code at all."
+  }
+ ],
+ "08-mainnet": [
+  {
+   "t": 0.05,
+   "d": 3.6739584,
+   "w": "This runs on Starknet mainnet against the live pool."
+  },
+  {
+   "t": 3.7239584,
+   "d": 4.4010417,
+   "w": "Here is one of its transactions being checked against the chain right now."
+  },
+  {
+   "t": 8.1250001,
+   "d": 3.6979167,
+   "w": "The page reads the receipt and answers four questions."
+  },
+  {
+   "t": 11.8229169,
+   "d": 7.1875001,
+   "w": "Does it exist, did it succeed, did it touch the STRK20 pool, and did it run through our own contract."
+  }
+ ],
+ "09-hub": [
+  {
+   "t": 0.05,
+   "d": 5.7182292,
+   "w": "It reads a whole submission too, and beside its own verdict it shows the sprint hub's."
+  },
+  {
+   "t": 5.7682292,
+   "d": 3.5026042,
+   "w": "Every listed transaction counted, and the two agree."
+  },
+  {
+   "t": 9.2708335,
+   "d": 13.2942711,
+   "w": "This endpoint answers for any team's repository, not just ours: one team took a measurement from our documentation and caught a seven day window in their own code that would have closed in three hours."
+  }
+ ],
+ "10-services": [
+  {
+   "t": 0.05,
+   "d": 5.8093751,
+   "w": "Six issues on the sprint tracker asked where the proving service was while it had been answering the whole time."
+  },
+  {
+   "t": 5.8593751,
+   "d": 7.8125001,
+   "w": "So this page asks all three services on every load, including how far behind the chain note discovery is."
+  },
+  {
+   "t": 13.6718753,
+   "d": 5.7942709,
+   "w": "That number decides whether a note you just created is findable by its recipient yet."
+  }
+ ],
+ "11-close": [
+  {
+   "t": 0.05,
+   "d": 3.9604167,
+   "w": "One general router instead of a new contract per interaction."
+  },
+  {
+   "t": 4.0104167,
+   "d": 8.4635418,
+   "w": "Cairo tests, a published SDK, a threat model, and every claim on this page verifiable against mainnet."
+  },
+  {
+   "t": 12.4739586,
+   "d": 0.859375,
+   "w": "Jalin."
+  },
+  {
+   "t": 13.3333336,
+   "d": 2.65625,
+   "w": "To weave separate strands into one."
+  }
+ ]
+}

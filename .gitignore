@@ -42,6 +42,10 @@ scripts/demo-video/audio/
 scripts/demo-video/build/
 scripts/demo-video/clips/
 scripts/demo-video/jalin-demo.mp4
+# Remotion's own install. The composition itself is committed; 249 packages of
+# renderer and a headless Chromium are not.
+scripts/demo-video/remotion/node_modules/
+scripts/demo-video/remotion/package-lock.json
 
 # Design-critique snapshots. Working notes from a review tool: a scored,
 # undated prosecution of a page, written before the fixes it asked for landed

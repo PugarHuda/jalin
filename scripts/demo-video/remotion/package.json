@@ -1,0 +1,16 @@
+{
+  "name": "jalin-demo-remotion",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Remotion composition for the Jalin demo: footage, voiceover, subtitles and DOM-measured pointer boxes.",
+  "scripts": {
+    "render": "remotion render src/index.ts Demo ../jalin-demo.mp4 --public-dir=.. --log=info",
+    "studio": "remotion studio src/index.ts --public-dir=.."
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.521",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "remotion": "4.0.521"
+  }
+}

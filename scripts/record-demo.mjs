@@ -16,7 +16,7 @@
  * <work-dir> holds timed.json, written by the voiceover step.
  */
 import { chromium } from '@playwright/test'
-import { mkdirSync, readFileSync, renameSync, readdirSync } from 'node:fs'
+import { mkdirSync, readFileSync, renameSync, readdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 const work = process.argv[2]
@@ -71,6 +71,31 @@ async function glideTo(page, text, ms = 2500) {
   )
 }
 
+/**
+ * The rectangle an element occupies, as a fraction of the viewport.
+ *
+ * Measured against a probe pinned to the viewport rather than against
+ * `documentElement.clientHeight`: the page is rendered with a CSS `zoom`, and a
+ * rect and a clientHeight do not agree about what a pixel is under one. Two
+ * rects from the same call always agree.
+ */
+async function rectOf(page, selector) {
+  return page.locator(selector).first().evaluate((el) => {
+    const probe = document.createElement('div')
+    probe.style.cssText = 'position:fixed;inset:0;pointer-events:none;visibility:hidden'
+    document.body.appendChild(probe)
+    const v = probe.getBoundingClientRect()
+    const r = el.getBoundingClientRect()
+    probe.remove()
+    return {
+      x: (r.left - v.left) / v.width,
+      y: (r.top - v.top) / v.height,
+      w: r.width / v.width,
+      h: r.height / v.height,
+    }
+  })
+}
+
 const shots = {
   hero: async (page) => {
     await wait(2000)
@@ -109,6 +134,25 @@ const shots = {
     // The verdict is the point of the scene and the zoom puts it below the fold.
     await verdict.evaluate((el) => el.scrollIntoView({ behavior: 'smooth', block: 'center' }))
   },
+  'governor-bond': async (page) => {
+    await glideTo(page, 'What the router is running on', 3000)
+  },
+  'governor-redeem': async (page) => {
+    await page.locator('#redeem').evaluate((el) => el.scrollIntoView({ behavior: 'smooth', block: 'center' }))
+    await wait(1500)
+    // A secret nobody staked against, so the panel answers from the chain
+    // without spending anything. The lookup is the point, not the redemption.
+    const secret = page.getByLabel('Ballot secret')
+    await secret.click()
+    await secret.pressSequentially('0x03' + 'a'.repeat(61) + '9', { delay: 6 })
+    await page.getByRole('button', { name: 'Look it up' }).click()
+    await page.getByTestId('ballot-stage').waitFor({ timeout: 40_000 })
+  },
+  services: async (page) => {
+    const panel = page.getByTestId('services')
+    await panel.waitFor({ timeout: 40_000 })
+    await panel.evaluate((el) => el.scrollIntoView({ behavior: 'smooth', block: 'center' }))
+  },
   'verify-manifest': async (page) => {
     const field = page.getByLabel('owner/repo')
     await field.click()
@@ -126,6 +170,7 @@ const shots = {
   },
 }
 
+const measured = []
 const browser = await chromium.launch()
 for (const scene of scenes) {
   const started = Date.now()
@@ -146,6 +191,41 @@ for (const scene of scenes) {
     console.warn(`  ${scene.id}: ${scene.shot} did not complete - ${error.message.split('\n')[0]}`)
   }
 
+  /**
+   * Where the pointer boxes go, measured rather than guessed.
+   *
+   * A highlight drawn at coordinates typed into a config file is wrong the
+   * first time the layout moves, and nobody notices until the video is
+   * rendered. These come from `getBoundingClientRect` on the real element in
+   * the real recording, normalised against the viewport so the compositor can
+   * scale them to the frame without knowing anything about the zoom.
+   *
+   * Measured after the shot has finished, while the page is holding still. The
+   * compositor never shows a box before `settledAt` for the same reason: a box
+   * pinned to an element that is still scrolling points at the wrong thing.
+   */
+  // `scrollIntoView({behavior:'smooth'})` returns before the scroll finishes,
+  // so anything measured on the instant a shot returns is measured mid-glide.
+  // Three boxes were dropped as "out of frame" while plainly on screen.
+  await wait(1400)
+
+  const settledAt = (Date.now() - started) / 1000
+  const marks = []
+  for (const target of scene.marks ?? []) {
+    try {
+      const box = await rectOf(page, target.selector)
+      // Off screen: a box at the edge of the frame is worse than no box.
+      if (box.y < -0.05 || box.y > 1 || box.w <= 0) {
+        console.warn(`  ${scene.id}: ${target.selector} is out of frame, dropped`)
+        continue
+      }
+      marks.push({ ...target, ...box })
+    } catch {
+      console.warn(`  ${scene.id}: ${target.selector} not found, dropped`)
+    }
+  }
+  measured.push({ id: scene.id, settledAt, marks })
+
   const hold = scene.duration * 1000 + PAD - (Date.now() - started)
   if (hold > 0) await wait(hold)
 
@@ -155,4 +235,6 @@ for (const scene of scenes) {
   console.log(`${scene.id.padEnd(16)} ${((Date.now() - started) / 1000).toFixed(1)}s recorded`)
 }
 await browser.close()
+writeFileSync(join(work, 'marks.json'), JSON.stringify(measured, null, 1))
+console.log(`${measured.reduce((n, m) => n + m.marks.length, 0)} pointer boxes measured`)
 console.log(`\n${readdirSync(out).filter((f) => f.endsWith('.webm')).length} clips in ${out}`)

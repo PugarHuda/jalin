@@ -26,7 +26,7 @@ a shape rather than reporting a result.
 |---|---|
 | **[The deck](https://jalin-five.vercel.app/slides)** | Nine panels: the constraint, the mechanism, what it reaches, what it does not do |
 | **[The composer](https://jalin-five.vercel.app/compose)** | Build a plan, see what it reveals, sign it with Ready |
-| **[The demo](https://jalin-five.vercel.app/jalin-demo.mp4)** | 2:48, recorded against production |
+| **[The demo](https://jalin-five.vercel.app/jalin-demo.mp4)** | 3:26, recorded against production, with subtitles and pointers measured off the live DOM |
 | **[Verify](https://jalin-five.vercel.app/verify)** | The sprint's own rule applied to any repository's `strk20.json`, including this one |
 | **[`strk20.json`](./strk20.json)** | Four mainnet transactions, two declared contracts |
 | **[`jalin-sdk`](https://www.npmjs.com/package/jalin-sdk)** | The plan encoder, published |
@@ -283,15 +283,37 @@ two minutes forty-nine, captioned, and named in `strk20.json`.
 It is not a screen recording of a rehearsal. Playwright drives the deployed app
 through the same selectors the end-to-end suite uses, so the transaction it
 checks on screen is one of the four mainnet hashes listed above and the verdict
-beside it is computed from the chain while the recording runs. The narration is
-synthesised, the captions come from the speech engine's own sentence timings,
-and the whole thing rebuilds from this repository:
+beside it is computed from the chain while the recording runs. Everything laid
+over that footage is measured rather than authored:
+
+- **The narration** is synthesised by a neural voice, and the **subtitles** are
+  the speech engine's own sentence timings — not a transcript aligned
+  afterwards, so they cannot drift from what is being said.
+- **The pointer boxes** are `getBoundingClientRect` on the real element, taken
+  in the real recording while the page is holding still, and stored as a
+  fraction of the viewport. A highlight at coordinates typed into a config file
+  is wrong the first time the layout moves and nobody notices until the render.
+- **The timing of both** comes from the script. A box appears when the narration
+  reaches the phrase it belongs to, so editing a sentence moves its highlight
+  and there is no second place to keep in sync.
 
 ```sh
-python scripts/demo-video/tts.py        # narration and caption cues
-node scripts/record-demo.mjs <dir>      # footage, against the live site
-python scripts/demo-video/compose.py    # cut to the narration, burn captions
+python scripts/demo-video/tts.py           # narration, cues, cues.json
+node scripts/record-demo.mjs scripts/demo-video   # footage and marks.json
+cd scripts/demo-video/remotion && npm i && npm run render
 ```
+
+Remotion composes it: `scripts/demo-video/remotion/src/Demo.tsx` is the whole
+composition, and `npm run studio` in that directory opens it for scrubbing.
+`compose.py` is the ffmpeg pipeline it replaced, kept because it needs no
+node_modules and still produces a correct video with burned-in captions.
+
+One thing that cost three re-records, written down so it does not cost a fourth:
+a box measured part-way through a shot cannot be placed. Playwright starts the
+video file before the navigation finishes, so the recorder's wall clock and the
+video's clock are minutes-of-arc apart, and a highlight timed from one and drawn
+on the other frames an empty strip of background. A scene that needs to point at
+two things is two scenes.
 
 Recording against production rather than a local build is deliberate: a demo of
 something that only works on a laptop is a demo of nothing.

@@ -345,7 +345,7 @@ struct Step {
                 className="text-cloth underline underline-offset-2 hover:text-gold"
                 href={manifest.demo_video}
               >
-                the demo, 2:48
+                the demo, 3:26
               </a>{' '}
               — a plan built and signed on mainnet
             </li>

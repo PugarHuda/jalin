@@ -15,6 +15,7 @@ def duration(path):
 async def main():
     scenes = json.load(open(os.path.join(HERE, 'scenes.json'), encoding='utf-8'))
     audio = os.path.join(HERE, 'audio'); os.makedirs(audio, exist_ok=True)
+    all_cues = {}
     total = 0.0
     for s in scenes:
         mp3 = os.path.join(audio, s['id'] + '.mp3')
@@ -31,12 +32,18 @@ async def main():
                                   'd': chunk['duration'] / 1e7,
                                   'w': chunk['text']})
         json.dump(words, open(sub, 'w', encoding='utf-8'))
+        all_cues[s['id']] = words
         s['audio'] = mp3
         s['duration'] = round(duration(mp3), 3)
         s['words'] = len(words)
         total += s['duration']
         print(f"{s['id']:<16} {s['duration']:6.2f}s  {len(words):3d} cues")
     json.dump(scenes, open(os.path.join(HERE, 'timed.json'), 'w', encoding='utf-8'), indent=1)
+    # One aggregate as well as the per-scene files. The compositor imports it
+    # statically: Remotion bundles with webpack, which has no way to glob a
+    # directory at build time, and ten explicit imports would have to be edited
+    # every time the script gains a scene.
+    json.dump(all_cues, open(os.path.join(HERE, 'cues.json'), 'w', encoding='utf-8'), indent=1)
     print(f"\nTOTAL {total:.1f}s  ({total/60:.2f} min)")
     if total > 180:
         print('OVER three minutes - trim before rendering', file=sys.stderr)
