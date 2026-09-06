@@ -26,8 +26,15 @@ a shape rather than reporting a result.
 | **[`jalin-sdk`](https://www.npmjs.com/package/jalin-sdk)** | The plan encoder, published |
 | **[The three mainnet endpoints](./docs/strk20-endpoints.md)** | Prover, note discovery and the shadow-account anonymizer — each verified, each reported missing somewhere |
 
-Every figure on every page is a live contract call. Nothing on this site is typed
-in, and `/verify` will tell you so about this repository as readily as any other.
+Every figure on every page is a live contract call, and `/verify` will tell you
+so about this repository as readily as any other. Two on the deck were not, until
+6 September: the contract count and the invariant count were string literals on
+slide 01, beside a sentence claiming nothing here is typed in. They are derived
+now - the configured addresses this app reads on every page, and the length of
+the invariant list both the landing page and the deck render - so neither can
+say a number the rest of the site disagrees with. What remains typed in is the
+starting floor on two composer presets, which is a form's default value rather
+than a claim, and the live quote beside it is read from the vault.
 
 ---
 

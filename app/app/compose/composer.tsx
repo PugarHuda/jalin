@@ -6,7 +6,6 @@ import { hash, shortString } from 'starknet'
 import {
   BALLOT_TAG,
   castBallotActions,
-  depositStep,
   describeDisclosure,
   encodeDraft,
   encodePlan,
@@ -142,39 +141,6 @@ ${ROUTER_ADDRESS}`,
 
 const ONE = 10n ** 18n
 
-/**
- * Endur liquid staking as a plan.
- *
- * The router approves the vault, calls the standard ERC-4626
- * `deposit(assets, receiver)` with itself as receiver, and credits the xSTRK
- * shares into an open note. Nothing here is Endur-specific on our side: the
- * vault has an ABI, so it is reachable. That is the whole argument - AVNU had to
- * write an anonymizer for this shape, and Ekubo is writing another.
- *
- * The floor is set below the quoted rate rather than at it, because the share
- * price moves between quoting and proving and a proof takes about half a minute.
- */
-function endurStake(assets: bigint, quotedShares?: bigint): Plan {
-  // With a live quote the floor sits just under what the vault says it will pay,
-  // which is a real slippage guard. Without one it falls back to a fraction of
-  // assets - deliberately loose, because a tight guess reverts for no reason.
-  const floor = quotedShares ? (quotedShares * 96n) / 100n : (assets * 78n) / 100n
-  return {
-    // depositStep is the SDK recipe for exactly this shape, so the product uses
-    // it rather than restating the calldata layout in a second place.
-    steps: [
-      depositStep({
-        market: ENDUR_VAULT,
-        selector: hash.getSelectorFromName('deposit'),
-        asset: TOKENS[0]!.address,
-        amount: assets,
-        receiver: ROUTER_ADDRESS,
-      }),
-    ],
-    outputs: [{ token: ENDUR_VAULT, noteId: openNote(0), minAmount: floor }],
-  }
-}
-
 interface MainnetRun {
   title: string
   note: string
@@ -182,7 +148,6 @@ interface MainnetRun {
   /** Deposit only. Nothing to spend until this has landed. */
   shieldOnly?: boolean
   ballot?: boolean
-  plan?: Plan
 }
 
 const SHIELD: MainnetRun = {
@@ -396,7 +361,9 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
    * docs/qa.md case 5 asked the reader to supply that guard by hand.
    */
   const [busy, setBusy] = useState(false)
-  const [hashes, setHashes] = useState<(string | null)[]>([null, null, null])
+  // One slot per run. It was three, left over from the numbered runs that were
+  // deleted, and the two empty ones were written to localStorage on every save.
+  const [hashes, setHashes] = useState<(string | null)[]>(() => RUNS.map(() => null))
   const [ballotSecret, setBallotSecret] = useState<string | null>(null)
   const [lastPayload, setLastPayload] = useState<string | null>(null)
   const [shieldHash, setShieldHash] = useState<string | null>(null)
@@ -1077,7 +1044,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
     return { wallet: w, address }
   }
 
-  function buildRunActions(run: MainnetRun, account: string): Strk20Action[] {
+  function buildRunActions(run: MainnetRun): Strk20Action[] {
     const strk = TOKENS[0]!.address
 
     if (run.shieldOnly) {
@@ -1120,16 +1087,11 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
       })
     }
 
-    const plan =
-      run.title.includes('Endur') && quote
-        ? endurStake(run.amount, quote.shares)
-        : run.plan!
-
-    return toWalletActions(plan, {
-      router: ROUTER_ADDRESS,
-      inputs: [{ token: strk, amount: run.amount }],
-      recipient: account,
-    })
+    // Every remaining shape is handled above. `RUNS` holds the ballot and
+    // nothing else; the branch that used to be here dispatched on a run title
+    // to a plan field no run ever set, so it was a non-null assertion on
+    // undefined guarded by a string comparison that could not be true.
+    throw new Error(`no actions for run ${JSON.stringify(run.title)}`)
   }
 
   /**
@@ -1224,7 +1186,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
       }
 
       const actions: Strk20Action[] = run
-        ? buildRunActions(run, address)
+        ? buildRunActions(run)
         : toWalletActions(result.plan!, {
             router: ROUTER_ADDRESS,
             inputs: [

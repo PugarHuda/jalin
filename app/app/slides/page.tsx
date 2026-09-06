@@ -100,8 +100,18 @@ export default async function Slides() {
         </p>
         <div className="flex flex-wrap gap-x-10 gap-y-4 pt-2">
           <Fact value={String(txs.length)} of="qualifying mainnet transactions" />
-          <Fact value="2" of="Cairo contracts, declared and live" />
-          <Fact value="6" of="invariants enforced on chain" />
+          {/*
+            Both of these were typed in, on the deck whose first slide argues
+            that nothing here is. The contract count is the addresses this app
+            is configured with and reads on every page; the invariant count is
+            the length of the list the landing page and this deck both render.
+            Neither can now say a number the rest of the site disagrees with.
+          */}
+          <Fact
+            value={String([ROUTER_ADDRESS, GOVERNOR_ADDRESS].filter(Boolean).length)}
+            of="Cairo contracts, declared and live"
+          />
+          <Fact value={String(INVARIANTS.length)} of="invariants enforced on chain" />
           <Fact value="588" of="tests across Cairo, SDK and browser" />
         </div>
       </Slide>
