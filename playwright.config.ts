@@ -72,19 +72,23 @@ export default defineConfig({
    * than staying a constant that happens to fit one laptop.
    */
   /**
-   * Two on CI, which is where it was before a wrong diagnosis moved it to one.
+   * One on CI, chosen by measurement after the theories ran out.
    *
-   * The Firefox hang that prompted the change was blamed on `ubuntu-latest`
-   * having two cores, and dropping to a single worker did reduce it - from four
-   * flaky tests to two - which read as confirmation. It was not: the same hang
-   * survived on one worker, on a `domcontentloaded` navigation, to a page that
-   * does no server reads. The cause was the keep-alive window below, and with
-   * that closed a two-worker run finished with nothing flaky at all.
+   * The keep-alive window below was the real cause of the long Firefox hang,
+   * and closing it mattered: at one worker the suite went from two flaky tests
+   * to none. But it was not the whole cause. Putting the count back to two,
+   * with the same fix in place, brought two flaky tests back - one of them the
+   * same full-timeout hang. Three separate runs say the same thing:
    *
-   * Two rather than three because three genuinely did saturate this runner, and
-   * that finding was never in doubt - it failed the same way twice in a row.
+   *   3 workers  suite fails outright
+   *   2 workers  green, 2 flaky, browser job ~5-6 minutes
+   *   1 worker   green, 0 flaky, browser job ~9-10 minutes
+   *
+   * Three minutes of runner time is worth less than a retry line nobody can
+   * tell from a regression. Locally the machine is not shared and three is
+   * fine.
    */
-  workers: process.env.CI ? 2 : 3,
+  workers: process.env.CI ? 1 : 3,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [['github'], ['list']] : [['list']],
