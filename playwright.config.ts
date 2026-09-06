@@ -148,7 +148,20 @@ export default defineConfig({
     // Builds as well as serves. NEXT_PUBLIC_* is inlined at build time, so a
     // server started over a build that did not have the router address would
     // test a different page than the one that is deployed.
-    command: `npm run build --workspace app && npm run start --workspace app -- --port ${PORT}`,
+    /**
+     * `--keepAliveTimeout` above the test timeout, because node's default is
+     * five seconds and that is a race the client loses in silence.
+     *
+     * When the server closes an idle keep-alive connection at the same moment a
+     * browser sends its next request on it, the request is neither answered nor
+     * refused - it is dropped, and nothing retries it. The symptom is a
+     * navigation that hangs for the entire timeout and then succeeds instantly
+     * on a fresh connection, which is what Firefox did here through a sixty
+     * second ceiling, a two minute one, a single-worker runner, and finally a
+     * `domcontentloaded` navigation to a page that does no server reads at all.
+     * Each of those ruled out a slower explanation. This one fits all of them.
+     */
+    command: `npm run build --workspace app && npm run start --workspace app -- --port ${PORT} --keepAliveTimeout 72000`,
     url: baseURL,
     // Never reused. A server left over from an earlier run serves HTML that
     // names chunk files a later build has replaced, and with nosniff on, the
