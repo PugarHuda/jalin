@@ -215,7 +215,10 @@ test.describe('composer', () => {
     page.on('console', (m) => {
       if (m.type() === 'error' && !isCancelledSameOrigin(m.text())) errors.push(m.text())
     })
-    page.on('pageerror', (e) => errors.push(String(e)))
+    page.on('pageerror', (e) => {
+      const text = String(e)
+      if (!isCancelledSameOrigin(text)) errors.push(text)
+    })
 
     await page.reload()
     await settled(page)

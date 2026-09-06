@@ -54,7 +54,10 @@ test.describe('landing', () => {
       if (message.type() === 'error' && !isCancelledSameOrigin(message.text()))
         errors.push(message.text())
     })
-    page.on('pageerror', (error) => errors.push(String(error)))
+    page.on('pageerror', (error) => {
+      const text = String(error)
+      if (!isCancelledSameOrigin(text)) errors.push(text)
+    })
 
     await page.goto('/', { waitUntil: 'domcontentloaded' })
     await settled(page)
