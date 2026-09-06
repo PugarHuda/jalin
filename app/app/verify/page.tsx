@@ -86,6 +86,15 @@ export default function Verify() {
   const [reading, setReading] = useState(false)
   /** The sprint hub's own verdict on the same repository, beside ours. */
   const [hub, setHub] = useState<HubVerdict | null>(null)
+  /**
+   * Why the hub panel is not here.
+   *
+   * The hub read was `.catch(() => null)` and an unreadable hub rendered as no
+   * hub panel - identical to a repository the hub has never seen. Those are
+   * opposite answers to "are we registered", and a team reading the second when
+   * the first happened submits believing they are listed.
+   */
+  const [hubError, setHubError] = useState<string | null>(null)
 
   async function check() {
     const list = hashes
@@ -144,6 +153,7 @@ export default function Verify() {
     const [, owner, name, ref] = match
     setReading(true)
     setHub(null)
+    setHubError(null)
     try {
       const query = new URLSearchParams({ owner: owner!, repo: name!, ...(ref ? { ref } : {}) })
       // Our judgement and the hub's, asked for together. The hub's is the one
@@ -159,6 +169,7 @@ export default function Verify() {
       if (response.ok) setReport(body as ManifestReport)
       else setRepoError(String((body as { error?: string }).error ?? response.status))
       if (hubResponse?.ok) setHub((await hubResponse.json()) as HubVerdict)
+      else setHubError(hubResponse ? `HTTP ${hubResponse.status}` : 'the request did not complete')
     } catch (error) {
       setRepoError(error instanceof Error ? error.message : String(error))
     } finally {
@@ -291,6 +302,13 @@ export default function Verify() {
                   Links, not checks: this page does not fetch what a manifest names, so open them
                   yourself — a dead demo is the first thing a panel meets.
                 </span>
+              </p>
+            )}
+
+            {hubError && (
+              <p className="mt-2 max-w-[62ch] font-mono text-xs text-warn" data-testid="hub-error">
+                The sprint hub could not be read: {hubError}. That is not the same as not being
+                registered, and this page will not report it as if it were.
               </p>
             )}
 

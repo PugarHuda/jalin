@@ -39,7 +39,7 @@ interface Reading {
   ballot: { proposalId: string; amount: string; claimed: boolean }
   proposal: { id: string; endBlock: number; eta: number; executed: boolean } | null
   head: number
-  escrow: { outstanding: string | null; held: string; token: string }
+  escrow: { outstanding: string | null; held: string | null; token: string }
 }
 
 function strk(amount: string): string {
@@ -131,10 +131,9 @@ export function Redeem() {
 
   const stage = reading?.stage
   const owed = reading?.escrow.outstanding
+  const held = reading?.escrow.held
   const shortfall =
-    reading && owed !== null && owed !== undefined && BigInt(reading.escrow.held) < BigInt(owed)
-      ? BigInt(owed) - BigInt(reading.escrow.held)
-      : 0n
+    owed != null && held != null && BigInt(held) < BigInt(owed) ? BigInt(owed) - BigInt(held) : 0n
 
   return (
     <section className="mt-8 max-w-[62ch] border-t border-thread pt-4" id="redeem">
@@ -194,15 +193,17 @@ export function Redeem() {
 
           <dt className="text-muted">Escrow</dt>
           <dd>
-            {owed === null ? (
+            {reading.escrow.held === null ? (
+              <>unreadable — the balance did not arrive inside its budget</>
+            ) : owed == null ? (
               <>
-                {strk(reading.escrow.held)} held. What it owes is unreadable: the deployed
-                governor predates <span className="font-mono">outstanding()</span>, and the
-                answer is that nobody can ask rather than that nothing is owed.
+                {strk(reading.escrow.held)} held. What it owes is unreadable: the deployed governor predates{' '}
+                <span className="font-mono">outstanding()</span>, and the answer is that nobody
+                can ask rather than that nothing is owed.
               </>
             ) : (
               <>
-                {strk(reading.escrow.held)} held against {strk(owed!)} owed
+                {strk(reading.escrow.held)} held against {strk(owed)} owed
                 {shortfall > 0n ? ` — short by ${strk(shortfall.toString())}` : ''}
               </>
             )}

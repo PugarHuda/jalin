@@ -192,8 +192,7 @@ test.describe('redeeming a ballot stake', () => {
     // deployed governor predates `outstanding()`, so either the page prints
     // what is owed or it says why it cannot - never a zero standing in for an
     // unanswerable question.
-    await expect(page.locator('#redeem')).toContainText(/held/)
-    await expect(page.locator('#redeem')).toContainText(/owed|unreadable/)
+    await expect(page.locator('#redeem')).toContainText(/held|unreadable/)
   })
 
   test('the secret never reaches the network, only its hash does', async ({ page }) => {

@@ -61,7 +61,7 @@ export interface BallotResponse {
   ballot: { proposalId: string; amount: string; claimed: boolean }
   proposal: { id: string; endBlock: number; eta: number; executed: boolean } | null
   head: number
-  escrow: { outstanding: string | null; held: string; token: string }
+  escrow: { outstanding: string | null; held: string | null; token: string }
 }
 
 /** Every route uses the same shape when it refuses. */

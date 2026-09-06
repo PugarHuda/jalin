@@ -343,7 +343,7 @@ test.describe('/api/ballot', () => {
     // is null against the governor deployed today, which predates that view -
     // and null is the point: reporting zero would read as "nothing is owed"
     // when what happened is that nobody can ask.
-    expect(BigInt(body.escrow.held)).toBeGreaterThanOrEqual(0n)
+    expect(body.escrow.held === null || BigInt(body.escrow.held) >= 0n).toBe(true)
     expect(body.escrow.outstanding === null || BigInt(body.escrow.outstanding) >= 0n).toBe(true)
     expect(body.head).toBeGreaterThan(13_000_000)
   })

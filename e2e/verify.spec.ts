@@ -175,6 +175,18 @@ test.describe('reading a whole submission', () => {
     await expect(page.locator('main')).not.toContainText('the sprint asks for three')
   })
 
+  test('an unreadable hub is not reported as an unregistered repository', async ({ page }) => {
+    await page.route('**/api/hub**', (route) => route.fulfill({ status: 502, json: {} }))
+
+    await page.getByLabel('owner/repo').fill('PugarHuda/jalin')
+    await page.getByRole('button', { name: 'Read it' }).click()
+
+    await expect(page.getByTestId('hub-error')).toBeVisible({ timeout: 30_000 })
+    await expect(page.getByTestId('hub-error')).toContainText('not the same as not being registered')
+    // And the panel that would have claimed a registration is absent, not empty.
+    await expect(page.getByTestId('hub-verdict')).toHaveCount(0)
+  })
+
   test('says so when the repository has no manifest', async ({ page }) => {
     await page.getByLabel('owner/repo').fill('PugarHuda/jalin@no-such-branch')
     await page.getByRole('button', { name: 'Read it' }).click()

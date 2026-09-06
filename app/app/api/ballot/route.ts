@@ -50,6 +50,26 @@ async function readOutstanding(): Promise<string | null> {
   }
 }
 
+/**
+ * A side figure gets a side figure's budget.
+ *
+ * `rpc` allows every call fifteen seconds, and the escrow pair is two of the
+ * four this route makes. Against a slow public node that is a lookup taking
+ * longer than the thirty seconds the browser test allows it - which is what
+ * happened on CI, twice, while the ballot itself was already in hand. The
+ * ballot and the head decide what the page can offer; the escrow only decorates
+ * it, so it is capped at five seconds and reported as unreadable when it does
+ * not arrive. Never invented, never allowed to hold the answer up.
+ */
+function withBudget<T>(work: Promise<T>, ms: number): Promise<T | null> {
+  return Promise.race([
+    work.catch(() => null),
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), ms)),
+  ])
+}
+
+const ESCROW_BUDGET_MS = 5_000
+
 export async function GET(request: Request) {
   const commitment = new URL(request.url).searchParams.get('commitment')
   if (!commitment || !/^0x[0-9a-fA-F]{1,64}$/.test(commitment)) {
@@ -72,16 +92,19 @@ export async function GET(request: Request) {
     const [rawBallot, head, outstanding, rawHeld] = await Promise.all([
       rpc.call(GOVERNOR_ADDRESS, 'get_ballot', [commitment], revalidate),
       rpc.blockNumber(revalidate),
-      readOutstanding(),
-      rpc.call(STRK, 'balanceOf', [GOVERNOR_ADDRESS], revalidate),
+      withBudget(readOutstanding(), ESCROW_BUDGET_MS),
+      withBudget(rpc.call(STRK, 'balanceOf', [GOVERNOR_ADDRESS], revalidate), ESCROW_BUDGET_MS),
     ])
 
     const ballot = decodeBallot(rawBallot)
     const escrow = {
-      outstanding,
+      outstanding: outstanding ?? null,
       // u256, low then high. The high word is not optional just because this
-      // balance is small today.
-      held: (BigInt(rawHeld[0]!) + (BigInt(rawHeld[1] ?? '0x0') << 128n)).toString(),
+      // balance is small today. Null when the read did not arrive inside its
+      // budget, which the page prints as unreadable rather than as zero.
+      held: rawHeld
+        ? (BigInt(rawHeld[0]!) + (BigInt(rawHeld[1] ?? '0x0') << 128n)).toString()
+        : null,
       token: STRK,
     }
 
