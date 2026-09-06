@@ -427,6 +427,21 @@ export default async function Landing() {
           takes a plan instead — any number of steps, any contract, any calldata — and runs it
           inside that single invoke.
         </p>
+        {/*
+          Said outright, because it is the thing that gets misread. Every other
+          project on this pool is an application: a payment app, a poker table,
+          a prediction market, each with its own helper contract. This is not an
+          application. It is the layer they would otherwise each write, and a
+          reader who takes it for one more privacy app has missed the argument.
+        */}
+        <p
+          className="lift mt-4 max-w-[60ch] font-mono text-sm leading-relaxed text-gold"
+          style={{ ['--delay' as string]: '220ms' }}
+        >
+          This is a router, not an application. It ships no use case of its own — it is the
+          contract the next private swap, vault deposit or bridge leg would otherwise each have
+          to write, audit and deploy separately.
+        </p>
 
         {/*
           The action comes before the diagram now. It used to sit under it, which

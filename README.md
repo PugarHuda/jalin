@@ -9,6 +9,12 @@ plan — anything reachable by a Starknet contract call — executed inside one
 `privacy_invoke`, with the resulting value credited straight back into shielded
 notes.
 
+**This is a router, not an application.** It ships no use case of its own. Every
+other project on this pool is an application with a helper contract behind it —
+a payment app, a poker table, a prediction market — and Jalin is the layer each
+of them would otherwise write, audit and deploy separately. If you are looking
+for the thing it does, the answer is: whatever the plan says.
+
 Swapping and staking are demonstrated on mainnet, through AVNU and Endur.
 Lending and bridging are the same object in the router's eyes and neither has
 been run, on mainnet or on a fork; where this README argues them, it is arguing
@@ -24,17 +30,17 @@ a shape rather than reporting a result.
 | **[Verify](https://jalin-five.vercel.app/verify)** | The sprint's own rule applied to any repository's `strk20.json`, including this one |
 | **[`strk20.json`](./strk20.json)** | Four mainnet transactions, two declared contracts |
 | **[`jalin-sdk`](https://www.npmjs.com/package/jalin-sdk)** | The plan encoder, published |
-| **[The three mainnet endpoints](./docs/strk20-endpoints.md)** | Prover, note discovery and the shadow-account anonymizer — each verified, each reported missing somewhere |
+| **[Governance](https://jalin-five.vercel.app/governance)** | What the router runs on, asked of the router itself — and a form that takes a ballot secret and gives the stake back |
+| **[The three mainnet endpoints](./docs/strk20-endpoints.md)** | Prover, note discovery and the shadow-account anonymizer — each verified, each reported missing somewhere, and now [checked live](https://jalin-five.vercel.app/verify) on every load |
 
 Every figure on every page is a live contract call, and `/verify` will tell you
-so about this repository as readily as any other. Two on the deck were not, until
-6 September: the contract count and the invariant count were string literals on
-slide 01, beside a sentence claiming nothing here is typed in. They are derived
-now - the configured addresses this app reads on every page, and the length of
-the invariant list both the landing page and the deck render - so neither can
-say a number the rest of the site disagrees with. What remains typed in is the
-starting floor on two composer presets, which is a form's default value rather
-than a claim, and the live quote beside it is read from the vault.
+so about this repository as readily as any other.
+
+Two on the deck were not, until 6 September: the contract count and the
+invariant count sat on slide 01 as string literals, beside a sentence claiming
+nothing here is typed in. Both are derived now. What is still typed in is the
+starting floor on two composer presets — a form's default value rather than a
+claim, with the live quote from the vault printed beside it.
 
 ---
 
