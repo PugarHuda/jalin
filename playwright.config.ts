@@ -82,7 +82,7 @@ export default defineConfig({
    *
    *   3 workers  suite fails outright
    *   2 workers  green, 2 flaky, browser job ~5-6 minutes
-   *   1 worker   green, 0 flaky, browser job ~9-10 minutes
+   *   1 worker   green, 0 then 1 flaky, browser job ~7-10 minutes
    *
    * Three minutes of runner time is worth less than a retry line nobody can
    * tell from a regression. Locally the machine is not shared and three is
@@ -123,7 +123,24 @@ export default defineConfig({
      */
     {
       name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
+      use: {
+        ...devices['Desktop Firefox'],
+        /**
+         * No persistent connections, for this browser, in this suite only.
+         *
+         * Raising the server's `--keepAliveTimeout` closed the window from one
+         * side and took a run to zero flaky tests; the next run had one again,
+         * the same shape it has had all along - `page.goto` consuming the whole
+         * timeout, the retry passing in seconds. Firefox is the only engine
+         * that does this, so this closes the window from the other side: a
+         * connection that is never reused is never reused after it was closed.
+         *
+         * It costs a TCP handshake per request against a server on loopback,
+         * and it is a test-harness setting - nothing here changes what the
+         * application sends or how a real browser talks to it.
+         */
+        launchOptions: { firefoxUserPrefs: { 'network.http.keep-alive': false } },
+      },
       testIgnore: [/api\.spec\.ts/, /params\.spec\.ts/, /ready\.spec\.ts/],
     },
     {
