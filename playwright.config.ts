@@ -72,22 +72,19 @@ export default defineConfig({
    * than staying a constant that happens to fit one laptop.
    */
   /**
-   * One on CI. The number has moved four times and the diagnosis never did, so
-   * this is the version that stops moving.
+   * Two on CI, which is where it was before a wrong diagnosis moved it to one.
    *
-   * Raising the ceiling is what settled it: at a two minute timeout the same
-   * Firefox test failed at 2.0 minutes, having failed at 1.0 with a one minute
-   * one, and passed in under two seconds on the retry. A page that is merely
-   * slow finishes when you wait longer. This one does not, because the wait is
-   * not the page - it is two browsers and a `next start` competing for the two
-   * cores `ubuntu-latest` has, and a third of the render never gets scheduled.
+   * The Firefox hang that prompted the change was blamed on `ubuntu-latest`
+   * having two cores, and dropping to a single worker did reduce it - from four
+   * flaky tests to two - which read as confirmation. It was not: the same hang
+   * survived on one worker, on a `domcontentloaded` navigation, to a page that
+   * does no server reads. The cause was the keep-alive window below, and with
+   * that closed a two-worker run finished with nothing flaky at all.
    *
-   * Everything cheaper was tried first and kept: the event walks have budgets,
-   * the independent reads overlap, a stalled chunk retries, every page is warm
-   * before the suite starts. Those made the render honest. This makes the
-   * machine able to run it. The suite takes longer and stops lying.
+   * Two rather than three because three genuinely did saturate this runner, and
+   * that finding was never in doubt - it failed the same way twice in a row.
    */
-  workers: process.env.CI ? 1 : 3,
+  workers: process.env.CI ? 2 : 3,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [['github'], ['list']] : [['list']],
