@@ -30,6 +30,12 @@ export default defineConfig({
   fullyParallel: true,
 
   /**
+   * Pay for every page's first server render before the suite starts, so no
+   * test is the one that waits on a cold read of the chain. See e2e/warm.ts.
+   */
+  globalSetup: './e2e/warm.ts',
+
+  /**
    * Four, against a default of half the cores.
    *
    * One `next start` process serves all of them, and behind most requests is a
