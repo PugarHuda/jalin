@@ -2,6 +2,7 @@ import 'server-only'
 import { unstable_rethrow } from 'next/navigation'
 import { hash, num } from 'starknet'
 import {
+  CELL_BLOCKS,
   countDepositors,
   measureCells,
   measurePeriods,
@@ -12,7 +13,7 @@ import {
   type PoolEvent,
 } from 'jalin-sdk'
 import { POOL_ADDRESS } from './config'
-import { rpc } from './rpc'
+import { rpc, secondsPerBlock } from './rpc'
 
 /**
  * Reads the pool's deposits and counts the crowd.
@@ -66,6 +67,8 @@ const DEPOSIT_SCAN_BUDGET_MS = 20_000
 
 export interface CrowdReading extends Crowd {
   windowBlocks: number
+  /** Blocks per six-hour cell, measured at read time. See `DepositReading`. */
+  cellBlocks: number
   head: number
   /**
    * True when the page cap was reached and there were still events left. The
@@ -89,7 +92,22 @@ export interface DepositReading {
   head: number
   truncated: boolean
   feeCollector?: string
+  /**
+   * How many blocks six hours is, at the block time measured now.
+   *
+   * The SDK's `CELL_BLOCKS` is 12,888, documented as "~6 hours at Starknet
+   * mainnet's measured 1.68s" - the exact figure `docs/what-mainnet-says.md`
+   * spends twenty lines disproving, having watched it drift to 1.70 and 1.72
+   * over a week. Every cell boundary in the anonymity model was built on it, so
+   * the model that says who hides whom was about 1% out and drifting. The width
+   * is read from the chain now, the same way the composer already reads block
+   * time to say "about N minutes".
+   */
+  cellBlocks: number
 }
+
+/** Six hours, which is the window an observer of a public deposit leg gets. */
+const CELL_SECONDS = 6 * 60 * 60
 
 /** Every Deposit in the window, read once so callers do not each fetch them. */
 export async function readDeposits(revalidate = 300): Promise<DepositReading | null> {
@@ -160,7 +178,14 @@ export async function readDeposits(revalidate = 300): Promise<DepositReading | n
     }
     const truncated = stalled || Boolean(token)
 
-    return { events, head, truncated, feeCollector: collector?.[0] }
+    // Measured over 20,000 blocks by `secondsPerBlock`, because short samples
+    // are jitter. A node that will not answer leaves the SDK's constant, which
+    // is the same number this has always used rather than an invention.
+    const seconds = await secondsPerBlock(head, revalidate).catch(() => null)
+    const cellBlocks =
+      seconds && seconds > 0 ? Math.max(1, Math.round(CELL_SECONDS / seconds)) : CELL_BLOCKS
+
+    return { events, head, truncated, cellBlocks, feeCollector: collector?.[0] }
   } catch (error) {
     // Next signals "this route is dynamic" by throwing. Swallowing that leaves
     // it thinking the page is static, and it ships this function's failure
@@ -180,14 +205,15 @@ export async function readCrowd(revalidate = 300): Promise<CrowdReading | null> 
     feeCollector: reading.feeCollector,
   })
 
-  const cells = measureCells(reading.events)
+  const cells = measureCells(reading.events, reading.cellBlocks)
 
   return {
     ...crowd,
     windowBlocks: CROWD_WINDOW_BLOCKS,
+    cellBlocks: reading.cellBlocks,
     head: reading.head,
     truncated: reading.truncated,
     cells: summariseCells(cells),
-    periods: measurePeriods(cells),
+    periods: measurePeriods(cells, reading.cellBlocks),
   }
 }

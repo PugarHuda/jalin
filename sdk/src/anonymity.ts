@@ -15,7 +15,17 @@ import type { PoolEvent } from './crowd.ts'
  * equal participants give exactly 4, and the lopsided four give about 1.2.
  */
 
-/** ~6 hours at Starknet mainnet's measured 1.68s per block. */
+/**
+ * ~6 hours, at 1.68s per block.
+ *
+ * A default, and the callers that matter no longer take it: `app/lib/crowd-source.ts`
+ * measures the block time at read time and passes the width in, because 1.68
+ * is the figure this project's own findings disprove - it read 1.70 over
+ * 200,000 blocks and 1.72 over 2,000 a week later, and every cell boundary
+ * built on the stale number is out by about a percent and drifting. Kept for
+ * callers with no chain access, where a documented approximation beats a
+ * required argument they cannot answer.
+ */
 export const CELL_BLOCKS = 12_888
 
 export interface Cell {

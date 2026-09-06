@@ -39,6 +39,14 @@ now measures over 20,000 blocks on every read (`/api/params` →
 `secondsPerBlock`) and says blocks alone when the node will not give it two
 timestamps, rather than minutes from a number nobody checked.
 
+This page took six days to apply its own finding to the anonymity model. The
+cell an observer of a public deposit leg can group by is six hours wide, and six
+hours was compiled in as 12,888 blocks — 1.68s, the number above. Every cell
+boundary, and so every headcount and effective set this project reports, was
+built on the figure these measurements disprove. `/api/crowd` measures the width
+the same way as of 6 September and passes it to the model, so the crowd figures
+and the per-deposit prospect are computed over the same, current, cell.
+
 ## You cannot shield and spend in the same transaction
 
 The obvious way to onboard somebody in one step is a deposit action followed by

@@ -364,6 +364,38 @@ test.describe('/api/ballot', () => {
  * makes it worth having: a service that is down is reported as down rather than
  * taking the panel with it, because the panel exists to say which.
  */
+test.describe('the anonymity cell', () => {
+  test('is six hours of the block time measured now, not of a remembered one', async ({
+    request,
+  }) => {
+    const crowd = await json<CrowdResponse & { cellBlocks: number }>(
+      await request.get('/api/crowd'),
+    )
+
+    // Six hours at anything Starknet has actually run at. 1.68s gives 12,857
+    // and 1.75s gives 12,343; the SDK's constant of 12,888 sits inside this and
+    // so does every measurement in docs/what-mainnet-says.md. A cell width
+    // outside it means the block-time read is wrong, not that the chain is.
+    expect(crowd.cellBlocks).toBeGreaterThan(11_000)
+    expect(crowd.cellBlocks).toBeLessThan(14_500)
+  })
+
+  test('the prospect and the crowd are measured over the same cell', async ({ request }) => {
+    const crowd = await json<CrowdResponse & { cellBlocks: number }>(
+      await request.get('/api/crowd'),
+    )
+    const prospect = await json<ProspectResponse & { cellBlocks: number }>(
+      await request.get(
+        '/api/crowd?asset=0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d&amount=1000000000000000000',
+      ),
+    )
+
+    // Two answers computed over different windows are two answers to different
+    // questions, presented side by side as if they agreed.
+    expect(prospect.blocksLeftInCell).toBeLessThanOrEqual(crowd.cellBlocks)
+  })
+})
+
 test.describe('/api/services', () => {
   interface ServicesResponse {
     prover: { name: string; url: string; ok: boolean; detail: string | null }

@@ -35,7 +35,14 @@ export async function GET(request: Request) {
   if (!reading) return Response.json({ error: 'pool unreachable' }, { status: 502 })
 
   return cached(
-    prospectFor(reading.events, { asset, amount: BigInt(amount), atBlock: reading.head }),
+    prospectFor(
+      reading.events,
+      { asset, amount: BigInt(amount), atBlock: reading.head },
+      // The same measured cell width the crowd figures use. A prospect computed
+      // over a different window than the crowd it is compared against is two
+      // answers to one question.
+      reading.cellBlocks,
+    ),
     revalidate,
   )
 }
