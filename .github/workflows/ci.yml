@@ -15,8 +15,8 @@ jobs:
     name: sdk
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
       # The SDK ships TypeScript with explicit .ts specifiers so node runs it
@@ -48,8 +48,8 @@ jobs:
     name: app builds
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
       - run: npm install --no-audit --no-fund
@@ -72,8 +72,8 @@ jobs:
       ROUTER_ADDRESS: '0x008498d79ca390b34a6416cc45fb375ad9b921eefd8d4531d99a2d775feb3a7e'
       GOVERNOR_ADDRESS: '0x05bd985e794aee4c12d529ab50a68e5a40c7e28a36642b2b8e2ccdb373346984'
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
       - run: npm install --no-audit --no-fund
@@ -105,7 +105,7 @@ jobs:
             http://127.0.0.1:3100/governance \
             http://127.0.0.1:3100/verify
           npx -y impeccable@4.0.3 detect --viewport 390x844 http://127.0.0.1:3100/compose
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: playwright-report
@@ -121,7 +121,7 @@ jobs:
       USC_VERSION: 2.10.0
       COVERAGE_VERSION: 0.6.1
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Pinned to the same versions as contracts/Dockerfile. A class hash is a
       # function of the compiler, so an unpinned toolchain would quietly produce
