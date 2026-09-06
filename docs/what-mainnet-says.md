@@ -5,8 +5,15 @@ with the query that produced it. Written down because every one of them cost a
 wrong assumption first, and because the sprint's other teams are hitting the
 same walls.
 
-All figures are over the pool's life — a 600,000 block window ending at the head
-on 26 August 2026, which is roughly eleven days at the measured block time.
+All figures are over a 600,000 block window ending at the head on 26 August 2026,
+which is roughly eleven days at the measured block time. That is not the pool's
+life, though this line said it was until 6 September: the pool's contract has
+been on chain since block 8,978,970, and by 6 September the head was 14,443,446
+— five and a half million blocks, of which this window is the last eleven days.
+Counted from the deployment block instead, the pool holds at least 994 deposits
+from 699 addresses, and the ten-page walk runs out before it finishes counting.
+The window is deliberate, because the crowd a deposit hides in is a recent
+crowd; calling it the whole history was not.
 
 ## Block time is about 1.7 seconds, and a short sample lies
 
