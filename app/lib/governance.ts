@@ -64,6 +64,16 @@ export interface Governance {
    * balances, and neither can this.
    */
   stuck: Stuck[]
+  /**
+   * Tokens whose balance could not be read at all, by symbol.
+   *
+   * Separate from `stuck` because an empty `stuck` is a claim - "nothing is
+   * wedged" - and a failed read is not evidence for it. The two were the same
+   * value here: a `balanceOf` that threw was mapped to null, filtered out, and
+   * the page then printed "Nothing stuck. Checked against the 6 tokens this app
+   * knows" having checked fewer.
+   */
+  unreadable: string[]
   params: RouterParams
   proposals: Proposal[]
   /** eta - endBlock, taken from a real proposal rather than from a config file. */
@@ -195,12 +205,14 @@ export async function readGovernance(revalidate = 60): Promise<Governance | null
               )
               return { token, amount: u(balance[0]) + (u(balance[1]) << 128n) }
             } catch {
-              // One unreadable token must not take the whole page with it.
-              return null
+              // One unreadable token must not take the whole page with it - but
+              // it must not vanish either. The symbol travels so the page can
+              // name what it did not manage to check.
+              return { token, amount: null }
             }
           }),
         )
-      : Promise.resolve([] as ({ token: (typeof TOKENS)[number]; amount: bigint } | null)[])
+      : Promise.resolve([] as { token: (typeof TOKENS)[number]; amount: bigint | null }[])
 
     const endBlocks = raws.map((raw) => Number(u(raw[4])))
     const proposedAt = new Map<number, number>()
@@ -286,18 +298,23 @@ export async function readGovernance(revalidate = 60): Promise<Governance | null
     const balances = await balancesPromise
 
     const stuck: Stuck[] = balances
-      .filter((entry) => entry !== null && entry.amount > 0n)
+      .filter((entry) => entry.amount !== null && entry.amount > 0n)
       .map((entry) => ({
-        symbol: entry!.token.symbol,
-        address: entry!.token.address,
-        amount: entry!.amount,
-        decimals: entry!.token.decimals,
+        symbol: entry.token.symbol,
+        address: entry.token.address,
+        amount: entry.amount!,
+        decimals: entry.token.decimals,
       }))
+
+    const unreadable = balances
+      .filter((entry) => entry.amount === null)
+      .map((entry) => entry.token.symbol)
 
     const sample = proposals[0]
     return {
       head,
       stuck,
+      unreadable,
       params,
       proposals: proposals.reverse(),
       timelockBlocks: sample ? sample.eta - sample.endBlock : null,

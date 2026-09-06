@@ -202,9 +202,16 @@ export default async function Governance() {
 
             {governance.stuck.length === 0 ? (
               <p className="mt-3 max-w-[62ch] font-mono text-xs text-hidden">
-                Nothing stuck. Checked against the {TOKENS.length} tokens this app knows — a
-                contract cannot enumerate its own balances and neither can this page, so a token
-                it has never heard of would not show up here.
+                Nothing stuck in the{' '}
+                {TOKENS.length - governance.unreadable.length} of {TOKENS.length} tokens this page
+                could read
+                {governance.unreadable.length > 0
+                  ? `. ${governance.unreadable.join(', ')} did not answer, so ${
+                      governance.unreadable.length === 1 ? 'that one is' : 'those are'
+                    } unchecked rather than clear`
+                  : ''}
+                . A contract cannot enumerate its own balances and neither can this page, so a
+                token it has never heard of would not show up here either.
               </p>
             ) : (
               <ul className="mt-3 space-y-3">

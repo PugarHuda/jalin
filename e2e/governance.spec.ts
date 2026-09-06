@@ -131,11 +131,11 @@ test.describe('stuck balances', () => {
   test('reports nothing stuck, and says what it checked', async ({ page }) => {
     await page.goto('/governance', { waitUntil: 'domcontentloaded' })
 
-    // The router holds nothing today. The claim has to name its own blind spot:
-    // a contract cannot enumerate its own balances, so this covers only the
-    // tokens the app knows.
-    await expect(page.getByText('Nothing stuck.')).toBeVisible()
-    await expect(page.locator('main')).toContainText(/tokens this app knows/)
+    // The router holds nothing today. The claim has to name both of its blind
+    // spots: a contract cannot enumerate its own balances, and a token whose
+    // balanceOf failed is unchecked rather than clear.
+    await expect(page.locator('main')).toContainText(/Nothing stuck in the \d+ of \d+ tokens/)
+    await expect(page.locator('main')).toContainText(/never heard of/)
     await expect(page.getByRole('button', { name: /^Sweep / })).toHaveCount(0)
   })
 
@@ -167,7 +167,8 @@ test.describe('redeeming a ballot stake', () => {
     await page.getByLabel('Ballot secret').fill(UNUSED_SECRET)
     await page.getByRole('button', { name: 'Look it up' }).click()
 
-    await expect(page.getByTestId('ballot-stage')).toContainText('No ballot')
+    // Four chain reads behind one click, and CI's node is a public one.
+    await expect(page.getByTestId('ballot-stage')).toContainText('No ballot', { timeout: 30_000 })
     // Nothing to redeem, so nothing is offered. A disabled button that reverts
     // on click is the thing this replaces.
     await expect(page.getByRole('button', { name: /^Redeem / })).toHaveCount(0)
@@ -187,7 +188,7 @@ test.describe('redeeming a ballot stake', () => {
     await settled(page)
     await page.getByLabel('Ballot secret').fill(UNUSED_SECRET)
     await page.getByRole('button', { name: 'Look it up' }).click()
-    await expect(page.getByTestId('ballot-stage')).toBeVisible()
+    await expect(page.getByTestId('ballot-stage')).toBeVisible({ timeout: 30_000 })
 
     expect(secretsSeen, 'the secret is a bearer instrument and left this machine').toEqual([])
   })
@@ -215,7 +216,7 @@ test.describe('redeeming a ballot stake', () => {
 
     await page.getByLabel('Ballot secret').fill(UNUSED_SECRET)
     await page.getByRole('button', { name: 'Look it up' }).click()
-    await expect(page.getByTestId('ballot-stage')).toBeVisible()
+    await expect(page.getByTestId('ballot-stage')).toBeVisible({ timeout: 30_000 })
 
     // The deployed governor predates `outstanding()`. Either the page prints
     // what is owed, or it says why it cannot - never a zero standing in for an
