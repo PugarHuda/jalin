@@ -94,12 +94,18 @@ export interface DepositReading {
 /** Every Deposit in the window, read once so callers do not each fetch them. */
 export async function readDeposits(revalidate = 300): Promise<DepositReading | null> {
   try {
-    const head = await rpc.blockNumber(revalidate)
-    const selector = num.toHex(hash.starknetKeccak('Deposit'))
-
-    // Read the fee collector rather than hardcoding it, so the exclusion stays
+    // Together, because neither needs the other and each is allowed fifteen
+    // seconds on its own. In series they were the first half of a render that
+    // had to finish inside a sixty second `page.goto`, and on Firefox it
+    // repeatedly did not.
+    //
+    // The fee collector is read rather than hardcoded, so the exclusion stays
     // right if governance moves it.
-    const collector = await rpc.call(POOL_ADDRESS, 'get_fee_collector', [], revalidate)
+    const [head, collector] = await Promise.all([
+      rpc.blockNumber(revalidate),
+      rpc.call(POOL_ADDRESS, 'get_fee_collector', [], revalidate),
+    ])
+    const selector = num.toHex(hash.starknetKeccak('Deposit'))
 
     const events: PoolEvent[] = []
     let token: string | undefined

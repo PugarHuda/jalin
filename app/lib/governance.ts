@@ -171,6 +171,37 @@ export async function readGovernance(revalidate = 60): Promise<Governance | null
     // Paginated, because a wide range returns an empty first chunk and a
     // continuation token rather than the events. Reading only that chunk is how
     // this quietly answered "no proposals were ever made".
+    /**
+     * Started here, awaited below, because it needs nothing the event walk
+     * produces and the walk is the slowest thing on this page. In series the
+     * two of them plus the reads above added up to a render that could reach
+     * the sixty seconds `page.goto` allows it, which is the timeout this
+     * suite's Firefox failures keep landing on.
+     *
+     * The first proposal, not the newest, because `proposals` is reversed
+     * below. A donation to the router wedges every future plan touching that
+     * token. The threat model describes the escape hatch; this is what makes it
+     * reachable, and reads zero when there is nothing to reach for.
+     */
+    const balancesPromise = ROUTER_ADDRESS
+      ? Promise.all(
+          TOKENS.map(async (token) => {
+            try {
+              const balance = await rpc.call(
+                token.address,
+                'balanceOf',
+                [ROUTER_ADDRESS],
+                revalidate,
+              )
+              return { token, amount: u(balance[0]) + (u(balance[1]) << 128n) }
+            } catch {
+              // One unreadable token must not take the whole page with it.
+              return null
+            }
+          }),
+        )
+      : Promise.resolve([] as ({ token: (typeof TOKENS)[number]; amount: bigint } | null)[])
+
     const endBlocks = raws.map((raw) => Number(u(raw[4])))
     const proposedAt = new Map<number, number>()
 
@@ -252,28 +283,7 @@ export async function readGovernance(revalidate = 60): Promise<Governance | null
       })
     }
 
-    // The first proposal, not the newest, because `proposals` is reversed below.
-    // A donation to the router wedges every future plan touching that token.
-    // The threat model describes the escape hatch; this is what makes it
-    // reachable, and reads zero when there is nothing to reach for.
-    const balances = ROUTER_ADDRESS
-      ? await Promise.all(
-          TOKENS.map(async (token) => {
-            try {
-              const balance = await rpc.call(
-                token.address,
-                'balanceOf',
-                [ROUTER_ADDRESS],
-                revalidate,
-              )
-              return { token, amount: u(balance[0]) + (u(balance[1]) << 128n) }
-            } catch {
-              // One unreadable token must not take the whole page with it.
-              return null
-            }
-          }),
-        )
-      : []
+    const balances = await balancesPromise
 
     const stuck: Stuck[] = balances
       .filter((entry) => entry !== null && entry.amount > 0n)
