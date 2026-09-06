@@ -32,6 +32,21 @@ test.describe('governance', () => {
     await expect(page.locator('main')).toContainText('JALIN_ROUTER')
   })
 
+  /**
+   * The trust chain, asked rather than configured.
+   *
+   * Everything on this page is the governor's answer, and until this was read
+   * the only evidence the router listens to that governor was an environment
+   * variable. `router.governor()` has existed since the first deploy and was
+   * read by nothing; the deploying doc told a human to check it by hand.
+   */
+  test('the router is asked which governor it reads', async ({ page }) => {
+    await expect(page.getByTestId('bond')).toBeVisible()
+    await expect(page.getByTestId('bond')).toContainText(
+      /this governor|not the governor|unreadable/,
+    )
+  })
+
   test('says why a proposal cannot execute rather than only that it cannot', async ({ page }) => {
     await expect(page.getByText(/rejected · nobody voted/)).toBeVisible()
   })
@@ -172,6 +187,13 @@ test.describe('redeeming a ballot stake', () => {
     // Nothing to redeem, so nothing is offered. A disabled button that reverts
     // on click is the thing this replaces.
     await expect(page.getByRole('button', { name: /^Redeem / })).toHaveCount(0)
+
+    // The escrow, from the same lookup rather than from another one. The
+    // deployed governor predates `outstanding()`, so either the page prints
+    // what is owed or it says why it cannot - never a zero standing in for an
+    // unanswerable question.
+    await expect(page.locator('#redeem')).toContainText(/held/)
+    await expect(page.locator('#redeem')).toContainText(/owed|unreadable/)
   })
 
   test('the secret never reaches the network, only its hash does', async ({ page }) => {
@@ -208,20 +230,5 @@ test.describe('redeeming a ballot stake', () => {
     // Scoped to the panel: Next's own route announcer is also role="alert".
     await expect(page.locator('#redeem').getByRole('alert')).toContainText('felt')
     expect(asked).toBe(0)
-  })
-
-  test('says what the governor can and cannot report about its own escrow', async ({ page }) => {
-    await page.goto('/governance', { waitUntil: 'domcontentloaded' })
-    await settled(page)
-
-    await page.getByLabel('Ballot secret').fill(UNUSED_SECRET)
-    await page.getByRole('button', { name: 'Look it up' }).click()
-    await expect(page.getByTestId('ballot-stage')).toBeVisible({ timeout: 30_000 })
-
-    // The deployed governor predates `outstanding()`. Either the page prints
-    // what is owed, or it says why it cannot - never a zero standing in for an
-    // unanswerable question.
-    await expect(page.locator('#redeem')).toContainText(/held/)
-    await expect(page.locator('#redeem')).toContainText(/owed|unreadable/)
   })
 })

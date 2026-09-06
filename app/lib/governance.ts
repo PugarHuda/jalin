@@ -74,6 +74,21 @@ export interface Governance {
    * knows" having checked fewer.
    */
   unreadable: string[]
+  /**
+   * The governor the router actually reads, from `router.governor()`, and the
+   * label the governor has applied to the router, from `label_of`.
+   *
+   * Both entrypoints existed and neither was read by anything. The first is the
+   * whole trust chain of this page in one felt: everything below is the
+   * governor's answer, and until this was read there was nothing but an
+   * environment variable saying the router listens to it. `docs/deploying.md`
+   * told a human to check it by hand with sncast.
+   *
+   * The label is the other half. `LABEL` is the default kind in the propose
+   * form, so it is the most likely proposal a visitor makes, and the applied
+   * label was written into storage that no surface displayed.
+   */
+  bond: { governor: string | null; matches: boolean | null; label: string | null }
   params: RouterParams
   proposals: Proposal[]
   /** eta - endBlock, taken from a real proposal rather than from a config file. */
@@ -138,11 +153,27 @@ export async function readGovernance(revalidate = 60): Promise<Governance | null
   if (!GOVERNOR_ADDRESS) return null
 
   try {
-    const [head, rawParams, rawCount] = await Promise.all([
+    const [head, rawParams, rawCount, rawBond, rawLabel] = await Promise.all([
       rpc.blockNumber(revalidate),
       rpc.call(GOVERNOR_ADDRESS, 'params', [], revalidate),
       rpc.call(GOVERNOR_ADDRESS, 'proposal_count', [], revalidate),
+      // Both optional: a router that is not deployed, or a governor class
+      // without these views, is a page with one less fact rather than no page.
+      ROUTER_ADDRESS
+        ? rpc.call(ROUTER_ADDRESS, 'governor', [], revalidate).catch(() => null)
+        : Promise.resolve(null),
+      ROUTER_ADDRESS
+        ? rpc.call(GOVERNOR_ADDRESS, 'label_of', [ROUTER_ADDRESS], revalidate).catch(() => null)
+        : Promise.resolve(null),
     ])
+
+    const bondGovernor = rawBond?.[0] ? num.toHex(u(rawBond[0])) : null
+    const labelFelt = rawLabel?.[0] ? u(rawLabel[0]) : 0n
+    const bond = {
+      governor: bondGovernor,
+      matches: bondGovernor === null ? null : BigInt(bondGovernor) === BigInt(GOVERNOR_ADDRESS),
+      label: labelFelt === 0n ? null : readShortString(num.toHex(labelFelt)),
+    }
 
     const params: RouterParams = {
       paused: u(rawParams[0]) !== 0n,
@@ -315,6 +346,7 @@ export async function readGovernance(revalidate = 60): Promise<Governance | null
       head,
       stuck,
       unreadable,
+      bond,
       params,
       proposals: proposals.reverse(),
       timelockBlocks: sample ? sample.eta - sample.endBlock : null,

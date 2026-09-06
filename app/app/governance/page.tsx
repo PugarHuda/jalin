@@ -137,6 +137,32 @@ export default async function Governance() {
               </dd>
               <dt className="text-muted">fee recipient</dt>
               <dd className="break-all">{label(governance.params.feeRecipient)}</dd>
+              <dt className="text-muted">router reads</dt>
+              <dd className="break-all" data-testid="bond">
+                {governance.bond.governor === null ? (
+                  <span className="text-muted">
+                    unreadable — the router did not answer <span className="font-mono">governor()</span>
+                  </span>
+                ) : governance.bond.matches ? (
+                  <span className="text-hidden">
+                    this governor — asked of the router, not taken from a config file
+                  </span>
+                ) : (
+                  <span className="text-warn">
+                    {label(governance.bond.governor)} — not the governor this page is reading. Every
+                    parameter above belongs to a contract the router does not listen to.
+                  </span>
+                )}
+              </dd>
+              {governance.bond.label && (
+                <>
+                  <dt className="text-muted">router label</dt>
+                  <dd>
+                    {governance.bond.label} — applied by a vote, read back from{' '}
+                    <span className="font-mono">label_of</span>
+                  </dd>
+                </>
+              )}
               {governance.votingBlocks !== null && (
                 <>
                   <dt className="text-muted">voting window</dt>
