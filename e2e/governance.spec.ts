@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { settled } from './settled'
+import { isCancelledSameOrigin, settled } from './settled'
 
 const ROUTER = '0x008498d79ca390b34a6416cc45fb375ad9b921eefd8d4531d99a2d775feb3a7e'
 
@@ -95,7 +95,7 @@ test.describe('governance', () => {
   test('renders without a console error', async ({ page }) => {
     const errors: string[] = []
     page.on('console', (m) => {
-      if (m.type() === 'error') errors.push(m.text())
+      if (m.type() === 'error' && !isCancelledSameOrigin(m.text())) errors.push(m.text())
     })
     page.on('pageerror', (e) => errors.push(String(e)))
 

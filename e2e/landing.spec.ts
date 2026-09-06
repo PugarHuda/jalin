@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { json, type CrowdResponse } from './api-types'
-import { settled } from './settled'
+import { isCancelledSameOrigin, settled } from './settled'
 
 test.describe('landing', () => {
   test('states the thesis and names the pool it plugs into', async ({ page }) => {
@@ -51,7 +51,8 @@ test.describe('landing', () => {
   test('renders without a console error', async ({ page }) => {
     const errors: string[] = []
     page.on('console', (message) => {
-      if (message.type() === 'error') errors.push(message.text())
+      if (message.type() === 'error' && !isCancelledSameOrigin(message.text()))
+        errors.push(message.text())
     })
     page.on('pageerror', (error) => errors.push(String(error)))
 

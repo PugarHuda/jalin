@@ -24,3 +24,28 @@ export async function settled(page: Page): Promise<void> {
   // that watches React state never enables.
   await page.waitForFunction(() => document.documentElement.dataset.hydrated === 'true')
 }
+
+/**
+ * A same-origin request WebKit cancelled, which it reports at console.error in
+ * the words of a CORS failure: "Fetch API cannot load <our own url> due to
+ * access control checks". It is neither CORS nor an error. Two things produce
+ * it: the composer aborting in-flight reads because the plan changed under
+ * them, which is the behaviour its effects are written to have, and Next
+ * cancelling the header's link prefetches when a click interrupts them. A busy
+ * `next start` makes the second one common, which is why this arrived as a
+ * flake on a two-core runner rather than as a bug.
+ *
+ * Lived in composer.spec.ts and was matched with `startsWith`/`endsWith`, which
+ * is how /governance kept failing on a message /compose already knew to ignore
+ * and how the composer's own copy still fired: whatever WebKit puts around the
+ * text does not survive being pinned at both ends. This matches the two stable
+ * phrases and requires our own host between them, so a real access-control
+ * failure against somebody else's host still fails the test.
+ */
+export function isCancelledSameOrigin(text: string): boolean {
+  return (
+    text.includes('Fetch API cannot load') &&
+    text.includes('due to access control checks') &&
+    (text.includes('127.0.0.1:') || text.includes('localhost:'))
+  )
+}

@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { json, type ParamsResponse } from './api-types'
-import { settled } from './settled'
+import { isCancelledSameOrigin, settled } from './settled'
 
 const ENDUR_VAULT = '0x28d709c875c0ceac3dce7065bec5328186dc89fe254527084d1689910954b0a'
 
@@ -209,42 +209,11 @@ test.describe('composer', () => {
     await expect(page.getByTestId('split-error')).toHaveCount(0)
   })
 
-  /**
-   * WebKit reports a cancelled request at console.error, with the text of a CORS
-   * failure: "Fetch API cannot load <same-origin url> due to access control
-   * checks". It is neither CORS nor an error - it is the composer aborting three
-   * in-flight reads because the plan changed under them, which is the behaviour
-   * the effects are written to have.
-   *
-   * The alternative was to stop handing the signal to `fetch`, and the comment
-   * beside those effects records why that is not better: without it WebKit logs
-   * the abandoned fetch on navigation instead. It logs either way, so the
-   * assertion is what has to learn the difference.
-   *
-   * Not only our own reads. Adding /slides to the header gave Next a fourth link
-   * to prefetch, and a preset click cancels those too - the first version of this
-   * filter matched `/api/` and missed `/?_rsc=`, `/slides?_rsc=` and the rest,
-   * which is how it passed in isolation and failed in a full run. The origin is
-   * what has to match, not the path: a real access-control failure against
-   * somebody else's host still fails this test.
-   */
-  /**
-   * Matched on its ends rather than with a pattern over the whole line. The
-   * first attempt was a regex and it never fired: the runs that passed were the
-   * runs where nothing happened to be in flight, which read as a fix for two
-   * rounds. Whatever WebKit puts between "load" and the host does not survive
-   * being guessed at, so this checks the two stable ends and requires our own
-   * host in the middle.
-   */
-  const cancelledSameOrigin = (text: string) =>
-    text.startsWith('Fetch API cannot load') &&
-    text.endsWith('due to access control checks.') &&
-    (text.includes('127.0.0.1:') || text.includes('localhost:'))
 
   test('renders without a console error', async ({ page }) => {
     const errors: string[] = []
     page.on('console', (m) => {
-      if (m.type() === 'error' && !cancelledSameOrigin(m.text())) errors.push(m.text())
+      if (m.type() === 'error' && !isCancelledSameOrigin(m.text())) errors.push(m.text())
     })
     page.on('pageerror', (e) => errors.push(String(e)))
 
