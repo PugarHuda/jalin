@@ -89,29 +89,50 @@ test('navigation between pages does not reload the document', async ({ page }) =
   expect(survived, 'the document was replaced, so these were full page loads').toBe(true)
 })
 
-test('the trend plots time, not sample order', async ({ page }) => {
+test('the trend plots time, not sample order', async ({ page, request }) => {
   await page.goto('/', { waitUntil: 'domcontentloaded' })
   await settled(page)
 
-  // Windows with no deposits are absent from the series. Spacing points evenly
-  // would draw those quiet stretches as if no time passed - the one thing a
-  // chart about a trend over time must not do.
-  const spacing = await page.evaluate(() => {
+  const xs = await page.evaluate(() => {
     const path = document.querySelector('figure svg path')
     if (!path) return null
-
-    const xs = (path.getAttribute('d') ?? '')
+    return (path.getAttribute('d') ?? '')
       .split(/[ML]\s*/)
       .filter(Boolean)
       .map((pair) => Number(pair.trim().split(/\s+/)[0]))
-
-    const gaps = xs.slice(1).map((value, i) => Number((value - xs[i]!).toFixed(1)))
-    return { points: xs.length, distinct: new Set(gaps).size }
   })
 
-  expect(spacing, 'the chart should be on the page').not.toBeNull()
-  expect(spacing!.points).toBeGreaterThan(3)
-  // Evenly spaced points would give exactly one distinct gap. Real data has
-  // two missing windows in forty-four, so there is more than one.
-  expect(spacing!.distinct).toBeGreaterThan(1)
+  expect(xs, 'the chart should be on the page').not.toBeNull()
+  expect(xs!.length).toBeGreaterThan(3)
+
+  /**
+   * Each point sits where its block says, not where its turn says.
+   *
+   * This used to assert that the gaps were uneven, on the reasoning that two
+   * windows in forty-four had no deposits. That is a fact about the pool on one
+   * afternoon, not about the chart: measure the cell width from the chain and
+   * the quiet windows can fall differently, and a run where every window
+   * happens to be occupied failed a chart that was drawing exactly what it
+   * should. The property is that x is a function of `fromBlock`, and it holds
+   * whether or not the data has holes.
+   */
+  const { periods } = await json<CrowdResponse & { periods: { fromBlock: number }[] }>(
+    await request.get('/api/crowd'),
+  )
+  test.skip(periods.length !== xs!.length, 'the page and this read saw different windows')
+
+  const blockSpan = periods[periods.length - 1]!.fromBlock - periods[0]!.fromBlock
+  const pixelSpan = xs![xs!.length - 1]! - xs![0]!
+  test.skip(blockSpan === 0 || pixelSpan === 0, 'a single window has nothing to scale')
+
+  for (const [index, period] of periods.entries()) {
+    const expected =
+      xs![0]! + ((period.fromBlock - periods[0]!.fromBlock) / blockSpan) * pixelSpan
+    // A point placed by its index rather than its block would be off by a whole
+    // gap wherever a window is missing; half a percent of the width is far
+    // tighter than that and loose enough for rounding in the path data.
+    expect(Math.abs(xs![index]! - expected), `point ${index}`).toBeLessThan(
+      Math.abs(pixelSpan) * 0.005 + 0.5,
+    )
+  }
 })
