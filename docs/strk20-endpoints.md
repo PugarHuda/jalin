@@ -8,6 +8,12 @@ missing endpoint excused leaving part of an integration unbuilt.
 Nothing here was published in response to anyone asking. They were already
 public, in places nobody thought to read.
 
+Since 6 September the claim is not a snapshot: [`/verify`](https://jalin-five.vercel.app/verify)
+asks all three on every load through `/api/services` and prints what each one
+answered, including discovery's own lag — the number that decides whether a note
+created a moment ago is findable yet. A service that stops answering stops being
+vouched for by this project.
+
 ## Proving service
 
 ```

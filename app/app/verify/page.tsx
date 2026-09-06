@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { REPO } from '@/lib/config'
+import { Services } from './services'
 import { SiteNav } from '../wordmark'
 
 /**
@@ -430,6 +431,8 @@ export default function Verify() {
           </ul>
         </section>
       )}
+
+      <Services />
 
       <p className="mt-10 max-w-[62ch] border-t border-thread pt-4 font-mono text-xs text-muted">
         Read-only. The same check runs offline over a manifest —{' '}

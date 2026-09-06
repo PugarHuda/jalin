@@ -142,15 +142,28 @@ test.describe('reading a whole submission', () => {
    */
   test('a node that stops answering is not a shortfall', async ({ page }) => {
     // The manifest itself still loads; the receipts behind it are what fail.
+    interface ManifestBody {
+      unread: string[]
+      counted: number
+      results: { hash: string; qualifies: boolean }[]
+    }
+
     await page.route('**/api/manifest**', async (route) => {
       const response = await route.fetch()
-      const body = await response.json()
+      const body = (await response.json()) as ManifestBody
       // Whatever the live answer was, this is the shape the page must handle:
       // some hashes unread, and a count that is therefore a floor.
-      body.unread = body.results.slice(0, 2).map((r: { hash: string }) => r.hash)
-      body.results = body.results.slice(2)
-      body.counted = body.results.filter((r: { qualifies: boolean }) => r.qualifies).length
-      return route.fulfill({ response, json: body })
+      const unread = body.results.slice(0, 2)
+      const read = body.results.slice(2)
+      return route.fulfill({
+        response,
+        json: {
+          ...body,
+          unread: unread.map((result) => result.hash),
+          results: read,
+          counted: read.filter((result) => result.qualifies).length,
+        },
+      })
     })
 
     await page.getByLabel('owner/repo').fill('PugarHuda/jalin')
@@ -197,4 +210,66 @@ test('the same hash pasted three times is one transaction, not three', async ({ 
   await page.getByRole('button', { name: 'Check' }).click()
 
   await expect(page.getByText('3 of 3 would count')).toBeVisible({ timeout: 30_000 })
+})
+
+/**
+ * The service panel. It is the document's claim, checked on every load.
+ */
+test.describe('the services underneath', () => {
+  test('asks all three and shows what each answered', async ({ page }) => {
+    await page.goto('/verify', { waitUntil: 'domcontentloaded' })
+    await settled(page)
+
+    const list = page.getByTestId('services')
+    await expect(list).toBeVisible({ timeout: 30_000 })
+    await expect(list).toContainText('proving service')
+    await expect(list).toContainText('note discovery')
+    await expect(list).toContainText('avnu paymaster')
+  })
+
+  test('a service that is down is named, and does not take the page with it', async ({ page }) => {
+    await page.route('**/api/services', (route) =>
+      route.fulfill({
+        json: {
+          prover: { name: 'proving service', url: 'https://p', ok: false, detail: 'unreachable' },
+          discovery: {
+            name: 'note discovery',
+            url: 'https://d',
+            ok: true,
+            detail: null,
+            lagSeconds: 7,
+            chainHead: 14_400_000,
+          },
+          paymaster: {
+            name: 'avnu paymaster',
+            url: 'https://a',
+            ok: true,
+            detail: null,
+            gasTokens: ['STRK'],
+          },
+          checkedAt: new Date().toISOString(),
+        },
+      }),
+    )
+
+    await page.goto('/verify', { waitUntil: 'domcontentloaded' })
+    await settled(page)
+
+    const list = page.getByTestId('services')
+    await expect(list).toContainText('unreachable')
+    // The other two still report, and the verdict form above is untouched.
+    await expect(list).toContainText('7s behind the chain')
+    await expect(page.getByLabel('owner/repo')).toBeVisible()
+  })
+
+  test('the panel says so when its own check fails', async ({ page }) => {
+    await page.route('**/api/services', (route) => route.fulfill({ status: 502, json: {} }))
+
+    await page.goto('/verify', { waitUntil: 'domcontentloaded' })
+    await settled(page)
+
+    // Scoped: Next's own route announcer is also role="alert".
+    await expect(page.locator('section').filter({ hasText: 'The services underneath' })
+      .getByRole('alert')).toContainText('did not run')
+  })
 })

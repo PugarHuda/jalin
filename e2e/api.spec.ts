@@ -356,3 +356,50 @@ test.describe('/api/ballot', () => {
     }
   })
 })
+
+/**
+ * The three services this sprint's stack stands on.
+ *
+ * The route asks all three at request time. These tests hold the property that
+ * makes it worth having: a service that is down is reported as down rather than
+ * taking the panel with it, because the panel exists to say which.
+ */
+test.describe('/api/services', () => {
+  interface ServicesResponse {
+    prover: { name: string; url: string; ok: boolean; detail: string | null }
+    discovery: { ok: boolean; lagSeconds: number | null; chainHead: number | null }
+    paymaster: { ok: boolean; gasTokens: string[] }
+    checkedAt: string
+  }
+
+  test('answers for all three, whatever they answered', async ({ request }) => {
+    const body = await json<ServicesResponse>(await request.get('/api/services'))
+
+    for (const service of [body.prover, body.discovery, body.paymaster]) {
+      expect(typeof service.ok, JSON.stringify(service)).toBe('boolean')
+    }
+    expect(Date.parse(body.checkedAt)).toBeGreaterThan(0)
+  })
+
+  test('discovery reports how far behind the chain it is', async ({ request }) => {
+    const body = await json<ServicesResponse>(await request.get('/api/services'))
+
+    // Skipped rather than asserted when discovery is down: this test is about
+    // the shape of the answer, and a service outage is a real answer.
+    test.skip(!body.discovery.ok, 'discovery did not answer')
+
+    // A lag it will not report is null, never a zero standing in for one.
+    expect(body.discovery.lagSeconds === null || body.discovery.lagSeconds >= 0).toBe(true)
+    if (body.discovery.chainHead !== null) {
+      expect(body.discovery.chainHead).toBeGreaterThan(13_000_000)
+    }
+  })
+
+  test('the paymaster names gas tokens this app can label', async ({ request }) => {
+    const body = await json<ServicesResponse>(await request.get('/api/services'))
+    test.skip(!body.paymaster.ok, 'the paymaster did not answer')
+
+    // AVNU's public SNIP-29 endpoint takes STRK among many others, and no key.
+    expect(body.paymaster.gasTokens).toContain('STRK')
+  })
+})
