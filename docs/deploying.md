@@ -183,8 +183,9 @@ or validation rejects the transaction before anything runs; what actually gets
 charged is lower. Budget **80 STRK** for the whole deployment and you will not
 think about it again.
 
-As of 4 September the deployer `0x012947…73ca` holds **2.178 STRK**, which is why
-the corrected governor is source and tests rather than an address. The blocker is
+As of 6 September the deployer `0x012947…73ca` holds **2.178 STRK**, unchanged
+since the 4th and rechecked against the chain, which is why the corrected
+governor is source and tests rather than an address. The blocker is
 funding, not the toolchain and not the code: 47 Cairo tests pass in the pinned
 container on this machine.
 
