@@ -304,7 +304,9 @@ test.describe('the states every page needs', () => {
     await page.goto('/governance', { waitUntil: 'domcontentloaded' })
     // No proposal has ever been executed and nothing is stuck; both say so in
     // words instead of rendering an empty list.
-    await expect(page.getByText('Nothing stuck.')).toBeVisible()
+    // The sentence now names how much of the check succeeded, because an
+    // unreadable balance is not an empty one.
+    await expect(page.locator('main')).toContainText(/Nothing stuck in the \d+ of \d+ tokens/)
   })
 })
 
