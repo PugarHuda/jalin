@@ -92,26 +92,53 @@ export async function readDeposits(revalidate = 300): Promise<DepositReading | n
     let token: string | undefined
     let pages = 0
 
-    while (pages < MAX_PAGES) {
-      const page = await rpc.events(
-        {
-          address: POOL_ADDRESS,
-          keys: [[selector]],
-          from_block: { block_number: Math.max(0, head - CROWD_WINDOW_BLOCKS) },
-          to_block: 'latest',
-          chunk_size: 1000,
-          ...(token ? { continuation_token: token } : {}),
-        },
-        revalidate,
-      )
+    /**
+     * A page that fails is not a crowd that failed.
+     *
+     * This walk used to be one `try` around the whole function, so a single
+     * slow chunk - the node taking longer than the 15 second cap on one request
+     * out of eight - threw away every deposit already counted and the landing
+     * page lost its headcount, its median and the trend chart with it. That
+     * happened on a rerun of an unchanged commit: two tests failed twice each,
+     * both of them about a crowd the page could no longer describe.
+     *
+     * One retry, because the node answers the second ask in a couple of seconds
+     * about as often as it stalls on the first. After that the walk keeps what
+     * it has and says it is a floor, which is the same thing it already says
+     * when it runs out of pages.
+     */
+    let stalled = false
 
-      if (!page?.events) break
+    while (pages < MAX_PAGES) {
+      let page: Awaited<ReturnType<typeof rpc.events>> | null = null
+
+      for (const attempt of [0, 1]) {
+        try {
+          page = await rpc.events(
+            {
+              address: POOL_ADDRESS,
+              keys: [[selector]],
+              from_block: { block_number: Math.max(0, head - CROWD_WINDOW_BLOCKS) },
+              to_block: 'latest',
+              chunk_size: 1000,
+              ...(token ? { continuation_token: token } : {}),
+            },
+            revalidate,
+          )
+          break
+        } catch (error) {
+          unstable_rethrow(error)
+          if (attempt === 1) stalled = true
+        }
+      }
+
+      if (stalled || !page?.events) break
       events.push(...(page.events as PoolEvent[]))
       token = page.continuation_token
       pages += 1
       if (!token) break
     }
-    const truncated = Boolean(token)
+    const truncated = stalled || Boolean(token)
 
     return { events, head, truncated, feeCollector: collector?.[0] }
   } catch (error) {
