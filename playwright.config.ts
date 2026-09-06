@@ -72,21 +72,34 @@ export default defineConfig({
    * than staying a constant that happens to fit one laptop.
    */
   /**
-   * One on CI, chosen by measurement after the theories ran out.
-   *
-   * The keep-alive window below was the real cause of the long Firefox hang,
-   * and closing it mattered: at one worker the suite went from two flaky tests
-   * to none. But it was not the whole cause. Putting the count back to two,
-   * with the same fix in place, brought two flaky tests back - one of them the
-   * same full-timeout hang. Three separate runs say the same thing:
+   * One on CI, chosen by measurement rather than by the theory of the week.
    *
    *   3 workers  suite fails outright
    *   2 workers  green, 2 flaky, browser job ~5-6 minutes
-   *   1 worker   green, 0 then 1 flaky, browser job ~7-10 minutes
+   *   1 worker   green, 0-1 flaky, browser job ~6-10 minutes
    *
    * Three minutes of runner time is worth less than a retry line nobody can
    * tell from a regression. Locally the machine is not shared and three is
    * fine.
+   *
+   * THE OPEN ONE, so the next person does not repeat this. About one run in two
+   * has a single Firefox test consume its whole timeout inside `page.goto` and
+   * pass in about two seconds on the retry, on a different page each time. The
+   * retry catches it and the job is green; nothing below has ever made it
+   * reliably absent. Ruled out, each by its own fix, each of which stayed
+   * because it was independently right:
+   *
+   *   a slow render          event walks have budgets, independent reads overlap
+   *   an impatient ceiling   at a 120s timeout it failed at 120s
+   *   a busy machine         it survived at one worker with nothing competing
+   *   waiting on subresources every goto is domcontentloaded now, and it failed
+   *                          navigating to a page that does no server reads
+   *   a keep-alive race      closed from the server side (--keepAliveTimeout)
+   *                          and the client side (Firefox keep-alive off)
+   *
+   * What has not been tried: capturing the server's own access log for the
+   * hung request, which would say whether it ever arrived. That is the next
+   * step if it starts failing both attempts.
    */
   workers: process.env.CI ? 1 : 3,
   forbidOnly: !!process.env.CI,
@@ -128,12 +141,12 @@ export default defineConfig({
         /**
          * No persistent connections, for this browser, in this suite only.
          *
-         * Raising the server's `--keepAliveTimeout` closed the window from one
-         * side and took a run to zero flaky tests; the next run had one again,
-         * the same shape it has had all along - `page.goto` consuming the whole
-         * timeout, the retry passing in seconds. Firefox is the only engine
-         * that does this, so this closes the window from the other side: a
-         * connection that is never reused is never reused after it was closed.
+         * Firefox is the only engine that produces the hang described above the
+         * worker count, so this closes the connection-reuse window from the
+         * client side after `--keepAliveTimeout` closed it from the server's.
+         * It did not end the hang, and it is kept because a connection that is
+         * never reused cannot be reused after it was closed - one fewer thing
+         * between the test and the answer.
          *
          * It costs a TCP handshake per request against a server on loopback,
          * and it is a test-harness setting - nothing here changes what the
@@ -174,10 +187,10 @@ export default defineConfig({
      * browser sends its next request on it, the request is neither answered nor
      * refused - it is dropped, and nothing retries it. The symptom is a
      * navigation that hangs for the entire timeout and then succeeds instantly
-     * on a fresh connection, which is what Firefox did here through a sixty
-     * second ceiling, a two minute one, a single-worker runner, and finally a
-     * `domcontentloaded` navigation to a page that does no server reads at all.
-     * Each of those ruled out a slower explanation. This one fits all of them.
+     * on a fresh connection, which is the shape of the hang described above the
+     * worker count. Raising this did not end that hang, so it is not the whole
+     * story; it is kept because five seconds is a real window and closing it
+     * costs nothing.
      */
     command: `npm run build --workspace app && npm run start --workspace app -- --port ${PORT} --keepAliveTimeout 72000`,
     url: baseURL,
