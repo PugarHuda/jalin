@@ -1907,7 +1907,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
                   title="The pool"
                   colour="text-muted"
                   items={[
-                    `${crowd.depositors} distinct addresses have shielded into the pool. Median effective set per cell ${crowd.cells.medianEffectiveSet.toFixed(2)}; ${Math.round(crowd.cells.aloneShare * 100)}% of cells hold one person; the largest crowd anywhere is ${crowd.cells.largestEffectiveSet.toFixed(1)}.`,
+                    `${crowd.depositors} distinct addresses have shielded in the last ${crowd.windowBlocks.toLocaleString()} blocks. Median effective set per cell ${crowd.cells.medianEffectiveSet.toFixed(2)}; ${Math.round(crowd.cells.aloneShare * 100)}% of cells hold one person; the largest crowd anywhere is ${crowd.cells.largestEffectiveSet.toFixed(1)}.`,
                   ]}
                   more={[
                     'Withdrawals are not counted. Most of them name the fee collector or the paymaster that relays gas, and a shield with no exit still emits one — so a withdrawal only means someone left if its destination is a person.',
@@ -2131,7 +2131,7 @@ function Group({
           <summary className="cursor-pointer font-mono text-xs text-muted">why</summary>
           <ul className="mt-1.5 space-y-1.5">
             {more.map((item, i) => (
-              <li key={i} className="text-xs leading-relaxed break-words text-muted">
+              <li key={i} className="max-w-[62ch] text-xs leading-relaxed break-words text-muted">
                 {item}
               </li>
             ))}

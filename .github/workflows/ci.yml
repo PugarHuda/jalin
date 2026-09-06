@@ -90,11 +90,12 @@ jobs:
       # and the one recorded exception sits in .impeccable/config.json with its
       # reason beside it, where the detector reads it and a reviewer can too.
       #
-      # The version is pinned. Unpinned, this gate failed on two line-length
-      # findings that the next release does not report at all, and the version
-      # before it calls a 1.7:1 type ratio flat while telling you to aim for
-      # 1.25. A rule set that moves under an unchanged build is a coin flip,
-      # not a gate. Bump it deliberately and read what the bump starts saying.
+      # The version is pinned, because `npx -y impeccable` fetched whatever npm
+      # called latest that morning and the rule set is not the same across
+      # releases: 3.6.1 calls this page's 14/16/24 type scale flat while its own
+      # message asks for a 1.25 ratio and the scale is 1.7. A gate that changes
+      # its mind about an unchanged build teaches you to rerun rather than to
+      # read. Bump it deliberately and read what the bump starts saying.
       - name: Design defects are build failures
         run: |
           npm run start --workspace app -- --port 3100 &

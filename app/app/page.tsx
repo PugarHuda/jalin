@@ -354,7 +354,7 @@ function Qualifying() {
           </li>
         ))}
       </ol>
-      <p className="mt-3 font-mono text-xs text-muted">
+      <p className="mt-3 max-w-[62ch] font-mono text-xs text-muted">
         Each succeeded, touched the pool, and ran through a contract of ours —{' '}
         <Link className="text-cloth underline underline-offset-2 hover:text-gold" href="/verify">
           check them against the sprint&apos;s own rules
@@ -618,7 +618,9 @@ export default async function Landing() {
                       : chain.depositors}
                 </div>
                 <div className="mt-1 font-mono text-xs text-muted">
-                  addresses have shielded into the pool
+                  {chain.crowdWindowBlocks === null
+                    ? 'addresses have shielded into the pool'
+                    : `addresses have shielded in the last ${chain.crowdWindowBlocks.toLocaleString()} blocks`}
                 </div>
               </div>
             </div>

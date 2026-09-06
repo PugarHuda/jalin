@@ -223,7 +223,11 @@ struct Step {
           />
           <Fact
             value={chain.depositors === null ? '—' : String(chain.depositors)}
-            of="addresses have shielded into the pool"
+            of={
+              chain.crowdWindowBlocks === null
+                ? 'addresses have shielded into the pool'
+                : `addresses have shielded in the last ${chain.crowdWindowBlocks.toLocaleString()} blocks`
+            }
           />
         </div>
         <p className="max-w-[62ch]">

@@ -51,7 +51,7 @@ export function Execute({ governor, proposalId }: { governor: string; proposalId
       >
         Execute #{proposalId}
       </button>
-      <p className="mt-1 text-xs text-muted">
+      <p className="mt-1 max-w-[62ch] text-xs text-muted">
         Anyone may send this. It can still fail on quorum, which is enforced here and cannot be
         read first.
       </p>

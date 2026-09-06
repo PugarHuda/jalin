@@ -26,12 +26,22 @@ import { rpc } from './rpc'
  */
 
 /**
- * Roughly the pool's whole life. Starknet mainnet averages 1.68s a block, so
- * 600k blocks is about eleven days and the pool opened on 14 August 2026.
+ * The recent crowd, not the pool's whole history - and this comment said the
+ * opposite until someone checked.
+ *
+ * The pool's contract has been on chain since block 8,978,970. On 6 September
+ * the head was 14,443,446, so its life is five and a half million blocks and
+ * this window is eleven days of it: 506 deposits from 214 addresses inside the
+ * window against 994 and 699 behind it, and the walk from the deployment block
+ * hits the ten page cap before it finishes counting.
+ *
+ * A window is still the right shape - what protects a deposit is the crowd it
+ * can plausibly be confused with, and an address that shielded in June is not
+ * that crowd. What was wrong was calling it the pool. Everything reading this
+ * number now says which window it counted.
  *
  * It used to be 50k, which is under a day - a window that made the crowd look
- * like whoever happened to be around this afternoon. All of it fits in one
- * page: 343 deposits so far.
+ * like whoever happened to be around this afternoon.
  */
 const CROWD_WINDOW_BLOCKS = 600_000
 
