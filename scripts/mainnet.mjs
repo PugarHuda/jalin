@@ -69,15 +69,84 @@ const transfers = createPrivateTransfers({
   shadowAccountAnonymizerAddress: process.env.SHADOW_ACCOUNT_ANONYMIZER,
 })
 
+/**
+ * The public side of a private transaction.
+ *
+ * The pool pulls its flat fee from the public caller with transfer_from, on
+ * top of the gas a proof-verified call costs. So every private phase needs
+ * three things on the public side that no single error names together: the
+ * fee amount, an allowance that covers it, and a balance that covers fee
+ * plus gas. Read all three up front, and top the allowance up when sending,
+ * because 'Insufficient ERC20 allowance' from the pool has cost this project
+ * a proof before and 'Insufficient ERC20 balance' would cost it the gas.
+ */
+async function feeSide() {
+  const [feeRaw] = await provider.callContract({ contractAddress: POOL, entrypoint: 'get_fee_amount' })
+  const [allowRaw] = await provider.callContract({
+    contractAddress: STRK,
+    entrypoint: 'allowance',
+    calldata: [account.address, POOL],
+  })
+  const [balanceRaw] = await provider.callContract({
+    contractAddress: STRK,
+    entrypoint: 'balanceOf',
+    calldata: [account.address],
+  })
+  const side = { fee: BigInt(feeRaw), allowance: BigInt(allowRaw), balance: BigInt(balanceRaw) }
+  console.log(
+    `pool fee ${strk(side.fee)} STRK · allowance ${strk(side.allowance)} · public balance ${strk(side.balance)}`,
+  )
+  return side
+}
+
+const strk = (wei) => (Number(wei) / 1e18).toFixed(2)
+
 async function submit(callAndProof, label) {
-  if (!EXECUTE) {
-    console.log(`\n[dry run] ${label} built. Pass --execute to send it.`)
-    console.log(JSON.stringify(callAndProof.call, (_, v) => (typeof v === 'bigint' ? `0x${v.toString(16)}` : v), 2).slice(0, 600))
-    return null
-  }
+  const side = await feeSide()
   const proof = callAndProof.proof?.proofFacts?.length
     ? { proofFacts: callAndProof.proof.proofFacts, proof: callAndProof.proof.data }
     : {}
+  if (!EXECUTE) {
+    console.log(`\n[dry run] ${label} built. Pass --execute to send it.`)
+    console.log(JSON.stringify(callAndProof.call, (_, v) => (typeof v === 'bigint' ? `0x${v.toString(16)}` : v), 2).slice(0, 600))
+    // What it would cost, asked of the node rather than guessed. A dry run
+    // that proves for thirty seconds and then cannot say whether the account
+    // can pay is a dry run that ends in a reverted transaction: the pool's
+    // flat fee is pulled from the *public* caller by transfer_from, on top of
+    // gas, and a shortfall surfaces here as the node's revert reason rather
+    // than on chain with the gas already spent.
+    try {
+      const estimate = await account.estimateInvokeFee(callAndProof.call, { tip: 0n, ...proof })
+      const fee = Number(estimate.overall_fee) / 1e18
+      console.log(`estimated gas ${fee.toFixed(4)} STRK, on top of the pool fee`)
+    } catch (error) {
+      // The node echoes the whole request before the reason, so the tail is
+      // the part worth reading.
+      const text = String(error?.message ?? error).replace(/\s+/g, ' ')
+      // Nested one contract per frame; the innermost string is the reason.
+      const frames = [...text.matchAll(/"error":"((?:\\.|[^"])+)"/g)].map((m) => m[1])
+      const reason = (frames.at(-1) ?? text.slice(-700)).replace(/\\"/g, '"').replace(/^"|"$/g, '')
+      console.log(`the node would not estimate it: ${reason}`)
+    }
+    if (side.allowance < side.fee) {
+      console.log(`the allowance is short of the pool fee; --execute sends an approve first`)
+    }
+    if (side.balance < side.fee) {
+      console.log(
+        `the public balance is short of the pool fee by ${strk(side.fee - side.balance)} STRK before gas; fund ${account.address}`,
+      )
+    }
+    return null
+  }
+  if (side.allowance < side.fee) {
+    const approve = await account.execute({
+      contractAddress: STRK,
+      entrypoint: 'approve',
+      calldata: [POOL, `0x${side.fee.toString(16)}`, '0x0'],
+    })
+    console.log(`approve: ${approve.transaction_hash}`)
+    await provider.waitForTransaction(approve.transaction_hash)
+  }
   const tx = await account.execute(callAndProof.call, { tip: 0n, ...proof })
   console.log(`${label}: ${tx.transaction_hash}`)
   await provider.waitForTransaction(tx.transaction_hash)
