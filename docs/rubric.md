@@ -135,12 +135,16 @@ repository imports it.
 What is real is smaller and easier to check. Six issues on the sprint tracker
 asked where the mainnet proving service was; it had been answering the whole
 time, and one of those issues was ours, saying there was no hosted endpoint.
-`docs/strk20-endpoints.md` is the correction, and on 7 September it was posted
-to five open issues — [#135](https://github.com/starkience/strk20-hackathon/issues/135),
-[#158](https://github.com/starkience/strk20-hackathon/issues/158),
-[#204](https://github.com/starkience/strk20-hackathon/issues/204),
-[#221](https://github.com/starkience/strk20-hackathon/issues/221) and
-[#245](https://github.com/starkience/strk20-hackathon/issues/245) — with the
-prover URL, the discovery endpoint and its cleartext-viewing-key caveat, the
-shadow-account anonymizer, the two errors that name the wrong thing, and the
-measured cost of a headless operation.
+`docs/strk20-endpoints.md` is the correction, and on 7 September it went to
+eight issues on the tracker:
+
+| Issue | What we gave them |
+|---|---|
+| [#135](https://github.com/starkience/strk20-hackathon/issues/135), [#158](https://github.com/starkience/strk20-hackathon/issues/158), [#204](https://github.com/starkience/strk20-hackathon/issues/204), [#221](https://github.com/starkience/strk20-hackathon/issues/221) | The prover URL, the discovery endpoint with its cleartext-viewing-key caveat, the shadow-account anonymizer, and the two errors that name the wrong thing |
+| [#245](https://github.com/starkience/strk20-hackathon/issues/245) | A correction to our own issue, which had told six other issues there was no hosted prover |
+| [#223](https://github.com/starkience/strk20-hackathon/issues/223) | Confirmation that no pool write is proof-free, with the measured 8.85 STRK a headless `register` costs |
+| [#156](https://github.com/starkience/strk20-hackathon/issues/156) | Second-project confirmation of the 6 STRK pool fee, and the shield-sizing bug reading it as 4 caused here |
+| [#240](https://github.com/starkience/strk20-hackathon/issues/240) | How to read an anonymizer's panic before proving, with the `simulate: true` call and the translation we do on it |
+
+Whether any of that counts is the panel's to decide. It is at least checkable,
+which is more than a claim of influence usually is.
