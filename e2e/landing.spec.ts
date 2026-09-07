@@ -12,12 +12,20 @@ test.describe('landing', () => {
   })
 
   test('shows chain state read at request time, not a hardcoded number', async ({ page }) => {
-    await page.goto('/', { waitUntil: 'domcontentloaded' })
-
-    // Whatever the page prints for the crowd has to agree with the route that
-    // reads it. If someone replaces the reading with a nice-looking constant,
-    // these two stop matching and this fails.
+    /**
+     * The route first, the page second, and that order is the fix.
+     *
+     * Both read the same deposit walk through the same 300-second fetch cache,
+     * so they agree — unless the cache turns over between them, and it did: the
+     * page was rendered, the count changed, the route re-read, and the two
+     * numbers were both correct and different. Asking the route first puts the
+     * page on the entry the assertion is about.
+     *
+     * The property is unchanged: replace the reading with a nice-looking
+     * constant and these stop matching.
+     */
     const crowd = await json<CrowdResponse>(await page.request.get('/api/crowd'))
+    await page.goto('/', { waitUntil: 'domcontentloaded' })
     await expect(page.locator('body')).toContainText(String(crowd.depositors))
   })
 
