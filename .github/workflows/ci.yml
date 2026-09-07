@@ -152,8 +152,19 @@ jobs:
           find /opt -name cairo-coverage -type f -exec dirname {} \; | head -1 >> "$GITHUB_PATH"
 
       # The fork tests read mainnet through a public node, so this needs network
-      # but no key.
-      - run: snforge test --coverage --profile coverage
+      # but no key - and a public node under CI load sometimes answers with
+      # something that is not JSON at all, which surfaces as
+      # `JsonRpc provider error: expected value at line 1 column 1` on whichever
+      # fork test asked at the wrong moment. That is the node rate-limiting a
+      # shared runner, not a contract failing, so it gets one retry before it is
+      # allowed to fail the build.
+      - name: Cairo tests, with one retry for a rate-limited fork node
+        run: |
+          snforge test --coverage --profile coverage || {
+            echo "::warning::first attempt failed; retrying once in case the fork node throttled us"
+            sleep 30
+            snforge test --coverage --profile coverage
+          }
         working-directory: contracts
 
       - name: Every contract line runs
