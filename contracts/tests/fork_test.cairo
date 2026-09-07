@@ -368,3 +368,76 @@ fn a_swap_and_a_stake_in_the_same_invoke() {
     assert(usdc_left.balance_of(router) == 0, 'no USDC left behind');
     assert(xstrk_left.balance_of(router) == 0, 'no xSTRK left behind');
 }
+
+/// Vesu's STRK lending market, as an ERC-4626 vault.
+///
+/// Read from Vesu's own market list and checked on chain rather than taken from
+/// a blog post: `asset()` on this address returns STRK, and `deposit` takes
+/// `(assets: u256, receiver: ContractAddress)` — the same shape Endur uses, so
+/// the router needs nothing new to reach it.
+///
+/// The Prime pool's vToken. Vesu V2 pools themselves take positions through
+/// `modify_position` with a struct this router would have to encode by hand;
+/// the vToken is the ERC-4626 face of the same market and is what a lender
+/// actually holds.
+fn vesu_strk() -> ContractAddress {
+    contract_address_const::<0x06d6d2bf905dd199c78f2e421521d8473042737be9f47904e7578536c10f279d>()
+}
+
+/// Lending, which this project has argued and never run.
+///
+/// The README conceded it for three weeks: lending and bridging "are the same
+/// object in the router's eyes and neither has been run, on mainnet or on a
+/// fork". That sentence was the honest version of an untested claim, and this
+/// test is what replaces it for the first half. One STRK into Vesu's live STRK
+/// market at the pinned block, credited back as vToken shares into a note.
+///
+/// Nothing about the router changed to make this work, which is the finding.
+/// The plan is the Endur plan with a different address in it.
+#[test]
+#[fork("MAINNET")]
+fn lends_into_the_real_vesu_market() {
+    let router = deploy_stack();
+    fund(router, ONE);
+
+    let steps = array![
+        Step {
+            target: vesu_strk(),
+            selector: selector!("deposit"),
+            approvals: array![Approval { token: strk(), amount: ONE }],
+            calldata: array![ONE.into(), 0, router.into()],
+        },
+    ];
+
+    // Loose on purpose. A lending vault's share price drifts with interest
+    // accrued since it opened, so the floor is a sanity bound and the tight
+    // assertions are below, on what the market actually paid.
+    let outputs = array![Output { token: vesu_strk(), note_id: 'VSTRK', min_amount: ONE / 4 }];
+
+    start_cheat_caller_address(router, pool());
+    let credited = IJalinRouterDispatcher { contract_address: router }
+        .privacy_invoke(pool(), steps, outputs);
+    stop_cheat_caller_address(router);
+
+    assert(credited.len() == 1, 'one output, one note');
+    let note = *credited.at(0);
+    assert(note.token == vesu_strk(), 'credited in vSTRK');
+    assert(note.amount > ONE / 4, 'more than the floor');
+    // A share of a market that has been lending since it opened is worth more
+    // than one unit of the asset, so a STRK buys fewer than one share. A mock
+    // would have to be told that; the live market simply is it.
+    assert(note.amount < ONE, 'a share is worth over par');
+
+    // And I4: the pool may pull exactly the note, after which the router holds
+    // neither the shares nor any of the STRK it was funded with.
+    let shares = IErc20PullDispatcher { contract_address: vesu_strk() };
+    assert(shares.allowance(router, pool()) == note.amount.into(), 'pool may pull exactly');
+    start_cheat_caller_address(vesu_strk(), pool());
+    shares.transfer_from(router, pool(), note.amount.into());
+    stop_cheat_caller_address(vesu_strk());
+
+    let left = IErc20Dispatcher { contract_address: vesu_strk() };
+    let strk_left = IErc20Dispatcher { contract_address: strk() };
+    assert(left.balance_of(router) == 0, 'no shares left behind');
+    assert(strk_left.balance_of(router) == 0, 'no STRK left behind');
+}

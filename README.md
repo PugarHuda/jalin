@@ -23,12 +23,15 @@ outputs credited into two notes, one `privacy_invoke`. That test
 rather than argued — every other project on this pool writes one helper per
 venue, and this is two venues with none.
 
-Lending and bridging are the same object in the router's eyes and neither has
-been run, on mainnet or on a fork. Vesu is the closest miss: its V2 pools take
-positions through `modify_position` rather than the ERC-4626 `deposit` the fork
-tests use, so it is an afternoon of calldata rather than a shape that does not
-fit. Where this README argues those two, it is arguing a shape rather than
-reporting a result.
+**Lending runs too**, as of 7 September: one STRK into Vesu's live STRK market
+at the same pinned block, credited back as vToken shares
+(`lends_into_the_real_vesu_market`). Nothing about the router changed to reach
+it — the plan is the Endur plan with a different address in it, which is the
+finding rather than the test.
+
+Bridging is the one left. It is the same object in the router's eyes and it has
+not been run, on mainnet or on a fork; where this README argues it, it is
+arguing a shape rather than reporting a result.
 
 ## Where to look first
 
@@ -440,7 +443,7 @@ sh contracts/test.sh          # snforge in a pinned container
 because pinning the toolchain is worth more than saving a container. The scarb
 cache lives in a named volume, so only the first run pays for the plugin build.
 
-48 tests, two of them fuzzed at 256 runs each, covering every line of every
+49 tests, two of them fuzzed at 256 runs each, covering every line of every
 contract — `sh contracts/coverage.sh && node scripts/coverage-gate.mjs` fails if
 any line of `src/` never runs. Line coverage is a floor, not a proof: it says
 every line ran, not that it ran under the conditions that would break it.

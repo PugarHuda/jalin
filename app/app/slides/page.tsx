@@ -112,7 +112,7 @@ export default async function Slides() {
             of="Cairo contracts, declared and live"
           />
           <Fact value={String(INVARIANTS.length)} of="invariants enforced on chain" />
-          <Fact value="597" of="tests across Cairo, SDK and browser" />
+          <Fact value="598" of="tests across Cairo, SDK and browser" />
         </div>
       </Slide>
 
@@ -256,7 +256,7 @@ struct Step {
       <Slide n="08" title="What it does not do">
         <ul className="max-w-[62ch] space-y-2">
           <li className="border-t border-thread pt-2">
-            <span className="text-cloth">Unaudited.</span> Six invariants and 48 Cairo tests are
+            <span className="text-cloth">Unaudited.</span> Six invariants and 49 Cairo tests are
             the whole of the safety argument, and nobody outside this project has checked them.
           </li>
           <li className="border-t border-thread pt-2">

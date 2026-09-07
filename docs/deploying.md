@@ -186,7 +186,7 @@ think about it again.
 As of 6 September the deployer `0x012947…73ca` holds **2.178 STRK**, unchanged
 since the 4th and rechecked against the chain, which is why the corrected
 governor is source and tests rather than an address. The blocker is
-funding, not the toolchain and not the code: 48 Cairo tests pass in the pinned
+funding, not the toolchain and not the code: 49 Cairo tests pass in the pinned
 container on this machine.
 
 Getting this wrong is cheap but slow: validation fails, nothing is spent, and you
@@ -203,7 +203,7 @@ The trailing number is your balance in FRI. Divide by 1e18 for STRK.
 Both contracts build in a pinned container, so the class hashes are reproducible:
 
 ```bash
-sh contracts/test.sh                                   # 48 tests
+sh contracts/test.sh                                   # 49 tests
 scarb build --manifest-path contracts/Scarb.toml       # or natively
 ```
 
