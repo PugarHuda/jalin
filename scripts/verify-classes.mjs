@@ -130,14 +130,47 @@ let matched = 0
 let superseded = 0
 const stale = []
 
+/**
+ * The class hash at an address, or a reason there is none.
+ *
+ * A node that will not answer is not an address with no contract there, and
+ * this conflated them: a rate-limited public endpoint made the check print "no
+ * contract deployed here" about a contract that has been on mainnet for weeks,
+ * and then fail the build for a shortfall it had invented. CI is exactly where
+ * that happens, because a shared runner is what a public node throttles.
+ *
+ * `Contract not found` is the node saying the address is empty, which is a real
+ * answer. Anything else is the node not answering, and gets one retry before it
+ * is reported as what it is.
+ */
+async function classHashAt(address) {
+  for (const attempt of [0, 1]) {
+    try {
+      return { hash: BigInt(await provider.getClassHashAt(address, 'latest')) }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      if (/contract not found|is not deployed/i.test(message)) return { empty: true }
+      if (attempt === 1) return { unreadable: message }
+      await new Promise((resolve) => setTimeout(resolve, 2000))
+    }
+  }
+  return { unreadable: 'unreachable' }
+}
+
+const unreadable = []
+
 for (const address of addresses) {
-  let onchain
-  try {
-    onchain = BigInt(await provider.getClassHashAt(address, 'latest'))
-  } catch {
+  const answer = await classHashAt(address)
+  if (answer.empty) {
     console.log(`${short(address)}  no contract deployed here`)
     continue
   }
+  if (answer.unreadable) {
+    unreadable.push([address, answer.unreadable])
+    console.log(`${short(address)}  could not be read: ${answer.unreadable}`)
+    continue
+  }
+  const onchain = answer.hash
   const found = built.find((b) => b.classHash === onchain)
   const reason = supersededBy(address)
 
@@ -153,6 +186,13 @@ for (const address of addresses) {
   } else {
     console.log(`${short(address)}  class ${short(num.toHex(onchain))} matches nothing built here`)
   }
+}
+
+if (unreadable.length > 0) {
+  console.error('\nThe node would not answer for these, so this check proved nothing about them:')
+  for (const [address, why] of unreadable) console.error(`  ${address} — ${why}`)
+  console.error('That is a failed read, not a contract that is missing or wrong. Try again.')
+  process.exit(1)
 }
 
 if (stale.length > 0) {
