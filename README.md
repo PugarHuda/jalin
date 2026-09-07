@@ -478,6 +478,21 @@ composer said otherwise. It is reachable now from all three: the panel at
 browser and looks up the hash, because a route that took the secret would put a
 bearer instrument through a URL, a log and a CDN in one request.
 
+Casting one needs a proposal that is still taking votes, and the window is
+`voting_blocks` wide — about fifty-six minutes at the block time this app
+measures. So the whole cycle is three commands and a wait:
+
+```sh
+node scripts/mainnet.mjs propose --execute   # ~0.27 STRK of gas, no pool fee
+#   then cast on it at /compose, with a wallet that holds a shielded balance;
+#   the pool charges its flat fee per private operation, currently 6 STRK
+node scripts/mainnet.mjs redeem <secret> --execute   # after voting closes
+```
+
+`propose` is the only one of the three that is an ordinary public transaction:
+no proving service, no shielded balance, no pool fee. The other two are private
+operations and cost the pool's fee each.
+
 There are two ways to reach `privacy_invoke`, and they fail differently.
 
 **Through a wallet.** `wallet_strk20InvokeTransaction` has the wallet build and

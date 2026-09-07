@@ -356,9 +356,61 @@ async function redeem(secret) {
   return submit(callAndProof, 'redeem')
 }
 
+/**
+ * Open a proposal, so there is something to vote on.
+ *
+ * The one governance call that is an ordinary public transaction: no proving
+ * service, no shielded balance, no pool fee - about a quarter of a STRK in gas.
+ * It is here because the ballot phase needs an open proposal and voting closes
+ * after `voting_blocks`, so the proposal a ballot needs is almost always one
+ * nobody has made yet. Doing it by hand meant a throwaway script each time.
+ *
+ * `LABEL` by default, which writes a name into the governor's storage and
+ * changes nothing about the router unless it carries and clears the timelock.
+ */
+async function propose(kind = '4', label = 'JALIN_ROUTER') {
+  const governor = env('GOVERNOR_ADDRESS')
+  const router = env('ROUTER_ADDRESS')
+
+  const call = {
+    contractAddress: governor,
+    entrypoint: 'propose',
+    // propose(kind, target, value_a, value_b)
+    calldata: [BigInt(kind), router, shortString.encodeShortString(label), 0n],
+  }
+
+  const fee = await account.estimateInvokeFee([call])
+  console.log(`kind       ${kind}`)
+  console.log(`estimate   ${(Number(fee.overall_fee) / 1e18).toFixed(5)} STRK`)
+
+  if (!EXECUTE) return null
+
+  const tx = await account.execute([call])
+  console.log(`sent       ${tx.transaction_hash}`)
+  await provider.waitForTransaction(tx.transaction_hash)
+
+  const count = await provider.callContract({
+    contractAddress: governor,
+    entrypoint: 'proposal_count',
+    calldata: [],
+  })
+  const id = BigInt(count[0])
+  const proposal = await provider.callContract({
+    contractAddress: governor,
+    entrypoint: 'get_proposal',
+    calldata: [num.toHex(id)],
+  })
+  const endBlock = Number(BigInt(proposal[4]))
+  const head = await provider.getBlockNumber()
+  console.log(`proposal   ${id}`)
+  console.log(`voting     until block ${endBlock}, ${endBlock - head} blocks from here`)
+  console.log('           cast on it from /compose before then; the stake redeems after it')
+  return tx.transaction_hash
+}
+
 // ---------------------------------------------------------------------------
 
-const phases = { register, shield, transfer, plan, shadow, ballot, redeem }
+const phases = { register, shield, transfer, plan, shadow, propose, ballot, redeem }
 if (!phases[phase]) {
   console.error(`usage: node scripts/mainnet.mjs <${Object.keys(phases).join('|')}> [--execute]`)
   process.exit(1)
