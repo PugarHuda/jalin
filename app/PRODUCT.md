@@ -101,12 +101,12 @@ authority for refinement, not a commitment the user has pinned.
 - Mainnet findings with the queries that produced them in
   `docs/what-mainnet-says.md`; threat model in `docs/threat-model.md`.
 - 141 SDK tests; 408 Playwright tests across six projects (desktop 136, firefox
-  105, webkit 105, mobile 11, mobile-safari 11, ready 2) on three engines; 50
-  Cairo tests of which four fork mainnet and run the router against Endur's
-  vault and AVNU's exchange. Count them before quoting them; this line has been
+  105, webkit 105, mobile 11, mobile-safari 11, ready 2) on three engines; 51
+  Cairo tests of which eight fork mainnet: seven run the router against Endur,
+  AVNU, Vesu and StarkGate, one runs the deployed shadow-account anonymizer. Count them before quoting them; this line has been
   stale four times, and once it was stale on the landing page itself.
 - A demo video exists and ships from the app: `app/public/jalin-demo.mp4`,
-  28,085,707 bytes (28.1 MB), 1920x1080, 3:35 by `ffprobe`, rebuilt on 7
+  28,253,641 bytes (28.3 MB), 1920x1080, 3:37 by `ffprobe`, rebuilt on 7
   September. It said 20.8 MB and 2:49 until 4 September, both invented rather
   than read; read it again after every render rather than adjusting it.
   `strk20.json` names it at `/jalin-demo.mp4`. This line

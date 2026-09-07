@@ -183,7 +183,27 @@ package, which is not on public npm at all.
 Do not derive the address locally. The SDK's derivation does not reproduce what
 this anonymizer deploys; the on-chain `get_shadow_account(commitment)` view
 does, and returns `0x0` for a commitment whose account has not been deployed
-yet.
+yet. `get_shadow_accounts(partial, from, to, false)` goes one better and
+returns the address an undeployed nonce *would* deploy to, which is how the pool
+knows where to send the input before the account exists.
+
+## The deployed anonymizer returns one span; its source returns two
+
+The vendored source (`0.14.3-rc.5`) has `privacy_invoke_with_computation`
+return `(Span<OpenNoteDeposit>, Span<ContractAddress>)` — the second span names
+the shadow account the funds came through, so the pool can screen it under a
+`Delegated` policy. The class deployed at `0x04f33230…888a7` at block
+13,874,000, read with `starknet_getClass`, returns `Span<OpenNoteDeposit>` and
+nothing else. A dispatcher built from the source fails on the chain with
+`Returned data too short`.
+
+So the fork test in `contracts/tests/fork_test.cairo` spells the interface
+itself, against the deployed ABI, and asks `get_shadow_account` for the address
+instead. Everything else in the source matches: the Primer class the anonymizer
+deploys from is declared on mainnet, the deploy-then-replace-class pattern runs
+on a fork, and `CollectPolicy::Diff` collects exactly the principal a closed
+Vesu position returned in the same block. If the pool is upgraded to the source's
+screening contract, the anonymizer will need the matching upgrade first.
 
 ## The proving service was never the wall, and this document said it was
 

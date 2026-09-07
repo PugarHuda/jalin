@@ -47,7 +47,7 @@ at a pinned mainnet block.
 |---|---|
 | **[The deck](https://jalin-five.vercel.app/slides)** | Nine panels: the constraint, the mechanism, what it reaches, what it does not do |
 | **[The composer](https://jalin-five.vercel.app/compose)** | Build a plan, see what it reveals, sign it with Ready |
-| **[The demo](https://jalin-five.vercel.app/jalin-demo.mp4)** | 3:35, recorded against production, with subtitles and pointers measured off the live DOM |
+| **[The demo](https://jalin-five.vercel.app/jalin-demo.mp4)** | 3:37, recorded against production, with subtitles and pointers measured off the live DOM |
 | **[Verify](https://jalin-five.vercel.app/verify)** | The sprint's own rule applied to any repository's `strk20.json`, including this one |
 | **[`strk20.json`](./strk20.json)** | Four mainnet transactions, two declared contracts |
 | **[`jalin-sdk`](https://www.npmjs.com/package/jalin-sdk)** | The plan encoder, published |
@@ -234,6 +234,17 @@ exercised the portfolio layer. It is SDK surface for a wallet that implements
 shadow accounts, and calling it a feature of the demo would be a claim this
 repository cannot support.
 
+What *is* run is the contract underneath. `a_position_the_router_cannot_hold_lives_on_a_shadow_account`
+in `contracts/tests/fork_test.cairo` drives the deployed anonymizer at
+`0x04f33230…888a7` on a mainnet fork the way the pool does: a shadow account is
+deployed at the address the anonymizer predicted before it existed, opens a
+Vesu position, and a second interaction under the same identity closes it and
+collects only the difference into a note. That is the one shape the router
+cannot take — invariant I4 makes it end every transaction empty — and the
+reason STRK20 has two anonymizer patterns rather than one. The test also found
+that the deployed class returns one span where the vendored source returns two;
+see [what mainnet says](./docs/what-mainnet-says.md).
+
 An earlier version of this section said the Wallet API exposed no sub-account
 method. It does now: starknet.js 10.6.0 (29 July 2026) added the handling, and
 `@starknet-io/types-js` 0.10.4 carries `shadow_account_invoke` — calls made from
@@ -356,12 +367,13 @@ missing:
 | Anonymizer contract | `contracts/` — the router, a governor and a private ballot, in Cairo. The router carries three of the four listed transactions and the governor the fourth; the deployed governor's weight accounting has a disclosed defect, corrected in source and not redeployed ([threat model](./docs/threat-model.md)) |
 | Privacy SDK | Built from source into `vendor/` by [`scripts/build-privacy-sdk.sh`](./scripts/build-privacy-sdk.sh) and used by [`scripts/mainnet.mjs`](./scripts/mainnet.mjs) |
 | Proving and discovery | Discovery and the proof interceptor are self-hosted from [`prover/`](./prover/). The prover is **not**: its image is published but exits 132 without AVX-512 here, so proving runs against the hosted mainnet service |
-| Shadow accounts | Asked of the wallet at runtime and shown verbatim, including the refusal. The SDK route is open now that a hosted mainnet prover is known |
+| Shadow accounts | The deployed anonymizer is driven on a mainnet fork — deploy, open a Vesu position, close it a transaction later, collect the difference. Asked of the wallet at runtime and shown verbatim, including the refusal |
 | Private transfers | Not the product. Jalin routes value through venues; a note-to-note transfer is what the pool already does without a helper |
 
-The last two rows are the honest ones. Shadow accounts are reachable in the
-protocol and not from here yet, and private transfer is deliberately somebody
-else's problem.
+The last two rows are the honest ones. Shadow accounts run against the real
+contract on a fork and have not been sent on mainnet from here, because the
+wallet in front of the composer does not implement the route yet; private
+transfer is deliberately somebody else's problem.
 
 ## Repository layout
 
@@ -451,17 +463,20 @@ sh contracts/test.sh          # snforge in a pinned container
 because pinning the toolchain is worth more than saving a container. The scarb
 cache lives in a named volume, so only the first run pays for the plugin build.
 
-50 tests, two of them fuzzed at 256 runs each, covering every line of every
+51 tests, two of them fuzzed at 256 runs each, covering every line of every
 contract — `sh contracts/coverage.sh && node scripts/coverage-gate.mjs` fails if
 any line of `src/` never runs. Line coverage is a floor, not a proof: it says
 every line ran, not that it ran under the conditions that would break it.
 
-Four of them fork Starknet mainnet at a pinned block and run a plan through
-Endur's deployed xSTRK vault — one of the four through AVNU's exchange into
-Ekubo's STRK/USDC pool — funded by the STRK20 pool's own STRK, which is where
-the STRK comes from in a real transaction. A mock ERC-4626 returns what the mock
-was told to return; those four prove the router works against a contract nobody
-here wrote. They need network, and use a public node that takes no key.
+Eight of them fork Starknet mainnet at a pinned block. Seven run a plan through
+a deployed contract — Endur's xSTRK vault, AVNU's exchange into Ekubo's
+STRK/USDC pool, Vesu's STRK market, StarkGate's ETH bridge, and two of those in
+one invoke — funded by the STRK20 pool's own STRK, which is where the STRK comes
+from in a real transaction. The eighth runs the same Vesu deposit through
+STRK20's deployed shadow-account anonymizer, as the position the router cannot
+hold. A mock ERC-4626 returns what the mock was told to return; these prove the
+router works against contracts nobody here wrote. They need network, and use a
+public node that takes no key.
 
 TypeScript:
 
@@ -587,9 +602,10 @@ as a single plan — are exercised against a mainnet fork with the real contract
 at their real addresses.
 
 What is genuinely unreachable from here is narrower than the transaction count
-suggests: the shadow-account route. `wallet_strk20ShadowAccountCommitment`
+suggests: a shadow-account transaction from a wallet. `wallet_strk20ShadowAccountCommitment`
 answers "Not implemented" on the wallet the composer asks, and the composer
-prints that refusal verbatim rather than a constant.
+prints that refusal verbatim rather than a constant. The contract side is not
+waiting on anyone: the fork suite runs the deployed anonymizer end to end.
 
 ## What we found on mainnet
 

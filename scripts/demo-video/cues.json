@@ -212,22 +212,22 @@
  "11-close": [
   {
    "t": 0.05,
-   "d": 3.9473959,
+   "d": 3.8822917,
    "w": "One general router instead of a new contract per interaction."
   },
   {
-   "t": 3.9973959,
-   "d": 12.1744794,
-   "w": "Forty-nine Cairo tests, six of them against real mainnet contracts, a published SDK, a threat model, and every claim on this page verifiable against the chain."
+   "t": 3.9322917,
+   "d": 14.9739586,
+   "w": "Fifty-one Cairo tests, eight of them against real mainnet contracts, including the shadow account anonymizer, a published SDK, a threat model, and every claim on this page verifiable against the chain."
   },
   {
-   "t": 16.1718753,
-   "d": 0.8723958,
+   "t": 18.9062504,
+   "d": 0.8463541,
    "w": "Jalin."
   },
   {
-   "t": 17.0442712,
-   "d": 2.7604167,
+   "t": 19.7526046,
+   "d": 2.6432292,
    "w": "To weave separate strands into one."
   }
  ]

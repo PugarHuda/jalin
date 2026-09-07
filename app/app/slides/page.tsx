@@ -112,7 +112,7 @@ export default async function Slides() {
             of="Cairo contracts, declared and live"
           />
           <Fact value={String(INVARIANTS.length)} of="invariants enforced on chain" />
-          <Fact value="599" of="tests across Cairo, SDK and browser" />
+          <Fact value="600" of="tests across Cairo, SDK and browser" />
         </div>
       </Slide>
 
@@ -157,7 +157,8 @@ struct Step {
           Four third-party mainnet protocols are reachable today with{' '}
           <span className="text-cloth">no adapter written for any of them</span>, because they have
           an ABI and that is the only requirement. Each is run against the deployed contract on a
-          pinned mainnet fork, not against a mock:
+          pinned mainnet fork, not against a mock — and so is the one STRK20 contract the router is
+          not:
         </p>
         <ul className="max-w-[62ch] space-y-2 font-mono text-xs">
           <li className="border-t border-thread pt-2">
@@ -176,6 +177,12 @@ struct Step {
           <li className="border-t border-thread pt-2">
             <span className="text-cloth">StarkGate</span> — ETH out through the real L2 bridge, the
             one plan that declares no outputs because the value leaves for L1
+          </li>
+          <li className="border-t border-thread pt-2">
+            <span className="text-cloth">Shadow account</span> — the same Vesu deposit through
+            STRK20&apos;s deployed anonymizer: a position opened in one interaction and closed in
+            the next, which invariant I4 forbids the router to hold. Two anonymizer patterns, one
+            plan
           </li>
         </ul>
         <p className="max-w-[62ch] pt-2">
@@ -266,7 +273,7 @@ struct Step {
       <Slide n="08" title="What it does not do">
         <ul className="max-w-[62ch] space-y-2">
           <li className="border-t border-thread pt-2">
-            <span className="text-cloth">Unaudited.</span> Six invariants and 50 Cairo tests are
+            <span className="text-cloth">Unaudited.</span> Six invariants and 51 Cairo tests are
             the whole of the safety argument, and nobody outside this project has checked them.
           </li>
           <li className="border-t border-thread pt-2">
@@ -355,7 +362,7 @@ struct Step {
                 className="text-cloth underline underline-offset-2 hover:text-gold"
                 href={manifest.demo_video}
               >
-                the demo, 3:35
+                the demo, 3:37
               </a>{' '}
               — a plan built and signed on mainnet
             </li>

@@ -13,11 +13,14 @@ use snforge_std::{
     ContractClassTrait, DeclareResultTrait, MessageToL1SpyTrait, declare,
     spy_messages_to_l1, start_cheat_caller_address, stop_cheat_caller_address,
 };
+use core::hash::HashStateTrait;
+use core::poseidon::PoseidonTrait;
+use starknet::account::Call;
 use starknet::{ContractAddress, contract_address_const};
 use jalin::interfaces::{
     IErc20Dispatcher, IErc20DispatcherTrait, IJalinRouterDispatcher, IJalinRouterDispatcherTrait,
 };
-use jalin::types::{Approval, Output, Step};
+use jalin::types::{Approval, OpenNoteDeposit, Output, Step};
 
 /// The two ERC-20 entrypoints the router never calls itself, so they are not on
 /// the production interface. The pool calls them, and this is where the test
@@ -537,4 +540,190 @@ fn bridges_out_through_the_real_starkgate() {
     // was funded with, and there is no allowance because there was no approval.
     let balance = IErc20Dispatcher { contract_address: eth() };
     assert(balance.balance_of(router) == 0, 'no ETH left behind');
+}
+
+// ---------------------------------------------------------------------------
+// Shadow accounts: the case the router cannot serve, on the real anonymizer
+// ---------------------------------------------------------------------------
+
+/// The deployed shadow-account anonymizer. `app/lib/config.ts` carries the same
+/// address and `/api/params` checks which pool it is bound to on every load.
+fn shadow_anonymizer() -> ContractAddress {
+    contract_address_const::<0x04f33230dc57855c6e7eabe66dfa0fde82c5458fd0e54827cdb7cb4c474888a7>()
+}
+
+/// One shadow account, as `get_shadow_accounts` describes it: the nonce, the
+/// address it has or would deploy to, and whether it is there yet.
+#[derive(Serde, Copy, Drop, PartialEq, Debug)]
+struct ShadowAccountInfo {
+    nonce: u64,
+    address: ContractAddress,
+    is_deployed: bool,
+}
+
+/// How much of a token the anonymizer collects from the shadow account once
+/// the calls have run. `Diff` is the one a persistent position wants.
+#[derive(Serde, Copy, Drop, PartialEq, Debug)]
+enum CollectPolicy {
+    All,
+    Diff,
+    Exact: u128,
+}
+
+/// An open note to settle from the shadow account after the calls.
+#[derive(Serde, Copy, Drop, PartialEq, Debug)]
+struct OpenNote {
+    note_id: felt252,
+    token: ContractAddress,
+    collect_policy: CollectPolicy,
+}
+
+/// The anonymizer's interface, spelled here so the test binds to the deployed
+/// contract's ABI rather than to a crate that is not a dependency of this one.
+///
+/// And the two differ, which is why this is spelled rather than imported: the
+/// vendored source returns `(deposits, addresses)` so the pool can screen the
+/// shadow account the funds came through, and the class deployed at the pinned
+/// block - read with `starknet_getClass` - returns the deposits alone. A
+/// dispatcher built from the source fails on the chain with 'Returned data too
+/// short'. The address is still knowable from `get_shadow_account`, so the
+/// test asks for it that way.
+#[starknet::interface]
+trait IShadowAccountAnonymizer<TState> {
+    fn privacy_invoke_with_computation(
+        ref self: TState,
+        identity_commitment: felt252,
+        calls: Array<Call>,
+        open_notes: Span<OpenNote>,
+    ) -> Span<OpenNoteDeposit>;
+    fn get_shadow_accounts(
+        self: @TState,
+        partial_commitment: felt252,
+        start_nonce: u64,
+        end_nonce: u64,
+        until_undeployed: bool,
+    ) -> Span<ShadowAccountInfo>;
+    fn get_shadow_account(self: @TState, identity_commitment: felt252) -> ContractAddress;
+    fn get_privacy_contract(self: @TState) -> ContractAddress;
+}
+
+/// `hash(hash(identity_key, dapp_name), nonce)`, as the anonymizer derives it.
+/// The identity key is what the pool computes from the user's private key; the
+/// test stands in for the pool here too, so any felt will do as long as the
+/// same one is used twice.
+fn shadow_commitment(
+    identity_key: felt252, dapp_name: felt252, nonce: felt252,
+) -> (felt252, felt252) {
+    let partial = PoseidonTrait::new().update(identity_key).update(dapp_name).finalize();
+    let commitment = PoseidonTrait::new().update(partial).update(nonce).finalize();
+    (partial, commitment)
+}
+
+/// A position the router cannot hold, held by a shadow account instead.
+///
+/// Invariant I4 says the router ends every transaction empty, which is why it
+/// is safe to hand it arbitrary calldata - and why it can never keep a lending
+/// position open across two transactions. STRK20 has a second anonymizer for
+/// exactly that: a shadow account, a real Starknet account the pool derives
+/// per identity, which holds what the router may not.
+///
+/// This runs that on the deployed anonymizer at the pinned block. The first
+/// interaction opens a Vesu position from a shadow account that does not exist
+/// yet, and collects nothing; the position stays. The second, from the same
+/// identity, closes it and collects the difference into a note. The address is
+/// the one the anonymizer predicted before anything was deployed, because the
+/// pool has to know where to send the input before the account exists.
+///
+/// Together with `lends_into_the_real_vesu_market` this is the whole argument
+/// of the project in two tests: the same Vesu deposit, once as a stateless plan
+/// through the router and once as a position on a shadow account, and the
+/// choice between them is the shape of the interaction rather than the
+/// presence of a helper contract.
+#[test]
+#[fork("MAINNET")]
+fn a_position_the_router_cannot_hold_lives_on_a_shadow_account() {
+    let anonymizer = IShadowAccountAnonymizerDispatcher { contract_address: shadow_anonymizer() };
+    assert(anonymizer.get_privacy_contract() == pool(), 'bound to the same pool');
+
+    let (partial, commitment) = shadow_commitment('JALIN_IDENTITY', 'jalin', 0);
+
+    // Before anything: no account, but an address. The pool sends the input
+    // there, so it has to be knowable first.
+    let predicted = anonymizer.get_shadow_accounts(partial, 0, 1, false);
+    assert(predicted.len() == 1, 'one nonce, one entry');
+    let shadow = *predicted.at(0).address;
+    assert(!*predicted.at(0).is_deployed, 'not deployed yet');
+    let none: felt252 = anonymizer.get_shadow_account(commitment).into();
+    assert(none == 0, 'no account recorded');
+
+    // The pool hands the shadow account its input, as it does the router.
+    let token = IErc20Dispatcher { contract_address: strk() };
+    start_cheat_caller_address(strk(), pool());
+    token.transfer(shadow, ONE.into());
+    stop_cheat_caller_address(strk());
+
+    // First interaction: open the position. Two calls, because a shadow
+    // account is an account and grants its own allowances; there is no
+    // `approvals` field to declare them in. Nothing is collected, so the
+    // shares stay where the router could never leave them.
+    let open = array![
+        Call {
+            to: strk(),
+            selector: selector!("approve"),
+            calldata: array![vesu_strk().into(), ONE.into(), 0].span(),
+        },
+        Call {
+            to: vesu_strk(),
+            selector: selector!("deposit"),
+            calldata: array![ONE.into(), 0, shadow.into()].span(),
+        },
+    ];
+    start_cheat_caller_address(shadow_anonymizer(), pool());
+    let deposits = anonymizer.privacy_invoke_with_computation(commitment, open, array![].span());
+    stop_cheat_caller_address(shadow_anonymizer());
+
+    assert(deposits.len() == 0, 'nothing collected yet');
+    assert(anonymizer.get_shadow_account(commitment) == shadow, 'deployed where predicted');
+    let after = anonymizer.get_shadow_accounts(partial, 0, 1, true);
+    assert(after.len() == 1 && *after.at(0).is_deployed, 'now deployed');
+
+    let shares = IErc20Dispatcher { contract_address: vesu_strk() };
+    let held = shares.balance_of(shadow);
+    assert(held > 0, 'the position is open');
+    assert(token.balance_of(shadow) == 0, 'all of it went in');
+
+    // Second interaction, same identity, a transaction later: close the
+    // position and collect only what this interaction gained. Same address,
+    // no redeploy - the account remembered the shares between the two.
+    let close = array![
+        Call {
+            to: vesu_strk(),
+            selector: selector!("redeem"),
+            calldata: array![held.low.into(), held.high.into(), shadow.into(), shadow.into()]
+                .span(),
+        },
+    ];
+    let notes = array![
+        OpenNote { note_id: 'BACK', token: strk(), collect_policy: CollectPolicy::Diff },
+    ];
+    start_cheat_caller_address(shadow_anonymizer(), pool());
+    let deposits = anonymizer.privacy_invoke_with_computation(commitment, close, notes.span());
+    stop_cheat_caller_address(shadow_anonymizer());
+
+    assert(deposits.len() == 1, 'one note settled');
+    let back = *deposits.at(0);
+    assert(back.note_id == 'BACK', 'note id passed through');
+    assert(back.token == strk(), 'collected in STRK');
+    // Same block, so no interest; ERC-4626 rounding may keep a wei. The point
+    // is that the whole principal came back through a note, not the wei.
+    assert(back.amount <= ONE, 'no more than went in');
+    assert(back.amount > ONE - ONE / 1000, 'the principal came back');
+    // The anonymizer holds the collected STRK and the pool may pull exactly it,
+    // the same handshake the router ends on.
+    let pull = IErc20PullDispatcher { contract_address: strk() };
+    assert(
+        pull.allowance(shadow_anonymizer(), pool()) == back.amount.into(), 'pool may pull exactly',
+    );
+    assert(token.balance_of(shadow) == 0, 'shadow account emptied');
+    assert(shares.balance_of(shadow) == 0, 'position closed');
 }

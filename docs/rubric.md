@@ -18,18 +18,19 @@ anonymizer contracts, the SDK, and stealth accounts.
 
 | | Where | Depth |
 |---|---|---|
-| **Anonymizer contracts** | [`contracts/src/router.cairo`](../contracts/src/router.cairo), [`governor.cairo`](../contracts/src/governor.cairo) | Two, both deployed on mainnet, both called by the pool through `privacy_invoke` and gated on `get_caller_address() == pool`. 50 Cairo tests, seven of them against a pinned mainnet fork — AVNU's exchange, Endur's vault, Vesu's STRK lending market, StarkGate's ETH bridge, and one plan carrying a swap and a stake at once. Four third-party protocols, no adapter written for any of them. |
+| **Anonymizer contracts** | [`contracts/src/router.cairo`](../contracts/src/router.cairo), [`governor.cairo`](../contracts/src/governor.cairo) | Two, both deployed on mainnet, both called by the pool through `privacy_invoke` and gated on `get_caller_address() == pool`. 51 Cairo tests, eight of them against a pinned mainnet fork — AVNU's exchange, Endur's vault, Vesu's STRK lending market, StarkGate's ETH bridge, one plan carrying a swap and a stake at once, and STRK20's own shadow-account anonymizer. Four third-party protocols, no adapter written for any of them. |
 | **Shielded balances** | [`app/lib/wallet.ts`](../app/lib/wallet.ts) | `wallet_strk20Balances`, read from the wallet on every connect. Every run is gated on it, and the shield button is sized from the live pool fee rather than a constant. |
 | **Private transfers** | [`sdk/src/wallet.ts`](../sdk/src/wallet.ts), [`sdk/src/ballot.ts`](../sdk/src/ballot.ts) | The withdraw/OPEN-transfer/invoke action sequence the pool requires, encoded once and used by the composer, the redeem panel and `scripts/mainnet.mjs`. |
 | **The Privacy SDK** | [`scripts/mainnet.mjs`](../scripts/mainnet.mjs), [`scripts/build-privacy-sdk.sh`](../scripts/build-privacy-sdk.sh) | Built from source at a pinned commit and driven headlessly: `register`, `shield`, `transfer`, `plan`, `shadow`, `propose`, `ballot`, `redeem`. It proves through the hosted mainnet prover. |
-| **Stealth / shadow accounts** | [`sdk/src/shadow.ts`](../sdk/src/shadow.ts), [`app/app/api/params/route.ts`](../app/app/api/params/route.ts) | Partial, and this is the weakest row. The wallet is asked for `wallet_strk20ShadowAccountCommitment` and its refusal is printed verbatim; the anonymizer is read on chain and shown beside our own pool address. **No shadow-account transaction has been sent.** |
+| **Stealth / shadow accounts** | `a_position_the_router_cannot_hold_lives_on_a_shadow_account` in [`contracts/tests/fork_test.cairo`](../contracts/tests/fork_test.cairo), [`sdk/src/shadow.ts`](../sdk/src/shadow.ts), [`app/app/api/params/route.ts`](../app/app/api/params/route.ts) | The fork test drives the *deployed* anonymizer at `0x04f33230…888a7` as the pool would: a shadow account is deployed at the address the anonymizer predicted, opens a Vesu position, and a second interaction under the same identity closes it and collects the difference into a note. That is the case invariant I4 forbids the router to serve, run on the real contract. Reading it also found that the deployed class returns one span where the vendored source returns two ([what mainnet says](./what-mainnet-says.md)). The SDK encodes the Wallet API action; the composer asks the wallet for `wallet_strk20ShadowAccountCommitment` and prints its refusal verbatim. **No shadow-account transaction has been sent on mainnet**: the wallet in front of the composer answers "Not implemented". |
 | **The services underneath** | [`app/app/api/services/route.ts`](../app/app/api/services/route.ts) | The prover, note discovery and AVNU's SNIP-29 paymaster, asked at request time and printed on [`/verify`](https://jalin-five.vercel.app/verify) — including how far behind the chain discovery is. |
 
 **What a judge should look at first:** `contracts/tests/fork_test.cairo`. It runs
 plans through the *deployed* AVNU exchange, Endur vault, Vesu STRK market and
 StarkGate ETH bridge at a pinned block, including two venues in a single invoke
-and one plan that credits nothing back because the value left for L1. Nothing
-in it is mocked.
+and one plan that credits nothing back because the value left for L1 — and then
+the same Vesu deposit through the deployed shadow-account anonymizer, as the
+position the router cannot hold. Nothing in it is mocked.
 
 ---
 
@@ -71,7 +72,9 @@ https://jalin-five.vercel.app/api/manifest?owner=PugarHuda&repo=jalin
   against a declare bound near 66. `scripts/verify-classes.mjs` refuses to call
   that address current, and the entry self-cleans if it ever matches source.
 - Every shape the README names — swap, stake, lend, bridge — has now been run on a fork against the deployed contract. None of the four has been run *on mainnet itself* beyond the swap and the stake; the four listed transactions are the mainnet record.
-- No shadow-account transaction has been sent.
+- No shadow-account transaction has been sent on mainnet. The route runs on a
+  fork against the deployed anonymizer; the wallet the composer talks to does
+  not implement it yet.
 
 ---
 
