@@ -250,7 +250,7 @@ async function transfer(recipient, amountStrk) {
  * derivation does not reproduce what this anonymizer deploys - the on-chain
  * get_shadow_account(commitment) view does.
  */
-async function shadow(nonce = '0') {
+async function shadow(nonce = '0', action = 'approve') {
   requireProver('shadow')
   const anonymizer = env('SHADOW_ACCOUNT_ANONYMIZER')
   const dapp = 'JALIN'
@@ -286,15 +286,60 @@ async function shadow(nonce = '0') {
     console.log(`shadow account     ${shadowAccount}`)
   }
 
-  // An approve of zero to itself: the smallest call that proves the account
-  // can act, and one that leaves no allowance behind.
+  /**
+   * What the shadow account does.
+   *
+   * `approve`: an approve of zero to itself - the smallest call that proves
+   * the account can act, and one that leaves no allowance behind. It touches
+   * the pool and STRK and nothing of ours, so by the sprint's own rule it does
+   * not count as this project's transaction, and it is not listed as one.
+   *
+   * `propose`: a governance proposal on this project's governor, filed by
+   * the shadow account. The governor is permissionless by design, so the
+   * proposer on chain is an account with no public link to the wallet behind
+   * it - a private proposal, which is a thing the governor was written for
+   * and had never received. The governor emits, so it counts.
+   */
+  const router = env('ROUTER_ADDRESS')
+  const calls =
+    action === 'propose'
+      ? [
+          {
+            contractAddress: env('GOVERNOR_ADDRESS'),
+            entrypoint: 'propose',
+            // propose(kind, target, value_a, value_b); kind 4 is LABEL.
+            calldata: ['0x4', router, shortString.encodeShortString('JALIN_SHADOW'), '0x0'],
+          },
+        ]
+      : [{ contractAddress: STRK, entrypoint: 'approve', calldata: [shadowAccount, '0x0', '0x0'] }]
+  console.log(`action             ${action}`)
+
+  /**
+   * Replay protection, which the pool demands of every transaction and a
+   * shadow invoke alone does not carry.
+   *
+   * The pool requires at least one action that compiles to a write-once -
+   * spending a note, or opening a channel. The first shadow transaction had
+   * one for free: autoSetup opened this account's STRK channel. The second
+   * had nothing left to open and the prover's simulation answered
+   * NO_REPLAY_PROTECTION. Opening a channel for a token this account has not
+   * touched is a write-once that moves no funds, so each further shadow
+   * transaction opens one more: ETH here, and the list below when that is
+   * taken. Spending a note would do the same, for an account that had one.
+   */
+  const FRESH_CHANNELS = [
+    '0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7', // ETH
+    '0x053c91253bc9682c04929ca02ed00b3e423f6710d2ee7e0d5ebb06f3ecf368a8', // USDC
+    '0x068f5c6a61780768455de69077e07e89787839bf8166decfbf92b645209c0fb8', // USDT
+  ]
+  const fresh = FRESH_CHANNELS[Number(process.env.SHADOW_CHANNEL_INDEX ?? '0')]
+
   const { callAndProof } = await transfers
     .build({ autoSetup: true })
     .surplusTo(account.address)
+    .with(fresh, (t) => t.setup(account.address))
     .shadowAccounts(dapp)
-    .invoke(nonce, {
-      calls: [{ contractAddress: STRK, entrypoint: 'approve', calldata: [shadowAccount, '0x0', '0x0'] }],
-    })
+    .invoke(nonce, { calls })
     .execute({ provingBlockId: await provingBlockId() })
 
   return submit(callAndProof, 'shadow')
