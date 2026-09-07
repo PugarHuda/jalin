@@ -262,20 +262,38 @@ async function shadow(nonce = '0') {
   console.log(`partial commitment ${num.toHex(partial)}`)
   console.log(`commitment         ${num.toHex(commitment)}`)
 
-  const [derived] = await provider.callContract({
+  const [deployed] = await provider.callContract({
     contractAddress: anonymizer,
     entrypoint: 'get_shadow_account',
     calldata: [num.toHex(commitment)],
   })
-  console.log(`shadow account     ${derived}`)
+  // Zero until the first interaction deploys it. The address is still
+  // knowable: get_shadow_accounts returns, for an undeployed nonce, the
+  // address the deploy syscall will derive - which is how the pool knows
+  // where to send an input before the account exists. The first run of this
+  // phase passed the zero straight into approve(0x0, 0) and the node
+  // answered 'ERC20: approve to 0' after thirty seconds of proving.
+  let shadowAccount = deployed
+  if (BigInt(deployed) === 0n) {
+    const [, , predicted] = await provider.callContract({
+      contractAddress: anonymizer,
+      entrypoint: 'get_shadow_accounts',
+      calldata: [num.toHex(partial), num.toHex(nonce), num.toHex(BigInt(nonce) + 1n), '0x0'],
+    })
+    shadowAccount = predicted
+    console.log(`shadow account     ${shadowAccount} (not deployed yet; this transaction deploys it)`)
+  } else {
+    console.log(`shadow account     ${shadowAccount}`)
+  }
 
-  // An approve of zero: the smallest call that proves the account can act.
+  // An approve of zero to itself: the smallest call that proves the account
+  // can act, and one that leaves no allowance behind.
   const { callAndProof } = await transfers
     .build({ autoSetup: true })
     .surplusTo(account.address)
     .shadowAccounts(dapp)
     .invoke(nonce, {
-      calls: [{ contractAddress: STRK, entrypoint: 'approve', calldata: [derived, '0x0', '0x0'] }],
+      calls: [{ contractAddress: STRK, entrypoint: 'approve', calldata: [shadowAccount, '0x0', '0x0'] }],
     })
     .execute({ provingBlockId: await provingBlockId() })
 
