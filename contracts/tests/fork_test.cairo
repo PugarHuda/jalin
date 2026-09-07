@@ -271,3 +271,100 @@ fn swaps_through_the_real_avnu_exchange() {
     let strk_balance = IErc20Dispatcher { contract_address: strk() };
     assert(strk_balance.balance_of(router) == 0, 'no STRK left behind either');
 }
+
+/// Two protocols, one invoke - the claim this project is built on, run rather
+/// than argued.
+///
+/// Everything above proves one call into one venue. That is not the argument.
+/// The argument is that a swap and a deposit are the same object to this
+/// router, so a plan can carry both and the pool never learns it was two
+/// things. Until this test the README said as much and conceded that lending
+/// beside a swap "has not been run, on mainnet or on a fork" - a shape rather
+/// than a result.
+///
+/// This runs it: one STRK through AVNU into native USDC, one STRK into Endur's
+/// vault, two outputs credited into two notes, inside a single
+/// `privacy_invoke`. Both venues are the deployed ones at the pinned block, so
+/// the amounts are whatever Ekubo's pool and Endur's share price actually were.
+#[test]
+#[fork("MAINNET")]
+fn a_swap_and_a_stake_in_the_same_invoke() {
+    let router = deploy_stack();
+    fund(router, ONE * 2);
+
+    // The same AVNU calldata the single-venue test uses, with this test's
+    // router as beneficiary. Copied deliberately rather than factored out: a
+    // helper that built it would be a second place for the route to drift from
+    // what the aggregator actually returned.
+    let swap = array![
+        strk().into(), ONE.into(), 0,
+        usdc().into(), 0x64f2, 0,
+        1, 0,
+        router.into(), 0, 0,
+        1,
+        strk().into(), usdc().into(), EKUBO_ADAPTER, 0xe8d4a51000,
+        6,
+        usdc().into(), strk().into(), 0x20c49ba5e353f80000000000000000, 0x3e8, 0,
+        0x20e01af4964000000000000000000000,
+    ];
+
+    let steps = array![
+        Step {
+            target: avnu(),
+            selector: selector!("multi_route_swap"),
+            approvals: array![Approval { token: strk(), amount: ONE }],
+            calldata: swap,
+        },
+        Step {
+            target: endur(),
+            selector: selector!("deposit"),
+            approvals: array![Approval { token: strk(), amount: ONE }],
+            calldata: array![ONE.into(), 0, router.into()],
+        },
+    ];
+
+    // One floor per output, each in its own token's decimals. Both loose for
+    // the same reason as above; the tight assertions are on what came back.
+    let outputs = array![
+        Output { token: usdc(), note_id: 'USDC', min_amount: 10_000 },
+        Output { token: endur(), note_id: 'XSTRK', min_amount: ONE / 2 },
+    ];
+
+    start_cheat_caller_address(router, pool());
+    let credited = IJalinRouterDispatcher { contract_address: router }
+        .privacy_invoke(pool(), steps, outputs);
+    stop_cheat_caller_address(router);
+
+    assert(credited.len() == 2, 'two venues, two notes');
+
+    let bought = *credited.at(0);
+    assert(bought.token == usdc(), 'first note is the swap');
+    assert(bought.amount > 10_000, 'swap cleared its floor');
+    assert(bought.amount < 1_000_000, 'under a dollar of USDC');
+
+    let staked = *credited.at(1);
+    assert(staked.token == endur(), 'second note is the stake');
+    assert(staked.amount > ONE / 2, 'stake cleared its floor');
+    assert(staked.amount < ONE, 'a share is worth over par');
+
+    // I4 across two tokens at once: the router ends holding neither, and the
+    // pool may pull exactly what it was told about and no more.
+    let usdc_token = IErc20PullDispatcher { contract_address: usdc() };
+    let xstrk_token = IErc20PullDispatcher { contract_address: endur() };
+    assert(usdc_token.allowance(router, pool()) == bought.amount.into(), 'usdc allowance is exact');
+    assert(xstrk_token.allowance(router, pool()) == staked.amount.into(), 'xstrk allowance is exact');
+
+    start_cheat_caller_address(usdc(), pool());
+    usdc_token.transfer_from(router, pool(), bought.amount.into());
+    stop_cheat_caller_address(usdc());
+    start_cheat_caller_address(endur(), pool());
+    xstrk_token.transfer_from(router, pool(), staked.amount.into());
+    stop_cheat_caller_address(endur());
+
+    let strk_left = IErc20Dispatcher { contract_address: strk() };
+    let usdc_left = IErc20Dispatcher { contract_address: usdc() };
+    let xstrk_left = IErc20Dispatcher { contract_address: endur() };
+    assert(strk_left.balance_of(router) == 0, 'no STRK left behind');
+    assert(usdc_left.balance_of(router) == 0, 'no USDC left behind');
+    assert(xstrk_left.balance_of(router) == 0, 'no xSTRK left behind');
+}

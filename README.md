@@ -15,10 +15,20 @@ a payment app, a poker table, a prediction market — and Jalin is the layer eac
 of them would otherwise write, audit and deploy separately. If you are looking
 for the thing it does, the answer is: whatever the plan says.
 
-Swapping and staking are demonstrated on mainnet, through AVNU and Endur.
+Swapping and staking are demonstrated on mainnet, through AVNU and Endur, and
+**both in the same invoke** against the deployed contracts on a pinned mainnet
+fork: one STRK through AVNU into native USDC and one into Endur's vault, two
+outputs credited into two notes, one `privacy_invoke`. That test
+(`a_swap_and_a_stake_in_the_same_invoke`) is the argument of this project run
+rather than argued — every other project on this pool writes one helper per
+venue, and this is two venues with none.
+
 Lending and bridging are the same object in the router's eyes and neither has
-been run, on mainnet or on a fork; where this README argues them, it is arguing
-a shape rather than reporting a result.
+been run, on mainnet or on a fork. Vesu is the closest miss: its V2 pools take
+positions through `modify_position` rather than the ERC-4626 `deposit` the fork
+tests use, so it is an afternoon of calldata rather than a shape that does not
+fit. Where this README argues those two, it is arguing a shape rather than
+reporting a result.
 
 ## Where to look first
 
@@ -31,6 +41,7 @@ a shape rather than reporting a result.
 | **[`strk20.json`](./strk20.json)** | Four mainnet transactions, two declared contracts |
 | **[`jalin-sdk`](https://www.npmjs.com/package/jalin-sdk)** | The plan encoder, published |
 | **[Governance](https://jalin-five.vercel.app/governance)** | What the router runs on, asked of the router itself — and a form that takes a ballot secret and gives the stake back |
+| **[The rubric, mapped](./docs/rubric.md)** | Every judging criterion against the file, hash or command that settles it — including the three rows where the answer is "we did not do that" |
 | **[The three mainnet endpoints](./docs/strk20-endpoints.md)** | Prover, note discovery and the shadow-account anonymizer — each verified, each reported missing somewhere, and now [checked live](https://jalin-five.vercel.app/verify) on every load |
 
 Every figure on every page is a live contract call, and `/verify` will tell you
@@ -429,7 +440,7 @@ sh contracts/test.sh          # snforge in a pinned container
 because pinning the toolchain is worth more than saving a container. The scarb
 cache lives in a named volume, so only the first run pays for the plugin build.
 
-47 tests, two of them fuzzed at 256 runs each, covering every line of every
+48 tests, two of them fuzzed at 256 runs each, covering every line of every
 contract — `sh contracts/coverage.sh && node scripts/coverage-gate.mjs` fails if
 any line of `src/` never runs. Line coverage is a floor, not a proof: it says
 every line ran, not that it ran under the conditions that would break it.
