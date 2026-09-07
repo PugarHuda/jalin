@@ -18,7 +18,7 @@ anonymizer contracts, the SDK, and stealth accounts.
 
 | | Where | Depth |
 |---|---|---|
-| **Anonymizer contracts** | [`contracts/src/router.cairo`](../contracts/src/router.cairo), [`governor.cairo`](../contracts/src/governor.cairo) | Two, both deployed on mainnet, both called by the pool through `privacy_invoke` and gated on `get_caller_address() == pool`. 49 Cairo tests, six of them against a pinned mainnet fork — AVNU's exchange, Endur's vault, Vesu's STRK lending market, and one plan carrying a swap and a stake at once. Three third-party protocols, no adapter written for any of them. |
+| **Anonymizer contracts** | [`contracts/src/router.cairo`](../contracts/src/router.cairo), [`governor.cairo`](../contracts/src/governor.cairo) | Two, both deployed on mainnet, both called by the pool through `privacy_invoke` and gated on `get_caller_address() == pool`. 50 Cairo tests, seven of them against a pinned mainnet fork — AVNU's exchange, Endur's vault, Vesu's STRK lending market, StarkGate's ETH bridge, and one plan carrying a swap and a stake at once. Four third-party protocols, no adapter written for any of them. |
 | **Shielded balances** | [`app/lib/wallet.ts`](../app/lib/wallet.ts) | `wallet_strk20Balances`, read from the wallet on every connect. Every run is gated on it, and the shield button is sized from the live pool fee rather than a constant. |
 | **Private transfers** | [`sdk/src/wallet.ts`](../sdk/src/wallet.ts), [`sdk/src/ballot.ts`](../sdk/src/ballot.ts) | The withdraw/OPEN-transfer/invoke action sequence the pool requires, encoded once and used by the composer, the redeem panel and `scripts/mainnet.mjs`. |
 | **The Privacy SDK** | [`scripts/mainnet.mjs`](../scripts/mainnet.mjs), [`scripts/build-privacy-sdk.sh`](../scripts/build-privacy-sdk.sh) | Built from source at a pinned commit and driven headlessly: `register`, `shield`, `transfer`, `plan`, `shadow`, `propose`, `ballot`, `redeem`. It proves through the hosted mainnet prover. |
@@ -26,9 +26,10 @@ anonymizer contracts, the SDK, and stealth accounts.
 | **The services underneath** | [`app/app/api/services/route.ts`](../app/app/api/services/route.ts) | The prover, note discovery and AVNU's SNIP-29 paymaster, asked at request time and printed on [`/verify`](https://jalin-five.vercel.app/verify) — including how far behind the chain discovery is. |
 
 **What a judge should look at first:** `contracts/tests/fork_test.cairo`. It runs
-plans through the *deployed* AVNU exchange, Endur vault and Vesu STRK market at
-a pinned block, including two of them in a single invoke. Nothing in it is
-mocked.
+plans through the *deployed* AVNU exchange, Endur vault, Vesu STRK market and
+StarkGate ETH bridge at a pinned block, including two venues in a single invoke
+and one plan that credits nothing back because the value left for L1. Nothing
+in it is mocked.
 
 ---
 
@@ -69,7 +70,7 @@ https://jalin-five.vercel.app/api/manifest?owner=PugarHuda&repo=jalin
   source and in tests, and not redeployed: the deployer holds about 2 STRK
   against a declare bound near 66. `scripts/verify-classes.mjs` refuses to call
   that address current, and the entry self-cleans if it ever matches source.
-- Bridging has not been run. Lending has, on a fork, against Vesu's live STRK market. See the top of the README.
+- Every shape the README names — swap, stake, lend, bridge — has now been run on a fork against the deployed contract. None of the four has been run *on mainnet itself* beyond the swap and the stake; the four listed transactions are the mainnet record.
 - No shadow-account transaction has been sent.
 
 ---

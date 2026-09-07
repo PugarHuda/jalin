@@ -112,7 +112,7 @@ export default async function Slides() {
             of="Cairo contracts, declared and live"
           />
           <Fact value={String(INVARIANTS.length)} of="invariants enforced on chain" />
-          <Fact value="598" of="tests across Cairo, SDK and browser" />
+          <Fact value="599" of="tests across Cairo, SDK and browser" />
         </div>
       </Slide>
 
@@ -154,7 +154,7 @@ struct Step {
 
       <Slide n="04" title="Integration depth: what it actually reaches">
         <p className="max-w-[62ch]">
-          Three third-party mainnet protocols are reachable today with{' '}
+          Four third-party mainnet protocols are reachable today with{' '}
           <span className="text-cloth">no adapter written for any of them</span>, because they have
           an ABI and that is the only requirement. Each is run against the deployed contract on a
           pinned mainnet fork, not against a mock:
@@ -172,6 +172,10 @@ struct Step {
             <span className="text-cloth">Vesu</span> — a deposit into the live STRK lending market.
             The plan is the Endur plan with a different address in it, which is the finding rather
             than the test
+          </li>
+          <li className="border-t border-thread pt-2">
+            <span className="text-cloth">StarkGate</span> — ETH out through the real L2 bridge, the
+            one plan that declares no outputs because the value leaves for L1
           </li>
         </ul>
         <p className="max-w-[62ch] pt-2">
@@ -262,7 +266,7 @@ struct Step {
       <Slide n="08" title="What it does not do">
         <ul className="max-w-[62ch] space-y-2">
           <li className="border-t border-thread pt-2">
-            <span className="text-cloth">Unaudited.</span> Six invariants and 49 Cairo tests are
+            <span className="text-cloth">Unaudited.</span> Six invariants and 50 Cairo tests are
             the whole of the safety argument, and nobody outside this project has checked them.
           </li>
           <li className="border-t border-thread pt-2">

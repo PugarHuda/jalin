@@ -29,9 +29,17 @@ at the same pinned block, credited back as vToken shares
 it — the plan is the Endur plan with a different address in it, which is the
 finding rather than the test.
 
-Bridging is the one left. It is the same object in the router's eyes and it has
-not been run, on mainnet or on a fork; where this README argues it, it is
-arguing a shape rather than reporting a result.
+**And bridging**, the last one this README ever argued rather than reported:
+a thousandth of an ETH out of the router through StarkGate's real L2 bridge
+(`bridges_out_through_the_real_starkgate`), the one plan that declares no
+outputs because value leaves for good. The test watches the message the bridge
+posts to L1 and finds the recipient and the amount in it, and the router ends
+at zero because the bridge burned what it was handed. It is also the only test
+in the suite that spends L1 gas, which is what a bridge leg is.
+
+Nothing in that paragraph is a shape any more. Swap, stake, lend and bridge are
+four addresses in the same plan format, each run against the deployed contract
+at a pinned mainnet block.
 
 ## Where to look first
 
@@ -443,7 +451,7 @@ sh contracts/test.sh          # snforge in a pinned container
 because pinning the toolchain is worth more than saving a container. The scarb
 cache lives in a named volume, so only the first run pays for the plugin build.
 
-49 tests, two of them fuzzed at 256 runs each, covering every line of every
+50 tests, two of them fuzzed at 256 runs each, covering every line of every
 contract — `sh contracts/coverage.sh && node scripts/coverage-gate.mjs` fails if
 any line of `src/` never runs. Line coverage is a floor, not a proof: it says
 every line ran, not that it ran under the conditions that would break it.

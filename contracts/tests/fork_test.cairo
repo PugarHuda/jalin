@@ -10,8 +10,8 @@
 //! where the STRK comes from in a real transaction.
 
 use snforge_std::{
-    ContractClassTrait, DeclareResultTrait, declare, start_cheat_caller_address,
-    stop_cheat_caller_address,
+    ContractClassTrait, DeclareResultTrait, MessageToL1SpyTrait, declare,
+    spy_messages_to_l1, start_cheat_caller_address, stop_cheat_caller_address,
 };
 use starknet::{ContractAddress, contract_address_const};
 use jalin::interfaces::{
@@ -440,4 +440,101 @@ fn lends_into_the_real_vesu_market() {
     let strk_left = IErc20Dispatcher { contract_address: strk() };
     assert(left.balance_of(router) == 0, 'no shares left behind');
     assert(strk_left.balance_of(router) == 0, 'no STRK left behind');
+}
+
+/// Mainnet ETH, which the pool holds and StarkGate burns.
+fn eth() -> ContractAddress {
+    contract_address_const::<0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7>()
+}
+
+/// StarkGate's ETH bridge on L2. `initiate_withdraw(l1_recipient, amount)` was
+/// read from its class at the pinned block; it burns the caller's ETH through
+/// the token's `permissioned_burn` and posts a message to L1, so there is no
+/// approval to grant and nothing comes back.
+fn starkgate_eth() -> ContractAddress {
+    contract_address_const::<0x073314940630fd6dcda0d772d4c972c4e0a9946bef9dabf4ef84eda8ef542b82>()
+}
+
+/// Moves ETH out of the pool the way the pool itself would.
+fn fund_eth(router: ContractAddress, amount: u128) {
+    let token = IErc20Dispatcher { contract_address: eth() };
+    start_cheat_caller_address(eth(), pool());
+    token.transfer(router, amount.into());
+    stop_cheat_caller_address(eth());
+}
+
+/// Bridging, the last thing this project argued and had not run.
+///
+/// A bridge leg is the shape every other plan is not: value leaves for good and
+/// nothing is credited back, so the plan declares no outputs and the pool
+/// accepts an empty span. `router_test` proves that against a mock. This runs
+/// it against StarkGate: a thousandth of an ETH out of the router, through the
+/// real L2 bridge, into a message bound for L1 - with the router ending at
+/// zero, because the bridge burned what it was handed rather than holding it.
+///
+/// The recipient is an L1 address that is not ours and the amount is small on
+/// purpose: on a fork nothing leaves, and the point is the shape of the call,
+/// not the destination of the money.
+#[test]
+#[fork("MAINNET")]
+fn bridges_out_through_the_real_starkgate() {
+    let router = deploy_stack();
+    let amount: u128 = 1_000_000_000_000_000; // 0.001 ETH
+    fund_eth(router, amount);
+
+    // Any L1 address will do on a fork. This one is StarkGate's own L1 ETH
+    // bridge, which is at least a place ETH has been sent before.
+    let l1_recipient: felt252 = 0xae0ee0a63a2ce6baeeffe56e7714fb4efe48d419;
+
+    let steps = array![
+        Step {
+            target: starkgate_eth(),
+            selector: selector!("initiate_withdraw"),
+            // No approval: the bridge burns the caller's balance through
+            // `permissioned_burn` rather than pulling by allowance.
+            approvals: array![],
+            calldata: array![l1_recipient, amount.into(), 0],
+        },
+    ];
+    // Value leaves for good. Nothing to credit, so nothing to declare.
+    let outputs: Array<Output> = array![];
+
+    let mut spy = spy_messages_to_l1();
+
+    start_cheat_caller_address(router, pool());
+    let credited = IJalinRouterDispatcher { contract_address: router }
+        .privacy_invoke(pool(), steps, outputs);
+    stop_cheat_caller_address(router);
+
+    assert(credited.len() == 0, 'a bridge credits nothing back');
+
+    // The bridge said so to L1: one message, from the bridge, carrying the
+    // recipient and the amount. The rest of the payload is StarkGate's own
+    // framing and not this test's to pin.
+    // `get_messages()` returns a struct around the array, not the array.
+    let messages = spy.get_messages().messages;
+    let mut found = false;
+    let mut i = 0;
+    while i < messages.len() {
+        let (from, message) = messages.at(i);
+        if *from == starkgate_eth() {
+            let payload = message.payload;
+            let mut has_recipient = false;
+            let mut has_amount = false;
+            let mut j = 0;
+            while j < payload.len() {
+                if *payload.at(j) == l1_recipient { has_recipient = true; }
+                if *payload.at(j) == amount.into() { has_amount = true; }
+                j += 1;
+            }
+            if has_recipient && has_amount { found = true; }
+        }
+        i += 1;
+    }
+    assert(found, 'starkgate messaged L1');
+
+    // I4 for a token that left: the router ends holding none of the ETH it
+    // was funded with, and there is no allowance because there was no approval.
+    let balance = IErc20Dispatcher { contract_address: eth() };
+    assert(balance.balance_of(router) == 0, 'no ETH left behind');
 }
