@@ -86,15 +86,20 @@ const total = sdk + cairo + browser
  * the exact silence the whole file exists to break.
  */
 const CLAIMS = [
-  { label: 'SDK tests', expected: sdk, pattern: /(\d+) SDK tests/g },
+  // `\s+` between the number and its noun, never a literal space. JSX wraps
+  // prose at eighty columns, and "47 Cairo" at the end of one line with
+  // "tests" at the start of the next matched none of these for a week - the
+  // landing page shipped a count three behind the suite while this gate
+  // reported that every count agreed. A line break is whitespace.
+  { label: 'SDK tests', expected: sdk, pattern: /(\d+)\s+SDK\s+tests/g },
   { label: 'SDK tests, table row', expected: sdk, pattern: /\| SDK, (\d+) \|/g },
-  { label: 'Playwright tests', expected: browser, pattern: /(\d+) Playwright tests/g },
-  { label: 'browser tests', expected: browser, pattern: /(\d+) browser tests/g },
+  { label: 'Playwright tests', expected: browser, pattern: /(\d+)\s+Playwright\s+tests/g },
+  { label: 'browser tests', expected: browser, pattern: /(\d+)\s+browser\s+tests/g },
   { label: 'browser tests, table row', expected: browser, pattern: /\| Browser, (\d+) \|/g },
-  { label: 'Cairo tests', expected: cairo, pattern: /(\d+) Cairo tests/g },
+  { label: 'Cairo tests', expected: cairo, pattern: /(\d+)\s+Cairo\s+tests/g },
   { label: 'Cairo tests, table row', expected: cairo, pattern: /\| Cairo, (\d+) \|/g },
-  { label: 'Cairo tests, after test.sh', expected: cairo, pattern: /test\.sh\s+#\s*(\d+) tests/g },
-  { label: 'Cairo tests, fuzz sentence', expected: cairo, pattern: /(\d+) tests, two of them fuzzed/g },
+  { label: 'Cairo tests, after test.sh', expected: cairo, pattern: /test\.sh\s+#\s*(\d+)\s+tests/g },
+  { label: 'Cairo tests, fuzz sentence', expected: cairo, pattern: /(\d+)\s+tests,\s+two\s+of\s+them\s+fuzzed/g },
   { label: 'every test, on the deck', expected: total, pattern: /value="(\d+)" of="tests across/g },
 ]
 
@@ -109,7 +114,7 @@ for (const file of walk(root)) {
       if (Number(found) !== claim.expected) {
         problems.push({
           file: relative(root, file),
-          said: whole.trim(),
+          said: whole.replace(/\s+/g, ' ').trim(),
           expected: `${claim.label} is ${claim.expected}`,
         })
       }

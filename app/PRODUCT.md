@@ -101,7 +101,7 @@ authority for refinement, not a commitment the user has pinned.
 - Mainnet findings with the queries that produced them in
   `docs/what-mainnet-says.md`; threat model in `docs/threat-model.md`.
 - 141 SDK tests; 408 Playwright tests across six projects (desktop 136, firefox
-  105, webkit 105, mobile 11, mobile-safari 11, ready 2) on three engines; 47
+  105, webkit 105, mobile 11, mobile-safari 11, ready 2) on three engines; 50
   Cairo tests of which four fork mainnet and run the router against Endur's
   vault and AVNU's exchange. Count them before quoting them; this line has been
   stale four times, and once it was stale on the landing page itself.
