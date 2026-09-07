@@ -158,13 +158,29 @@ jobs:
       # fork test asked at the wrong moment. That is the node rate-limiting a
       # shared runner, not a contract failing, so it gets one retry before it is
       # allowed to fail the build.
-      - name: Cairo tests, with one retry for a rate-limited fork node
+      - name: Cairo tests, retrying only a throttled fork node
         run: |
-          snforge test --coverage --profile coverage || {
-            echo "::warning::first attempt failed; retrying once in case the fork node throttled us"
-            sleep 30
-            snforge test --coverage --profile coverage
-          }
+          # Two retries, and only for the one failure that is not ours: a public
+          # fork node under CI load answers with something that is not JSON, and
+          # every fork test that asked at that moment reports
+          # `JsonRpc provider error: expected value at line 1 column 1`.
+          #
+          # An assertion failure must never be retried, so the output is read
+          # rather than the exit code trusted: if the log does not carry that
+          # provider error, the run fails on the first attempt as it should.
+          for attempt in 1 2 3; do
+            if snforge test --coverage --profile coverage 2>&1 | tee /tmp/cairo.log; then
+              exit 0
+            fi
+            if ! grep -q "JsonRpc provider error" /tmp/cairo.log; then
+              echo "::error::Cairo tests failed for a reason that is not the fork node"
+              exit 1
+            fi
+            echo "::warning::attempt $attempt hit a throttled fork node; retrying"
+            sleep 45
+          done
+          echo "::error::the fork node throttled every attempt"
+          exit 1
         working-directory: contracts
 
       - name: Every contract line runs
