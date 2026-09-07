@@ -68,7 +68,13 @@ jobs:
       # A public Starknet mainnet node, so this runs on a fork with no secrets.
       # The suite reads the chain for real - there are no fixtures in it - so
       # without a node there is nothing to test rather than something to mock.
-      STARKNET_RPC_URL: ${{ secrets.STARKNET_RPC_URL || 'https://rpc.starknet.lava.build:443' }}
+      # Cartridge, not Lava. `rpc.starknet.lava.build` now answers every request
+      # with `{"error":"This endpoint has been discontinued."}` — a 200 carrying
+      # a refusal, which is why it read as slowness rather than as an outage:
+      # the browser job sat on it for ninety minutes and the class check
+      # reported two live mainnet contracts as unreadable. The fork tests were
+      # already pointed here, in contracts/Scarb.toml.
+      STARKNET_RPC_URL: ${{ secrets.STARKNET_RPC_URL || 'https://api.cartridge.gg/x/starknet/mainnet' }}
       ROUTER_ADDRESS: '0x008498d79ca390b34a6416cc45fb375ad9b921eefd8d4531d99a2d775feb3a7e'
       GOVERNOR_ADDRESS: '0x05bd985e794aee4c12d529ab50a68e5a40c7e28a36642b2b8e2ccdb373346984'
     steps:
@@ -197,7 +203,7 @@ jobs:
           # Falls back to a public node rather than skipping. This check is the
           # one that says the contracts on mainnet are the contracts you are
           # reading, and a skipped check proves nothing.
-          STARKNET_RPC_URL: ${{ secrets.STARKNET_RPC_URL || 'https://rpc.starknet.lava.build:443' }}
+          STARKNET_RPC_URL: ${{ secrets.STARKNET_RPC_URL || 'https://api.cartridge.gg/x/starknet/mainnet' }}
         run: |
           npm install --no-audit --no-fund
           node scripts/verify-classes.mjs
