@@ -370,7 +370,7 @@ function Qualifying() {
               target="_blank"
               rel="noreferrer"
             >
-              the demo, 3:37
+              the demo, 3:38
             </a>
             {' '}— linked rather than embedded, because a 28 MB autoplay is not what a first
             viewport is for.
@@ -555,10 +555,10 @@ export default async function Landing() {
             terminal for.
           */}
           <p className="mt-6 max-w-[62ch] border-t border-thread pt-4 font-mono text-xs text-muted">
-            141 SDK tests, 408 Playwright tests across six projects on three engines, and 51 Cairo
-            tests, eight of which fork mainnet: seven run the router against Endur&apos;s vault,
-            AVNU&apos;s exchange, Vesu&apos;s lending market and StarkGate&apos;s bridge, and one
-            runs the deployed STRK20 shadow-account anonymizer, for the position the router cannot
+            141 SDK tests, 408 Playwright tests across six projects on three engines, and 52 Cairo
+            tests, nine of which fork mainnet: seven run the router against Endur&apos;s vault,
+            AVNU&apos;s exchange, Vesu&apos;s lending market and StarkGate&apos;s bridge, and two
+            run the deployed STRK20 shadow-account anonymizer, for the positions the router cannot
             hold. The reasoning behind these six rules is in{' '}
             <a
               className="text-cloth underline underline-offset-2 hover:text-gold"

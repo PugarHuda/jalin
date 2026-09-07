@@ -47,7 +47,7 @@ at a pinned mainnet block.
 |---|---|
 | **[The deck](https://jalin-five.vercel.app/slides)** | Nine panels: the constraint, the mechanism, what it reaches, what it does not do |
 | **[The composer](https://jalin-five.vercel.app/compose)** | Build a plan, see what it reveals, sign it with Ready |
-| **[The demo](https://jalin-five.vercel.app/jalin-demo.mp4)** | 3:37, recorded against production, with subtitles and pointers measured off the live DOM |
+| **[The demo](https://jalin-five.vercel.app/jalin-demo.mp4)** | 3:38, recorded against production, with subtitles and pointers measured off the live DOM |
 | **[Verify](https://jalin-five.vercel.app/verify)** | The sprint's own rule applied to any repository's `strk20.json`, including this one |
 | **[`strk20.json`](./strk20.json)** | Four mainnet transactions, two declared contracts |
 | **[`jalin-sdk`](https://www.npmjs.com/package/jalin-sdk)** | The plan encoder, published |
@@ -241,9 +241,14 @@ deployed at the address the anonymizer predicted before it existed, opens a
 Vesu position, and a second interaction under the same identity closes it and
 collects only the difference into a note. That is the one shape the router
 cannot take — invariant I4 makes it end every transaction empty — and the
-reason STRK20 has two anonymizer patterns rather than one. The test also found
-that the deployed class returns one span where the vendored source returns two;
-see [what mainnet says](./docs/what-mainnet-says.md).
+reason STRK20 has two anonymizer patterns rather than one. Beside it,
+`two_nonces_are_two_accounts_that_share_nothing` is the contract side of
+`subaccounts.ts`: one identity, nonces 0 and 1, two addresses from a single
+`get_shadow_accounts` scan before either exists, a position on one invisible
+from the other, and `until_undeployed` reporting how many accounts an identity
+already has without a database. The tests also found that the deployed class
+returns one span where the vendored source returns two; see
+[what mainnet says](./docs/what-mainnet-says.md).
 
 An earlier version of this section said the Wallet API exposed no sub-account
 method. It does now: starknet.js 10.6.0 (29 July 2026) added the handling, and
@@ -463,18 +468,18 @@ sh contracts/test.sh          # snforge in a pinned container
 because pinning the toolchain is worth more than saving a container. The scarb
 cache lives in a named volume, so only the first run pays for the plugin build.
 
-51 tests, two of them fuzzed at 256 runs each, covering every line of every
+52 tests, two of them fuzzed at 256 runs each, covering every line of every
 contract — `sh contracts/coverage.sh && node scripts/coverage-gate.mjs` fails if
 any line of `src/` never runs. Line coverage is a floor, not a proof: it says
 every line ran, not that it ran under the conditions that would break it.
 
-Eight of them fork Starknet mainnet at a pinned block. Seven run a plan through
+Nine of them fork Starknet mainnet at a pinned block. Seven run a plan through
 a deployed contract — Endur's xSTRK vault, AVNU's exchange into Ekubo's
 STRK/USDC pool, Vesu's STRK market, StarkGate's ETH bridge, and two of those in
 one invoke — funded by the STRK20 pool's own STRK, which is where the STRK comes
-from in a real transaction. The eighth runs the same Vesu deposit through
-STRK20's deployed shadow-account anonymizer, as the position the router cannot
-hold. A mock ERC-4626 returns what the mock was told to return; these prove the
+from in a real transaction. The last two run STRK20's deployed shadow-account
+anonymizer: the same Vesu deposit as the position the router cannot hold, and
+one identity's two strategies on two accounts that share nothing. A mock ERC-4626 returns what the mock was told to return; these prove the
 router works against contracts nobody here wrote. They need network, and use a
 public node that takes no key.
 

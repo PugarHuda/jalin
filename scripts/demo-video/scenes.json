@@ -133,7 +133,7 @@
   "id": "11-close",
   "url": "/",
   "shot": "hero",
-  "text": "One general router instead of a new contract per interaction. Fifty-one Cairo tests, eight of them against real mainnet contracts, including the shadow account anonymizer, a published SDK, a threat model, and every claim on this page verifiable against the chain. Jalin. To weave separate strands into one.",
+  "text": "One general router instead of a new contract per interaction. Fifty-two Cairo tests, nine of them against real mainnet contracts, including the shadow account anonymizer, a published SDK, a threat model, and every claim on this page verifiable against the chain. Jalin. To weave separate strands into one.",
   "marks": [
    {
     "cue": "verifiable against mainnet",

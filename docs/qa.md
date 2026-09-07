@@ -14,12 +14,12 @@ Run all of it with three commands:
 ```sh
 npm test          # 141 SDK tests
 npm run test:e2e  # 408 browser tests, six projects, three engines
-sh contracts/test.sh   # 51 Cairo tests, eight of which fork mainnet
+sh contracts/test.sh   # 52 Cairo tests, nine of which fork mainnet
 ```
 
 | Suite | What it establishes |
 |---|---|
-| Cairo, 51 | Each of the six invariants rejects the plan it exists to reject. Eight fork mainnet: seven run the router against Endur's real vault, AVNU's real exchange, Vesu's real STRK lending market and StarkGate's real ETH bridge — including one plan carrying a swap and a stake in the same invoke, and one that credits nothing back because the value left for L1 — and one runs the same Vesu deposit through a shadow account on the deployed STRK20 anonymizer, opened in one interaction and closed in the next, which is the position the router's own invariants forbid it to hold. The integration is tested against the deployed contracts rather than a mock. |
+| Cairo, 52 | Each of the six invariants rejects the plan it exists to reject. Nine fork mainnet: seven run the router against Endur's real vault, AVNU's real exchange, Vesu's real STRK lending market and StarkGate's real ETH bridge — including one plan carrying a swap and a stake in the same invoke, and one that credits nothing back because the value left for L1 — and two run the deployed STRK20 shadow-account anonymizer: the same Vesu deposit through a shadow account, opened in one interaction and closed in the next, which is the position the router's own invariants forbid it to hold; and one identity holding two strategies on two accounts that share nothing. The integration is tested against the deployed contracts rather than a mock. |
 | SDK, 141 | Plan encoding round-trips, calldata bounds hold, and the receipt reader applies the sprint's four-part rule the same way `/verify` does. |
 | Browser, 408 | Every page renders without a console error, passes axe at WCAG 2.1 AA, keeps a visible focus ring under real Tab presses, never scrolls sideways at 390px, and computes every colour pair on the page against the WCAG formula from the tokens on the live document. |
 

@@ -727,3 +727,73 @@ fn a_position_the_router_cannot_hold_lives_on_a_shadow_account() {
     assert(token.balance_of(shadow) == 0, 'shadow account emptied');
     assert(shares.balance_of(shadow) == 0, 'position closed');
 }
+
+/// One identity, two strategies, two accounts that share nothing on chain.
+///
+/// `sdk/src/subaccounts.ts` models a portfolio as one position per strategy,
+/// each on its own shadow account, rolled back into one balance sheet off
+/// chain. This is the contract side of that model on the deployed anonymizer:
+/// the same identity and dapp with nonces 0 and 1 resolve to two addresses in
+/// a single `get_shadow_accounts` scan before either exists, each is deployed
+/// on its first use, and a position opened on one is invisible from the other.
+/// `until_undeployed` then reports the deployed prefix, which is how a wallet
+/// finds out how many accounts an identity already has without a database.
+#[test]
+#[fork("MAINNET")]
+fn two_nonces_are_two_accounts_that_share_nothing() {
+    let anonymizer = IShadowAccountAnonymizerDispatcher { contract_address: shadow_anonymizer() };
+    let (partial, first) = shadow_commitment('JALIN_IDENTITY', 'jalin', 0);
+    let (_, second) = shadow_commitment('JALIN_IDENTITY', 'jalin', 1);
+
+    // One scan, both addresses, neither deployed.
+    let predicted = anonymizer.get_shadow_accounts(partial, 0, 2, false);
+    assert(predicted.len() == 2, 'two nonces, two entries');
+    let a = *predicted.at(0).address;
+    let b = *predicted.at(1).address;
+    assert(a != b, 'distinct addresses');
+    assert(!*predicted.at(0).is_deployed && !*predicted.at(1).is_deployed, 'neither deployed');
+    assert(anonymizer.get_shadow_accounts(partial, 0, 2, true).len() == 0, 'deployed prefix is empty');
+
+    // Fund only the first and open a position from it.
+    let token = IErc20Dispatcher { contract_address: strk() };
+    start_cheat_caller_address(strk(), pool());
+    token.transfer(a, ONE.into());
+    stop_cheat_caller_address(strk());
+
+    let open = array![
+        Call {
+            to: strk(),
+            selector: selector!("approve"),
+            calldata: array![vesu_strk().into(), ONE.into(), 0].span(),
+        },
+        Call {
+            to: vesu_strk(),
+            selector: selector!("deposit"),
+            calldata: array![ONE.into(), 0, a.into()].span(),
+        },
+    ];
+    start_cheat_caller_address(shadow_anonymizer(), pool());
+    anonymizer.privacy_invoke_with_computation(first, open, array![].span());
+    stop_cheat_caller_address(shadow_anonymizer());
+
+    // The prefix is now exactly one long: nonce 0 exists, nonce 1 does not.
+    let prefix = anonymizer.get_shadow_accounts(partial, 0, 2, true);
+    assert(prefix.len() == 1, 'deployed prefix is one');
+    assert(*prefix.at(0).address == a, 'and it is the first');
+    assert(anonymizer.get_shadow_account(first) == a, 'first deployed');
+    let none: felt252 = anonymizer.get_shadow_account(second).into();
+    assert(none == 0, 'second still undeployed');
+
+    // The position is on the first account and nowhere near the second.
+    let shares = IErc20Dispatcher { contract_address: vesu_strk() };
+    assert(shares.balance_of(a) > 0, 'first holds the position');
+    assert(shares.balance_of(b) == 0, 'second holds nothing');
+
+    // The second deploys on its own first use, at the address predicted for
+    // it before the first existed - the two derivations do not interfere.
+    start_cheat_caller_address(shadow_anonymizer(), pool());
+    anonymizer.privacy_invoke_with_computation(second, array![], array![].span());
+    stop_cheat_caller_address(shadow_anonymizer());
+    assert(anonymizer.get_shadow_account(second) == b, 'second where predicted');
+    assert(anonymizer.get_shadow_accounts(partial, 0, 2, true).len() == 2, 'prefix is both');
+}
