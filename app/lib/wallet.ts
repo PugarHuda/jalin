@@ -160,6 +160,16 @@ export async function sendCalls(
 export interface Capabilities {
   /** What the wallet reports through `wallet_supportedWalletApi`. */
   versions: string[]
+  /**
+   * Why `versions` is empty, when it is.
+   *
+   * A wallet that does not implement `wallet_supportedWalletApi` and one whose
+   * answer errored both left this as `[]`, and the page printed "Wallet API
+   * version unknown" for each - which reads as "old wallet" when it may be a
+   * failed call. The distinction is the difference between "upgrade" and "try
+   * again".
+   */
+  versionRefusal: string | null
   strk20: boolean
   /**
    * The wallet asked and the person said no. Not a capability: a refusal
@@ -181,6 +191,7 @@ export interface Capabilities {
 export async function probe(wallet: Strk20Wallet): Promise<Capabilities> {
   const out: Capabilities = {
     versions: [],
+    versionRefusal: null,
     strk20: false,
     declined: false,
     registered: false,
@@ -192,7 +203,9 @@ export async function probe(wallet: Strk20Wallet): Promise<Capabilities> {
 
   try {
     out.versions = await wallet.request({ type: 'wallet_supportedWalletApi' })
-  } catch {}
+  } catch (error) {
+    out.versionRefusal = describeError(error)
+  }
 
   try {
     // `tokens` is required; an empty array means every shielded token. Calling

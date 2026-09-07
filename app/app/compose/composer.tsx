@@ -196,6 +196,41 @@ const RUNS: MainnetRun[] = [
   },
 ]
 
+/**
+ * A preset's Endur floor, from the vault rather than from this file.
+ *
+ * The starting floors here were literals - 0.19 for a quarter of a STRK, 0.3
+ * for four tenths - on a page whose first principle is that every number comes
+ * from the chain. They were also stale by construction: a share price moves,
+ * and a floor written down in August protects nothing in September or reverts
+ * for no reason.
+ *
+ * `quote` is `preview_deposit` for a quarter STRK, which the composer already
+ * reads. Scaling it by the preset's own input is exact for an ERC-4626 vault at
+ * a single price, and the 4% margin below it is the same one `describeVerdict`
+ * documents: a proof takes about half a minute and the price moves under it.
+ *
+ * Without a quote the literal stands, and the page says which it is.
+ */
+function withLiveFloor(draft: Draft, quotedShares: bigint | null): Draft {
+  if (!quotedShares) return draft
+  const staked = draft.steps
+    .filter((step) => step.target === ENDUR_VAULT)
+    .reduce((total, step) => total + toBaseUnits(step.approveAmount || '0', 18), 0n)
+  if (staked === 0n) return draft
+
+  // The quote is for a quarter of a STRK; scale it to what this preset stakes.
+  const shares = (quotedShares * staked) / (ONE / 4n)
+  const floor = (shares * 96n) / 100n
+
+  return {
+    ...draft,
+    outputs: draft.outputs.map((output) =>
+      output.token === ENDUR_VAULT ? { ...output, minAmount: formatUnits(floor, 18) } : output,
+    ),
+  }
+}
+
 function decimalsOf(address: string): number {
   return tokenOf(address)?.decimals ?? 18
 }
@@ -365,6 +400,16 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
   // deleted, and the two empty ones were written to localStorage on every save.
   const [hashes, setHashes] = useState<(string | null)[]>(() => RUNS.map(() => null))
   const [ballotSecret, setBallotSecret] = useState<string | null>(null)
+  /**
+   * Set when the browser refused to keep the landed hashes.
+   *
+   * Private mode and a full quota both throw from `localStorage`, and both were
+   * swallowed - so the feature docs/qa.md case 5 exists to provide, remembering
+   * a hash across a reload, silently did not. A reader who reloads and finds
+   * the page empty should be told it was not saved rather than conclude the
+   * transaction was not sent.
+   */
+  const [storageRefusal, setStorageRefusal] = useState<string | null>(null)
   const [lastPayload, setLastPayload] = useState<string | null>(null)
   const [shieldHash, setShieldHash] = useState<string | null>(null)
   const [account, setAccount] = useState<string | null>(null)
@@ -447,7 +492,15 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
         ],
         outputs: [
           { token: USDC, minAmount: formatUnits(BigInt(body.buy.min), 6) },
-          { token: ENDUR_VAULT, minAmount: '0.19' },
+          {
+            token: ENDUR_VAULT,
+            // The AVNU half already carries the exchange's own minimum; this
+            // half now carries the vault's, scaled from the live quote.
+            // This half stakes a quarter of a STRK, which is exactly what the
+            // quote is for, so the floor is the quote less the same 4% margin
+            // the presets use.
+            minAmount: quote ? formatUnits((quote.shares * 96n) / 100n, 18) : '0.19',
+          },
         ],
       })
     } catch (error) {
@@ -479,7 +532,9 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
         // Verdicts are not stored; they are the chain's to give, so ask again.
         for (const h of [saved.shield, ...runs]) if (h) void judge(h, null)
       }
-    } catch {}
+    } catch (error) {
+      setStorageRefusal(describeError(error))
+    }
     restoredFor.current = address
   }
 
@@ -490,7 +545,17 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
         `jalin:mainnet-run:${account}`,
         JSON.stringify({ shield: shieldHash, runs: hashes }),
       )
-    } catch {}
+      // Written, so any earlier complaint is stale. Functional updates rather
+      // than reading the current value: this effect runs on every hash change
+      // and does not want the refusal in its dependency list.
+      queueMicrotask(() => setStorageRefusal((current) => (current === null ? current : null)))
+    } catch (error) {
+      // Out of the effect's own render pass. Setting state synchronously inside
+      // an effect cascades, and the lint rule that says so is right: this is a
+      // report about the write, not part of it.
+      const message = describeError(error)
+      queueMicrotask(() => setStorageRefusal((current) => (current === message ? current : message)))
+    }
   }, [account, hashes, shieldHash])
 
   /**
@@ -1012,7 +1077,11 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
     setWallet(w)
 
     const who = `${raw.name ?? 'unknown wallet'}${raw.version ? ` ${raw.version}` : ''}`
-    const api = found.versions.length ? `Wallet API ${found.versions.join(', ')}` : 'Wallet API version unknown'
+    const api = found.versions.length
+      ? `Wallet API ${found.versions.join(', ')}`
+      : found.versionRefusal
+        ? `Wallet API version unreadable: ${found.versionRefusal}`
+        : 'Wallet API version not reported'
 
     if (found.declined) {
       setStatus(
@@ -1299,7 +1368,7 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
         {PRESETS.map((preset) => (
           <button
             key={preset.name}
-            onClick={() => setDraft(preset.draft)}
+            onClick={() => setDraft(withLiveFloor(preset.draft, quote?.shares ?? null))}
             title={preset.blurb}
             disabled={busy}
             className="rounded border border-strand bg-raised px-3 py-1.5 text-sm hover:border-gold disabled:opacity-40"
@@ -1641,6 +1710,14 @@ export function Composer({ shared }: { shared: SharedDraft | null }) {
               once voting closes. That page hashes the secret in your browser and asks the
               governor about the hash, so looking it up does not publish it.
             </span>
+          </p>
+        )}
+
+        {storageRefusal && (
+          <p className="mt-3 max-w-[62ch] font-mono text-xs text-warn" data-testid="storage-refusal">
+            This browser would not keep the transaction hashes: {storageRefusal}. They are still on
+            chain — reload and they will not be here, which is this page forgetting rather than
+            anything having failed.
           </p>
         )}
       </section>

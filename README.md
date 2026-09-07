@@ -38,9 +38,11 @@ so about this repository as readily as any other.
 
 Two on the deck were not, until 6 September: the contract count and the
 invariant count sat on slide 01 as string literals, beside a sentence claiming
-nothing here is typed in. Both are derived now. What is still typed in is the
-starting floor on two composer presets — a form's default value rather than a
-claim, with the live quote from the vault printed beside it.
+nothing here is typed in. Both are derived now. The composer's preset floors were the
+last of it: literals of 0.19 and 0.3, on a page whose first principle is that
+every number is read. They are the vault's own `preview_deposit`, scaled to what
+the preset stakes and set 4% under it, and the literal only stands when the
+vault has not answered.
 
 ---
 
@@ -447,7 +449,7 @@ npm run typecheck             # tsc over the whole SDK, imported or not
 npm run lint                  # eslint over the app
 npm run check:links           # every path this repository names
 npm run check:counts          # every test count the prose quotes
-npm run test:e2e              # 405 Playwright tests, six projects, three engines
+npm run test:e2e              # 408 Playwright tests, six projects, three engines
 ```
 
 The browser suite has no fixtures in it. It reads the live chain, so it asserts

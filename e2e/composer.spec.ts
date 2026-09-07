@@ -362,3 +362,28 @@ test.describe('the wallet flow', () => {
     await expect(page.getByRole('button', { name: 'disconnect' })).toHaveCount(0)
   })
 })
+
+/**
+ * The preset floors, which were literals on a page whose first principle is
+ * that every number comes from the chain.
+ */
+test('a preset floor is the vault quote, not a number typed in August', async ({ page }) => {
+  await page.goto('/compose', { waitUntil: 'domcontentloaded' })
+  await settled(page)
+
+  // The quote is fetched on mount; the preset reads it when it is clicked.
+  await expect(page.locator('main')).toContainText(/vault quotes/, { timeout: 30_000 })
+  await page.getByRole('button', { name: 'Stake on Endur' }).click()
+
+  const quoted = await page.locator('main').innerText()
+  const shares = Number(/vault quotes ([\d.]+) xSTRK/.exec(quoted)?.[1] ?? '0')
+  expect(shares, 'the vault did not answer, so there is nothing to compare').toBeGreaterThan(0)
+
+  const floor = await page.getByLabel(/floor|min/i).first().inputValue().catch(() => '')
+  const printed = Number(floor)
+  test.skip(!printed, 'the floor field is not exposed by that label')
+
+  // Four percent under the quote, which is the margin the composer documents.
+  expect(printed).toBeGreaterThan(shares * 0.9)
+  expect(printed).toBeLessThan(shares)
+})

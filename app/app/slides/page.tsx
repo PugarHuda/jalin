@@ -112,7 +112,7 @@ export default async function Slides() {
             of="Cairo contracts, declared and live"
           />
           <Fact value={String(INVARIANTS.length)} of="invariants enforced on chain" />
-          <Fact value="593" of="tests across Cairo, SDK and browser" />
+          <Fact value="596" of="tests across Cairo, SDK and browser" />
         </div>
       </Slide>
 

@@ -48,7 +48,10 @@ test.describe('governance', () => {
   })
 
   test('says why a proposal cannot execute rather than only that it cannot', async ({ page }) => {
-    await expect(page.getByText(/rejected · nobody voted/)).toBeVisible()
+    // `.first()`: the governor has more than one closed proposal now, and the
+    // assertion is that the page gives a reason rather than that it gives one
+    // reason. It failed on strict mode the day a third proposal was opened.
+    await expect(page.getByText(/rejected · nobody voted/).first()).toBeVisible()
   })
 
   test('admits the one parameter it cannot show', async ({ page }) => {

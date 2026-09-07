@@ -62,7 +62,14 @@ export async function GET(request: Request) {
     // How fast the chain is moving, so "closes in 1,900 blocks" can be said in
     // minutes without a literal that was right on the day it was written. Null
     // when the node will not answer; the page then says blocks and nothing more.
-    const blockTime = await secondsPerBlock(head, revalidate).catch(() => null)
+    // Null when the node will not answer, and the page then says blocks and
+    // nothing more. It used to say nothing about why: every "about N minutes"
+    // annotation simply disappeared, which reads as a page that never had them.
+    let blockTimeRefusal: string | null = null
+    const blockTime = await secondsPerBlock(head, revalidate).catch((error: unknown) => {
+      blockTimeRefusal = error instanceof Error ? error.message : String(error)
+      return null
+    })
 
     /**
      * Every asked target at once, and every proposal at once below.
@@ -149,6 +156,8 @@ export async function GET(request: Request) {
       // offer an amount" rather than as a fee of zero.
       poolFee: rawPoolFee ? BigInt(rawPoolFee[0] ?? '0x0').toString() : null,
       secondsPerBlock: blockTime,
+      /** Why there is no block time, when there is none. */
+      secondsPerBlockRefusal: blockTimeRefusal,
       denied,
       shadow,
     }, revalidate)
