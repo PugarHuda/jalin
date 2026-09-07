@@ -115,7 +115,15 @@ test.describe('reading a whole submission', () => {
     if (!/· agrees/.test(await hub.innerText())) {
       await expect(hub).toContainText(/re-reads a repository on its own schedule/)
     }
-    await expect(hub).toContainText(/mainnet ✓/)
+    // Whichever tick the hub gave. `mainnet ✓` was asserted here until the
+    // hub's default node was discontinued and every project on it read
+    // `mainnet ✗` for an afternoon; this page's job is to print that verdict
+    // beside its own, not to promise the hub agrees.
+    await expect(hub).toContainText(/mainnet [✓✗]/)
+    if (/mainnet ✗/.test(await hub.innerText())) {
+      // Then it had better be saying so out loud, with our count next to it.
+      await expect(hub).toContainText(/this page counts \d+/)
+    }
 
     // The demo URL is what a panel opens first, so it is a link here - and only
     // a link: the server never fetches what a manifest names. Since the demo
