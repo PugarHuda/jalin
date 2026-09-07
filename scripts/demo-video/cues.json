@@ -66,23 +66,23 @@
  "03-plan": [
   {
    "t": 0.05,
-   "d": 2.8145833,
+   "d": 2.8536458,
    "w": "Jalin is a router, not an application."
   },
   {
-   "t": 2.8645833,
-   "d": 2.6432292,
+   "t": 2.9036458,
+   "d": 2.2786458,
    "w": "It ships no use case of its own."
   },
   {
-   "t": 5.5078126,
-   "d": 10.2994793,
+   "t": 5.1822917,
+   "d": 10.2213543,
    "w": "It takes a plan instead of fixed parameters: a bounded list of steps, each naming a target, a selector, calldata, and the approvals it needs."
   },
   {
-   "t": 15.807292,
-   "d": 7.6822918,
-   "w": "It runs them in order inside the single privacy invoke and enforces the floor the caller set on each output."
+   "t": 15.4036461,
+   "d": 13.6197919,
+   "w": "A swap through AVNU, a stake into Endur and a deposit into Vesu's lending market all run as plans against those deployed contracts, and one plan carries two of them inside a single privacy invoke."
   }
  ],
  "04-general": [
@@ -212,22 +212,22 @@
  "11-close": [
   {
    "t": 0.05,
-   "d": 3.9604167,
+   "d": 3.9473959,
    "w": "One general router instead of a new contract per interaction."
   },
   {
-   "t": 4.0104167,
-   "d": 8.4635418,
-   "w": "Cairo tests, a published SDK, a threat model, and every claim on this page verifiable against mainnet."
+   "t": 3.9973959,
+   "d": 12.1744794,
+   "w": "Forty-nine Cairo tests, six of them against real mainnet contracts, a published SDK, a threat model, and every claim on this page verifiable against the chain."
   },
   {
-   "t": 12.4739586,
-   "d": 0.859375,
+   "t": 16.1718753,
+   "d": 0.8723958,
    "w": "Jalin."
   },
   {
-   "t": 13.3333336,
-   "d": 2.65625,
+   "t": 17.0442712,
+   "d": 2.7604167,
    "w": "To weave separate strands into one."
   }
  ]

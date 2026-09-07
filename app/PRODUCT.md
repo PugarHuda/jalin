@@ -106,7 +106,7 @@ authority for refinement, not a commitment the user has pinned.
   vault and AVNU's exchange. Count them before quoting them; this line has been
   stale four times, and once it was stale on the landing page itself.
 - A demo video exists and ships from the app: `app/public/jalin-demo.mp4`,
-  26,718,582 bytes (26.7 MB), 1920x1080, 3:26 by `ffprobe`, rebuilt on 7
+  28,085,707 bytes (28.1 MB), 1920x1080, 3:35 by `ffprobe`, rebuilt on 7
   September. It said 20.8 MB and 2:49 until 4 September, both invented rather
   than read; read it again after every render rather than adjusting it.
   `strk20.json` names it at `/jalin-demo.mp4`. This line

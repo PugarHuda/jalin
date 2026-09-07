@@ -39,7 +39,7 @@ arguing a shape rather than reporting a result.
 |---|---|
 | **[The deck](https://jalin-five.vercel.app/slides)** | Nine panels: the constraint, the mechanism, what it reaches, what it does not do |
 | **[The composer](https://jalin-five.vercel.app/compose)** | Build a plan, see what it reveals, sign it with Ready |
-| **[The demo](https://jalin-five.vercel.app/jalin-demo.mp4)** | 3:26, recorded against production, with subtitles and pointers measured off the live DOM |
+| **[The demo](https://jalin-five.vercel.app/jalin-demo.mp4)** | 3:35, recorded against production, with subtitles and pointers measured off the live DOM |
 | **[Verify](https://jalin-five.vercel.app/verify)** | The sprint's own rule applied to any repository's `strk20.json`, including this one |
 | **[`strk20.json`](./strk20.json)** | Four mainnet transactions, two declared contracts |
 | **[`jalin-sdk`](https://www.npmjs.com/package/jalin-sdk)** | The plan encoder, published |

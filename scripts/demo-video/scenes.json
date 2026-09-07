@@ -29,7 +29,7 @@
   "id": "03-plan",
   "url": "/",
   "shot": "plan",
-  "text": "Jalin is a router, not an application. It ships no use case of its own. It takes a plan instead of fixed parameters: a bounded list of steps, each naming a target, a selector, calldata, and the approvals it needs. It runs them in order inside the single privacy invoke and enforces the floor the caller set on each output.",
+  "text": "Jalin is a router, not an application. It ships no use case of its own. It takes a plan instead of fixed parameters: a bounded list of steps, each naming a target, a selector, calldata, and the approvals it needs. A swap through AVNU, a stake into Endur and a deposit into Vesu's lending market all run as plans against those deployed contracts, and one plan carries two of them inside a single privacy invoke.",
   "marks": [
    {
     "cue": "bounded list",
@@ -133,7 +133,7 @@
   "id": "11-close",
   "url": "/",
   "shot": "hero",
-  "text": "One general router instead of a new contract per interaction. Cairo tests, a published SDK, a threat model, and every claim on this page verifiable against mainnet. Jalin. To weave separate strands into one.",
+  "text": "One general router instead of a new contract per interaction. Forty-nine Cairo tests, six of them against real mainnet contracts, a published SDK, a threat model, and every claim on this page verifiable against the chain. Jalin. To weave separate strands into one.",
   "marks": [
    {
     "cue": "verifiable against mainnet",

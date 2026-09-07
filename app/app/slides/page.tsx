@@ -154,9 +154,10 @@ struct Step {
 
       <Slide n="04" title="Integration depth: what it actually reaches">
         <p className="max-w-[62ch]">
-          Two third-party mainnet protocols are reachable today with{' '}
-          <span className="text-cloth">no adapter written for either</span>, because they have an
-          ABI and that is the only requirement:
+          Three third-party mainnet protocols are reachable today with{' '}
+          <span className="text-cloth">no adapter written for any of them</span>, because they have
+          an ABI and that is the only requirement. Each is run against the deployed contract on a
+          pinned mainnet fork, not against a mock:
         </p>
         <ul className="max-w-[62ch] space-y-2 font-mono text-xs">
           <li className="border-t border-thread pt-2">
@@ -166,6 +167,11 @@ struct Step {
           <li className="border-t border-thread pt-2">
             <span className="text-cloth">AVNU</span> — <span>multi_route_swap</span> with a live
             quote, beside an Endur stake, in one invoke
+          </li>
+          <li className="border-t border-thread pt-2">
+            <span className="text-cloth">Vesu</span> — a deposit into the live STRK lending market.
+            The plan is the Endur plan with a different address in it, which is the finding rather
+            than the test
           </li>
         </ul>
         <p className="max-w-[62ch] pt-2">
@@ -345,7 +351,7 @@ struct Step {
                 className="text-cloth underline underline-offset-2 hover:text-gold"
                 href={manifest.demo_video}
               >
-                the demo, 3:26
+                the demo, 3:35
               </a>{' '}
               — a plan built and signed on mainnet
             </li>

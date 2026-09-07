@@ -370,9 +370,9 @@ function Qualifying() {
               target="_blank"
               rel="noreferrer"
             >
-              the demo, 3:26
+              the demo, 3:35
             </a>
-            {' '}— linked rather than embedded, because a 27 MB autoplay is not what a first
+            {' '}— linked rather than embedded, because a 28 MB autoplay is not what a first
             viewport is for.
           </>
         )}

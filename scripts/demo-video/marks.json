@@ -1,7 +1,7 @@
 [
  {
   "id": "01-constraint",
-  "settledAt": 8.255,
+  "settledAt": 9.193,
   "marks": [
    {
     "cue": "one external call",
@@ -16,7 +16,7 @@
  },
  {
   "id": "02-consequence",
-  "settledAt": 7.724,
+  "settledAt": 7.566,
   "marks": [
    {
     "cue": "payment app",
@@ -31,7 +31,7 @@
  },
  {
   "id": "03-plan",
-  "settledAt": 7.09,
+  "settledAt": 6.809,
   "marks": [
    {
     "cue": "bounded list",
@@ -46,7 +46,7 @@
  },
  {
   "id": "04-general",
-  "settledAt": 8.163,
+  "settledAt": 9.745,
   "marks": [
    {
     "cue": "same object",
@@ -61,7 +61,7 @@
  },
  {
   "id": "05-safety",
-  "settledAt": 6.559,
+  "settledAt": 8.059,
   "marks": [
    {
     "cue": "whole balance",
@@ -76,7 +76,7 @@
  },
  {
   "id": "06-governor",
-  "settledAt": 7.264,
+  "settledAt": 8.361,
   "marks": [
    {
     "cue": "config file",
@@ -91,7 +91,7 @@
  },
  {
   "id": "07-redeem",
-  "settledAt": 7.449,
+  "settledAt": 7.931,
   "marks": [
    {
     "cue": "redeem was written",
@@ -106,7 +106,7 @@
  },
  {
   "id": "08-mainnet",
-  "settledAt": 5.208,
+  "settledAt": 5.942,
   "marks": [
    {
     "cue": "four questions",
@@ -121,7 +121,7 @@
  },
  {
   "id": "09-hub",
-  "settledAt": 10.606,
+  "settledAt": 9.914,
   "marks": [
    {
     "cue": "two agree",
@@ -136,7 +136,7 @@
  },
  {
   "id": "10-services",
-  "settledAt": 4.122,
+  "settledAt": 3.161,
   "marks": [
    {
     "cue": "all three",
@@ -151,7 +151,7 @@
  },
  {
   "id": "11-close",
-  "settledAt": 5.594,
+  "settledAt": 6.78,
   "marks": [
    {
     "cue": "verifiable against mainnet",
